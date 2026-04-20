@@ -1,0 +1,15 @@
+node_modules/
+output/
+.env
+.idea/
+.npm-cache/
+.playwright/
+.venv-faster-whisper/
+tmp/
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.wav
+*.mp3

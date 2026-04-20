@@ -1,0 +1,333 @@
+{
+  "wan_animate": {
+    "deploymentId": "2598f049-f91a-435f-8c66-1c6612f443b2",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "57",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceVideoUrl",
+        "nodeId": "63",
+        "inputName": "video"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "65",
+        "inputName": "positive_prompt"
+      }
+    ]
+  },
+  "multitalk": {
+    "deploymentId": "replace-with-your-runcomfy-deployment-id",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "189",
+        "inputName": "image"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "190",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "6",
+        "inputName": "text"
+      }
+    ]
+  },
+  "multitalk_single": {
+    "deploymentId": "23724496-8325-4ca8-adcc-edb5d8e62412",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "105",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "104",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "18",
+        "inputName": "prompt"
+      }
+    ]
+  },
+  "liveportrait_img2vid": {
+    "deploymentId": "d2d3dfa1-2d3e-4f60-96be-f4de9d31e4c2",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.sourceVideoUrl",
+        "nodeId": "8",
+        "inputName": "video"
+      },
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "196",
+        "inputName": "image"
+      }
+    ]
+  },
+  "character_ai_ovi": {
+    "deploymentId": "b3690594-bfcf-4ec6-8f28-aa2ba3febfc4",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "109",
+        "inputName": "image"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "85",
+        "inputName": "positive_prompt"
+      }
+    ]
+  },
+  "infinitetalk": {
+    "deploymentId": "ede16f65-d62a-480f-8dbb-f80601219288",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "284",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "125",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "125",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "241",
+        "inputName": "positive_prompt"
+      },
+      {
+        "from": "segment.audioStartTime",
+        "nodeId": "159",
+        "inputName": "start_time"
+      },
+      {
+        "from": "segment.audioEndTime",
+        "nodeId": "159",
+        "inputName": "end_time"
+      }
+    ]
+  },
+  "dreamid_omni": {
+    "deploymentId": "ad35eaad-7d92-4304-8303-a2e9e819e24c",
+    "baseOverrides": {
+      "5": {
+        "inputs": {
+          "video": [
+            "21",
+            0
+          ]
+        }
+      },
+      "22": {
+        "inputs": {
+          "width": 512,
+          "height": 512,
+          "sample_steps": 2,
+          "prompt": "<img1>: A young Chinese woman identified as <sub1>.\n<img2>: The same young Chinese woman identified as <sub2>.\n**Overall Environment/Scene**: Simple neutral studio framing.\n**Main Characters/Subjects Appearance**: <sub1> and <sub2> keep the same identity as the reference image.\n**Main Characters/Subjects Actions**: <sub1> and <sub2> remain mostly still and briefly greet the camera.\n<sub1> says, <S>你好<E> <sub2> says, <S>你好<E>"
+        }
+      },
+      "21": {
+        "inputs": {
+          "width": 720,
+          "height": 1280,
+          "sample_steps": 20
+        }
+      }
+    },
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "6",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "7",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "7",
+        "inputName": "audio"
+      },
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "9",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "11",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "11",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "21",
+        "inputName": "prompt"
+      }
+    ]
+  },
+  "dreamid_omni_fast": {
+    "deploymentId": "ad35eaad-7d92-4304-8303-a2e9e819e24c",
+    "baseOverrides": {
+      "5": {
+        "inputs": {
+          "video": [
+            "21",
+            0
+          ]
+        }
+      },
+      "22": {
+        "inputs": {
+          "width": 512,
+          "height": 512,
+          "sample_steps": 2,
+          "prompt": "<img1>: A young Chinese woman identified as <sub1>.\n<img2>: The same young Chinese woman identified as <sub2>.\n**Overall Environment/Scene**: Simple neutral studio framing.\n**Main Characters/Subjects Appearance**: <sub1> and <sub2> keep the same identity as the reference image.\n**Main Characters/Subjects Actions**: <sub1> and <sub2> remain mostly still and briefly greet the camera.\n<sub1> says, <S>你好<E> <sub2> says, <S>你好<E>"
+        }
+      },
+      "21": {
+        "inputs": {
+          "width": 512,
+          "height": 896,
+          "sample_steps": 12
+        }
+      }
+    },
+    "inputBindings": [
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "6",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "7",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "7",
+        "inputName": "audio"
+      },
+      {
+        "from": "globals.speakerImageUrl",
+        "nodeId": "9",
+        "inputName": "image"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "11",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "11",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "21",
+        "inputName": "prompt"
+      }
+    ]
+  },
+  "matanyone": {
+    "deploymentId": "b92d4879-a65a-4df6-816b-0f773899ae5a",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.sourceVideoUrl",
+        "nodeId": "3",
+        "inputName": "video"
+      }
+    ]
+  },
+  "diffueraser_bgfill": {
+    "deploymentId": "d5bd5043-1bc9-4f69-a821-9cf28be82eb0",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "globals.sourceVideoUrl",
+        "nodeId": "122",
+        "inputName": "video"
+      }
+    ]
+  },
+  "seedance_broll": {
+    "deploymentId": "replace-with-your-runcomfy-deployment-id",
+    "baseOverrides": {},
+    "inputBindings": [
+      {
+        "from": "segment.visualPrompt",
+        "nodeId": "6",
+        "inputName": "prompt"
+      }
+    ]
+  },
+  "latentsync": {
+    "deploymentId": "0bfbac47-17b0-4e20-ad01-661ba0054345",
+    "baseOverrides": {
+      "41": {
+        "inputs": {
+          "frame_rate": 30
+        }
+      },
+      "55": {
+        "inputs": {
+          "fps": 30
+        }
+      }
+    },
+    "inputBindings": [
+      {
+        "from": "globals.generatedVideoUrl",
+        "nodeId": "40",
+        "inputName": "video"
+      },
+      {
+        "from": "segment.generatedVideoUrl",
+        "nodeId": "40",
+        "inputName": "video"
+      },
+      {
+        "from": "globals.sourceAudioUrl",
+        "nodeId": "37",
+        "inputName": "audio"
+      },
+      {
+        "from": "segment.voiceoverAudioUrl",
+        "nodeId": "37",
+        "inputName": "audio"
+      }
+    ]
+  }
+}

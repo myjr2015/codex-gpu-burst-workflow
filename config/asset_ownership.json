@@ -1,0 +1,49 @@
+{
+  "github": {
+    "role": "source_of_truth_for_code_and_process",
+    "stores": [
+      "workflow_json",
+      "startup_scripts",
+      "model_manifests",
+      "task_scripts",
+      "docs"
+    ],
+    "must_not_store": [
+      "large_models",
+      "generated_videos",
+      "input_media",
+      "docker_layers"
+    ]
+  },
+  "docker": {
+    "role": "runtime_environment_only",
+    "stores": [
+      "comfyui_core",
+      "custom_nodes",
+      "python_dependencies",
+      "system_runtime"
+    ],
+    "must_not_store": [
+      "workflow_json",
+      "input_media",
+      "output_media",
+      "large_models",
+      "temporary_caches_as_assets"
+    ]
+  },
+  "r2": {
+    "role": "object_storage_for_media_and_large_assets",
+    "stores": [
+      "input_images",
+      "input_audio",
+      "input_video",
+      "output_video",
+      "reusable_model_archives"
+    ],
+    "must_not_store": [
+      "code",
+      "task_scripts",
+      "docker_images"
+    ]
+  }
+}
