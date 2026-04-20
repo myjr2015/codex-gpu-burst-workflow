@@ -60,6 +60,8 @@ def build_rebuild_script(manifest):
                 "",
                 "# Core ComfyUI dependencies for the checked-out revision",
                 "python3 -m pip install -r \"$COMFY_ROOT/requirements.txt\"",
+                "# Re-pin PyTorch to a CUDA 12.8 build that matches current Vast GPU hosts",
+                "python3 -m pip install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128",
                 "",
                 "# Shared Python dependencies for the workflow",
                 "python3 -m pip install " + " ".join(quoted_deps),

@@ -69,7 +69,7 @@ def build_download_script(manifest):
                 [
                     "",
                     f"mkdir -p \"$MODELS_DIR/{item['dir']}\"",
-                    f"huggingface-cli download {item['repo']} --local-dir \"$MODELS_DIR/{item['dir']}\" --local-dir-use-symlinks False",
+                    f"hf download {item['repo']} --repo-type model --local-dir \"$MODELS_DIR/{item['dir']}\"",
                 ]
             )
         else:

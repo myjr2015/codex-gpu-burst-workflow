@@ -6,6 +6,9 @@ output/
 .playwright/
 .venv-faster-whisper/
 tmp/
+__pycache__/
+*.pyc
+config/workflows.local.json
 *.mp4
 *.png
 *.jpg
