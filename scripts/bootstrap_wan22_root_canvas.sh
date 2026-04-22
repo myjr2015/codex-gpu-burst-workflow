@@ -8,6 +8,7 @@ BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
 CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
 MODELS_DIR="$COMFY_ROOT/models"
 PREWARMED_IMAGE="${PREWARMED_IMAGE:-0}"
+PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}"
 
 mkdir -p "$CUSTOM_NODES_DIR" "$MODELS_DIR" "$RUN_DIR"
 
@@ -61,6 +62,16 @@ ensure_python_package_no_deps() {
 
   echo "[bootstrap] installing package without deps: $package_spec"
   python3 -m pip install --upgrade-strategy only-if-needed --no-deps "$package_spec"
+}
+
+ensure_torch_stack() {
+  if python_has_module "torch" && python_has_module "torchvision" && python_has_module "torchaudio"; then
+    echo "[bootstrap] python modules exist: torch torchvision torchaudio"
+    return 0
+  fi
+
+  echo "[bootstrap] installing torch stack from $PYTORCH_INDEX_URL"
+  python3 -m pip install --upgrade-strategy only-if-needed --index-url "$PYTORCH_INDEX_URL" torch torchvision torchaudio
 }
 
 install_filtered_requirements_if_present() {
@@ -202,6 +213,7 @@ fi
 
 echo "[bootstrap] installing python dependencies"
 echo "[bootstrap] ensuring ComfyUI runtime essentials"
+ensure_torch_stack
 ensure_python_package "sqlalchemy>=2.0" "sqlalchemy"
 ensure_python_package "alembic" "alembic"
 ensure_python_package "blake3" "blake3"
