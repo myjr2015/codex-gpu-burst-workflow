@@ -2,6 +2,7 @@ accelerate>=1.2.1
 color-matcher
 diffusers>=0.33.0
 einops
+filelock>=3.16.0
 ftfy
 gguf>=0.17.1
 huggingface_hub
