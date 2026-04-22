@@ -1,0 +1,6 @@
+*
+!docker/
+!docker/wan22-root-canvas/
+!docker/wan22-root-canvas/Dockerfile
+!docker/wan22-root-canvas/install_custom_nodes.py
+!docker/wan22-root-canvas/requirements-extra.txt
