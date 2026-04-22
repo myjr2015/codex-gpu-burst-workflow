@@ -126,7 +126,8 @@ for raw in src.read_text(encoding="utf-8").splitlines():
     line = raw.strip()
     if not line or line.startswith("#"):
         continue
-    normalized = re.split(r"[<>=!~\\[\\s]", line, maxsplit=1)[0].lower()
+    match = re.match(r"[A-Za-z0-9_.-]+", line)
+    normalized = (match.group(0) if match else line).lower()
     if normalized.startswith(skip_prefixes):
         print(f"[bootstrap] skip heavy requirement: {line}")
         continue

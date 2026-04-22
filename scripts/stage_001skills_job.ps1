@@ -34,6 +34,7 @@ $sourceWorkflow = Join-Path $repoRoot "Animate+Wan2.2换风格对口型.json"
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_wan22_root_canvas.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_wan22_root_canvas.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_root_canvas_prompt.mjs"
+$generateOnstartScript = Join-Path $repoRoot "scripts\generate_001skills_onstart.mjs"
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $bundleSourceDir = Join-Path $repoRoot "output\vast-wan22-root-strict-3090b\node-bundles"
 $customNodeCacheRoot = Join-Path $repoRoot ".cache\001skills\custom_nodes"
@@ -100,7 +101,7 @@ function New-RepoBundleZip {
     Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $DestinationZip -Force
 }
 
-foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $r2UploadScript)) {
+foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $generateOnstartScript, $r2UploadScript)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required file: $required"
     }
@@ -132,6 +133,7 @@ $runtimeOut = Join-Path $jobDir "workflow_runtime.json"
 $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_root_canvas.sh"
 $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_root_canvas.sh"
 $manifestOut = Join-Path $jobDir "manifest.json"
+$onstartOut = Join-Path $jobDir "onstart_001skills.sh"
 
 Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
 Copy-Item -LiteralPath $resolvedVideo -Destination $stagedVideo -Force
@@ -167,6 +169,7 @@ $manifest = [ordered]@{
         workflow_runtime = $runtimeOut
         bootstrap = $bootstrapOut
         remote_submit = $remoteSubmitOut
+        onstart = $onstartOut
         node_bundles = $bundleDir
     }
     r2 = [ordered]@{
@@ -184,6 +187,14 @@ $manifest = [ordered]@{
 }
 
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestOut -Encoding UTF8
+
+& node $generateOnstartScript `
+    --manifest $manifestOut `
+    --output $onstartOut
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to generate onstart_001skills.sh."
+}
 
 if ($UploadToR2) {
     if ([string]::IsNullOrWhiteSpace($R2AccountId) -or [string]::IsNullOrWhiteSpace($R2AccessKeyId) -or [string]::IsNullOrWhiteSpace($R2SecretAccessKey)) {

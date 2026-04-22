@@ -24,7 +24,16 @@ $envItems = @(
     "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
 )
 if ($ExtraEnv.Count -gt 0) {
-    $envItems += $ExtraEnv
+    foreach ($item in $ExtraEnv) {
+        if ([string]::IsNullOrWhiteSpace($item)) {
+            continue
+        }
+        foreach ($part in ($item -split ",")) {
+            if (-not [string]::IsNullOrWhiteSpace($part)) {
+                $envItems += $part.Trim()
+            }
+        }
+    }
 }
 
 $envString = (
