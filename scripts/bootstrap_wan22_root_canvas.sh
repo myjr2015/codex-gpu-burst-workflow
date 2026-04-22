@@ -10,8 +10,17 @@ MODELS_DIR="$COMFY_ROOT/models"
 PREWARMED_IMAGE="${PREWARMED_IMAGE:-0}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
+PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
+PIP_RETRIES="${PIP_RETRIES:-20}"
 
 mkdir -p "$CUSTOM_NODES_DIR" "$MODELS_DIR" "$RUN_DIR"
+
+pip_install() {
+  python3 -m pip install \
+    --timeout "$PIP_TIMEOUT" \
+    --retries "$PIP_RETRIES" \
+    "$@"
+}
 
 extract_zip() {
   local zip_path="$1"
@@ -50,7 +59,7 @@ ensure_python_package() {
   fi
 
   echo "[bootstrap] installing package: $package_spec"
-  python3 -m pip install --upgrade-strategy only-if-needed "$package_spec"
+  pip_install --upgrade-strategy only-if-needed "$package_spec"
 }
 
 ensure_python_package_no_deps() {
@@ -62,7 +71,7 @@ ensure_python_package_no_deps() {
   fi
 
   echo "[bootstrap] installing package without deps: $package_spec"
-  python3 -m pip install --upgrade-strategy only-if-needed --no-deps "$package_spec"
+  pip_install --upgrade-strategy only-if-needed --no-deps "$package_spec"
 }
 
 ensure_torch_stack() {
@@ -77,7 +86,7 @@ ensure_torch_stack() {
   fi
 
   echo "[bootstrap] reinstalling torch stack from $PYTORCH_INDEX_URL"
-  python3 -m pip install --upgrade --force-reinstall --index-url "$PYTORCH_INDEX_URL" torch torchvision torchaudio
+  pip_install --upgrade --force-reinstall --index-url "$PYTORCH_INDEX_URL" torch torchvision torchaudio
 }
 
 install_filtered_requirements_if_present() {
@@ -143,7 +152,7 @@ PY
   fi
 
   echo "[bootstrap] installing filtered requirements for $(basename "$plugin_dir")"
-  python3 -m pip install --upgrade-strategy only-if-needed -r "$filtered_path"
+  pip_install --upgrade-strategy only-if-needed -r "$filtered_path"
 }
 
 sync_git_plugin() {
