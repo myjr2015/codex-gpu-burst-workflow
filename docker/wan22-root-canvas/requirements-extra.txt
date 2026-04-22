@@ -20,5 +20,6 @@ requests
 PyNaCl
 scipy
 sentencepiece>=0.2.0
+sqlalchemy>=2.0
 spandrel
 clip_interrogator>=0.6.0

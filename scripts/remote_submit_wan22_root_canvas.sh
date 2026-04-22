@@ -8,6 +8,8 @@ WORKFLOW_PATH="${WORKFLOW_PATH:-$RUN_DIR/workflow_runtime.json}"
 BOOTSTRAP_PATH="${BOOTSTRAP_PATH:-$RUN_DIR/bootstrap_wan22_root_canvas.sh}"
 INPUT_IMAGE_NAME="${INPUT_IMAGE_NAME:-美女带背景.png}"
 INPUT_VIDEO_NAME="${INPUT_VIDEO_NAME:-光伏2.mp4}"
+COMFY_LOG_PATH="${COMFY_LOG_PATH:-$RUN_DIR/comfyui.log}"
+COMFY_PID_PATH="${COMFY_PID_PATH:-$RUN_DIR/comfyui.pid}"
 
 mkdir -p "$RUN_DIR"
 exec > >(tee -a "$RUN_DIR/run.log") 2>&1
@@ -54,18 +56,36 @@ fi
 
 pkill -f 'python.*main.py' || true
 cd "$COMFY_APP_ROOT"
-nohup python3 main.py --listen 0.0.0.0 --port 8188 > "$RUN_DIR/comfyui.log" 2>&1 &
+rm -f "$COMFY_LOG_PATH" "$COMFY_PID_PATH"
+(
+  cd "$COMFY_APP_ROOT"
+  PYTHONUNBUFFERED=1 python3 -u main.py --listen 0.0.0.0 --port 8188 2>&1 | tee -a "$COMFY_LOG_PATH"
+) &
+COMFY_PID="$!"
+echo "$COMFY_PID" > "$COMFY_PID_PATH"
 
 echo "[remote-run] waiting for ComfyUI API"
 for _ in $(seq 1 240); do
   if curl -sf http://127.0.0.1:8188/object_info > "$RUN_DIR/object_info.json"; then
     break
   fi
+  if ! kill -0 "$COMFY_PID" >/dev/null 2>&1; then
+    echo "[remote-run] ComfyUI process exited before API became ready" >&2
+    if [ -f "$COMFY_LOG_PATH" ]; then
+      echo "[remote-run] --- comfyui.log tail ---" >&2
+      tail -n 200 "$COMFY_LOG_PATH" >&2 || true
+    fi
+    exit 1
+  fi
   sleep 5
 done
 
 if ! test -s "$RUN_DIR/object_info.json"; then
   echo "[remote-run] ComfyUI API did not become ready in time" >&2
+  if [ -f "$COMFY_LOG_PATH" ]; then
+    echo "[remote-run] --- comfyui.log tail ---" >&2
+    tail -n 200 "$COMFY_LOG_PATH" >&2 || true
+  fi
   exit 1
 fi
 

@@ -188,6 +188,8 @@ else
 fi
 
 echo "[bootstrap] installing python dependencies"
+echo "[bootstrap] ensuring ComfyUI runtime essentials"
+ensure_python_package "sqlalchemy>=2.0" "sqlalchemy"
 if [ "$PREWARMED_IMAGE" != "1" ]; then
   echo "[bootstrap] trusting base image for core ComfyUI/torch/cuda stack"
   ensure_python_package "accelerate>=1.2.1" "accelerate"
