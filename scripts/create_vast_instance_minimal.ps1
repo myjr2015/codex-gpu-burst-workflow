@@ -6,35 +6,57 @@ param(
 
     [string]$Label = "codex-comfy-minimal",
 
-    [int]$DiskGb = 180
+    [int]$DiskGb = 180,
+
+    [switch]$CancelUnavail,
+
+    [string]$Onstart,
+
+    [string[]]$ExtraEnv = @()
 )
 
 $ErrorActionPreference = "Stop"
 
-$envParts = @(
-    "-e DATA_DIRECTORY=/workspace/",
-    "-e JUPYTER_DIR=/",
-    "-e OPEN_BUTTON_PORT=8188",
-    "-e PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh",
-    "-p 1111:1111",
-    "-p 8080:8080",
-    "-p 8188:8188",
-    "-p 8384:8384"
+$envItems = @(
+    "DATA_DIRECTORY=/workspace/"
+    "JUPYTER_DIR=/"
+    "OPEN_BUTTON_PORT=8188"
+    "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
 )
+if ($ExtraEnv.Count -gt 0) {
+    $envItems += $ExtraEnv
+}
 
-$envString = $envParts -join " "
-
-$command = @(
-    "vastai create instance $OfferId",
-    "--image $Image",
-    "--disk $DiskGb",
-    "--label $Label",
-    "--jupyter",
-    "--direct",
-    "--env '$envString'",
-    "--raw"
+$envString = (
+    @($envItems | ForEach-Object { "-e $_" }) +
+    @(
+        "-p 1111:1111"
+        "-p 8080:8080"
+        "-p 8188:8188"
+        "-p 8384:8384"
+    )
 ) -join " "
 
+$arguments = @(
+    "create", "instance", $OfferId,
+    "--image", $Image,
+    "--disk", $DiskGb.ToString(),
+    "--label", $Label,
+    "--jupyter",
+    "--direct",
+    "--env", $envString,
+    "--raw"
+)
+
+if ($CancelUnavail) {
+    $arguments += "--cancel-unavail"
+}
+
+if ($Onstart) {
+    $resolvedOnstart = (Resolve-Path -LiteralPath $Onstart).Path
+    $arguments += @("--onstart", $resolvedOnstart)
+}
+
 Write-Host "Creating Vast instance with minimal environment..."
-Write-Host $command
-Invoke-Expression $command
+Write-Host ("vastai " + ($arguments -join " "))
+& vastai @arguments
