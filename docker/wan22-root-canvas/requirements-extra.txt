@@ -1,5 +1,9 @@
 accelerate>=1.2.1
+alembic
+blake3
 color-matcher
+comfy-aimdo>=0.2.12
+comfy-kitchen>=0.2.8
 diffusers>=0.33.0
 einops
 filelock>=3.16.0
@@ -7,6 +11,7 @@ ftfy
 gguf>=0.17.1
 huggingface_hub
 imageio-ffmpeg
+kornia_rs>=0.1.10
 lark
 matplotlib
 numpy
@@ -18,6 +23,7 @@ pillow>=10.3.0
 protobuf
 pyloudnorm
 requests
+safetensors
 PyNaCl
 scipy
 sentencepiece>=0.2.0

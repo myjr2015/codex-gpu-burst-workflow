@@ -2,6 +2,7 @@
 set -euo pipefail
 
 COMFY_ROOT="${COMFY_ROOT:-/workspace/ComfyUI}"
+COMFY_APP_ROOT="${COMFY_APP_ROOT:-/opt/workspace-internal/ComfyUI}"
 RUN_DIR="${RUN_DIR:-/workspace/wan22-root-canvas-run}"
 BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
 CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
@@ -48,6 +49,18 @@ ensure_python_package() {
 
   echo "[bootstrap] installing package: $package_spec"
   python3 -m pip install --upgrade-strategy only-if-needed "$package_spec"
+}
+
+ensure_python_package_no_deps() {
+  local package_spec="$1"
+  local module_name="$2"
+  if python_has_module "$module_name"; then
+    echo "[bootstrap] python module exists: $module_name"
+    return 0
+  fi
+
+  echo "[bootstrap] installing package without deps: $package_spec"
+  python3 -m pip install --upgrade-strategy only-if-needed --no-deps "$package_spec"
 }
 
 install_filtered_requirements_if_present() {
@@ -190,7 +203,20 @@ fi
 echo "[bootstrap] installing python dependencies"
 echo "[bootstrap] ensuring ComfyUI runtime essentials"
 ensure_python_package "sqlalchemy>=2.0" "sqlalchemy"
+ensure_python_package "alembic" "alembic"
+ensure_python_package "blake3" "blake3"
 ensure_python_package "filelock>=3.16.0" "filelock"
+ensure_python_package "safetensors" "safetensors"
+ensure_python_package "simpleeval>=1.0.0" "simpleeval"
+ensure_python_package "av>=14.2.0" "av"
+ensure_python_package "pydantic>=2.11.10" "pydantic"
+ensure_python_package "pydantic-settings>=2.10.1" "pydantic_settings"
+ensure_python_package "PyOpenGL" "OpenGL"
+ensure_python_package "glfw" "glfw"
+ensure_python_package_no_deps "kornia_rs>=0.1.10" "kornia_rs"
+ensure_python_package_no_deps "kornia" "kornia"
+ensure_python_package_no_deps "comfy-kitchen>=0.2.8" "comfy_kitchen"
+ensure_python_package_no_deps "comfy-aimdo>=0.2.12" "comfy_aimdo"
 if [ "$PREWARMED_IMAGE" != "1" ]; then
   echo "[bootstrap] trusting base image for core ComfyUI/torch/cuda stack"
   ensure_python_package "accelerate>=1.2.1" "accelerate"
