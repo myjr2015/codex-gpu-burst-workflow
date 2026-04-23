@@ -3,6 +3,7 @@ set -euo pipefail
 
 COMFY_ROOT="${COMFY_ROOT:-/workspace/ComfyUI}"
 COMFY_APP_ROOT="${COMFY_APP_ROOT:-/opt/workspace-internal/ComfyUI}"
+PREWARM_ROOT="${PREWARM_ROOT:-/opt/wan22-prewarm}"
 RUN_DIR="${RUN_DIR:-/workspace/wan22-root-canvas-run}"
 BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
 MODELS_DIR="$COMFY_ROOT/models"
@@ -12,6 +13,14 @@ PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
+
+if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$PREWARM_ROOT/custom_nodes" ]; then
+  mkdir -p "$COMFY_APP_ROOT/custom_nodes"
+  if ! find "$COMFY_APP_ROOT/custom_nodes" -mindepth 1 -maxdepth 1 | grep -q .; then
+    echo "[bootstrap] restoring prewarmed custom nodes from $PREWARM_ROOT/custom_nodes"
+    cp -a "$PREWARM_ROOT/custom_nodes/." "$COMFY_APP_ROOT/custom_nodes/"
+  fi
+fi
 
 if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$COMFY_APP_ROOT/custom_nodes" ]; then
   CUSTOM_NODES_DIR="$COMFY_APP_ROOT/custom_nodes"

@@ -60,9 +60,10 @@ class Wan22LightImageContractTests(unittest.TestCase):
     def test_light_image_installs_custom_nodes_into_app_root(self):
         dockerfile = (DOCKER_DIR / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn(
-            "COMFY_ROOT=/opt/workspace-internal/ComfyUI python3 /tmp/wan22-root-canvas/install_custom_nodes.py",
+            "COMFY_ROOT=/opt/wan22-prewarm python3 /tmp/wan22-root-canvas/install_custom_nodes.py",
             dockerfile,
         )
+        self.assertIn("PREWARM_ROOT=/opt/wan22-prewarm", dockerfile)
 
     def test_prewarmed_runtime_preserves_app_custom_nodes(self):
         remote_submit = (ROOT / "scripts" / "remote_submit_wan22_root_canvas.sh").read_text(encoding="utf-8")
@@ -72,6 +73,8 @@ class Wan22LightImageContractTests(unittest.TestCase):
 
     def test_bootstrap_inspects_app_custom_nodes_for_prewarmed_image(self):
         bootstrap = (ROOT / "scripts" / "bootstrap_wan22_root_canvas.sh").read_text(encoding="utf-8")
+        self.assertIn('PREWARM_ROOT="${PREWARM_ROOT:-/opt/wan22-prewarm}"', bootstrap)
+        self.assertIn('cp -a "$PREWARM_ROOT/custom_nodes/." "$COMFY_APP_ROOT/custom_nodes/"', bootstrap)
         self.assertIn('if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$COMFY_APP_ROOT/custom_nodes" ]; then', bootstrap)
         self.assertIn('CUSTOM_NODES_DIR="$COMFY_APP_ROOT/custom_nodes"', bootstrap)
 

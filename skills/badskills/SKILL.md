@@ -99,6 +99,19 @@ These failures were observed on the same branch:
     - bake prewarmed `custom_nodes` into `COMFY_APP_ROOT` or another non-mounted application path
     - keep runtime-generated inputs, outputs, and models in `/workspace`
 
+- Symptom: custom nodes were baked into `/opt/workspace-internal/ComfyUI`, but `1.2-light` still logged `prewarmed image miss: custom_nodes`
+  - Root cause: the Vast Comfy base image can prepare or refresh the runnable ComfyUI tree at container startup, so that path is not stable enough for image-baked prewarm payloads
+  - Evidence from `v12-light-fixed-smoke-001` on instance `35469431`:
+    - image started successfully
+    - `PREWARMED_IMAGE=1` was injected
+    - bootstrap still reported missing `ComfyUI-GGUF`, `ComfyUI-KJNodes`, `ComfyUI-VideoHelperSuite`, and `ComfyUI-WanAnimatePreprocess`
+    - the run was destroyed before inference because continuing would only repeat the cold path
+  - Action:
+    - store image-baked node payloads under `/opt/wan22-prewarm/custom_nodes`
+    - at bootstrap time copy them into `$COMFY_APP_ROOT/custom_nodes`
+    - only accept `1.2-light` when logs show `prewarmed image hit: custom_nodes`
+    - avoid duplicate GitHub Actions workflows pushing the same Docker tag
+
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
   - Action: install `torchsde` in bootstrap, then re-stage before rerun

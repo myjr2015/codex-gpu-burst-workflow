@@ -63,6 +63,14 @@ It must not include the old polluted node set:
 It also must not include model weights.
 Those remain runtime downloads until the separate `1.3-heavy` image is intentionally designed and tested.
 
+For `1.2-light`, prewarmed custom nodes live in the image under:
+- `/opt/wan22-prewarm/custom_nodes`
+
+At bootstrap, they are copied into:
+- `$COMFY_APP_ROOT/custom_nodes`
+
+Do not bake reusable node payloads directly into `/workspace/ComfyUI` or `/opt/workspace-internal/ComfyUI`; those paths are runtime-managed on Vast and can hide or remove the baked files.
+
 It must also not absorb future unrelated model families such as LTX 2.3.
 For LTX 2.3 or any other new workflow family:
 - create a new profile in `config/vast-workflow-profiles.json`
