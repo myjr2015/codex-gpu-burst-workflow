@@ -6,6 +6,7 @@ output/
 .playwright/
 .venv-faster-whisper/
 tmp/
+.tmp/
 __pycache__/
 *.pyc
 config/workflows.local.json
