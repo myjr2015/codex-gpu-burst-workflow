@@ -6,7 +6,8 @@ This V1.0 baseline freezes the currently proven Vast cold-start workflow for one
 
 Pinned contract:
 - workflow: `workflows/Animate+Wan2.2换风格对口型.json`
-- image input: `美女带背景.png`
+- source image directory: `素材资产/美女图带光伏/`
+- staged ComfyUI image input: `美女带背景.png`
 - video input: `光伏2.mp4`
 - runtime profile: `001skills`
 - target: one direct MP4 output with lip sync, local download, and R2 publish
@@ -36,10 +37,11 @@ Full run:
 ```powershell
 pwsh -File .\scripts\run_001skills_end_to_end.ps1 \
   -JobName demo-001 \
-  -ImagePath .\素材资产\美女图带光伏\美女带背景.png \
   -VideoPath .\output\vast-wan22-root-strict-3090b\光伏2.mp4 \
   -OfferId <vast_offer_id>
 ```
+
+If `-ImagePath` is omitted, the wrapper selects the newest image from `素材资产\美女图带光伏` and stages it as `美女带背景.png`.
 
 Resume an already running job:
 

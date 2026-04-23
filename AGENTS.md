@@ -89,7 +89,8 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 
 当前已跑通的固定流程：
 
-- 输入图片：`美女带背景.png`
+- 源图片目录：`素材资产/美女图带光伏/`
+- 远端固定输入图片名：`美女带背景.png`
 - 输入视频：`光伏2.mp4`
 - 工作流：`workflows/Animate+Wan2.2换风格对口型.json`
 - 主入口：`scripts/run_001skills_end_to_end.ps1`
@@ -152,6 +153,8 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 ## Do Not Repeat
 
 - 不要用 `美女图.png` 跑这个固定流程。
+- 不要用 `素材资产/美女图无背景纯色/` 里的纯色人物图跑当前 `001skills` 固定流程。
+- 当前 `001skills` 源图必须从 `素材资产/美女图带光伏/` 选择；脚本会在 stage 阶段统一暂存为 `美女带背景.png`，这是 ComfyUI 工作流的固定输入名，不代表源文件必须叫这个名字。
 - 不要恢复未验证的 ComfyUI 节点包。
 - 不要把 `launch` 和 `stage` 并行。
 - 不要猜输出文件名，必须从 ComfyUI `/history` 读取。

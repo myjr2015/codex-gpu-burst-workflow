@@ -32,7 +32,7 @@ class GenerateModelDownloadScriptTests(unittest.TestCase):
         self.assertIn('curl -L --fail -o "$MODELS_DIR/loras/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors"', script_text)
         self.assertIn("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors", script_text)
         self.assertIn("https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors", script_text)
-        self.assertIn("huggingface-cli download TencentGameMate/chinese-wav2vec2-base", script_text)
+        self.assertIn("hf download TencentGameMate/chinese-wav2vec2-base", script_text)
 
     def test_write_script_persists_output_file(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -227,7 +227,7 @@ npm run pipeline -- --mode fixed_bg --input .\\光伏2.mp4 --speaker-image-url h
 
 如果你还没把 `audio.wav` 上传到公网，`avatar-jobs.json` 会明确提示缺少 `--source-audio-url`。
 
-如果你已经准备了多张纯色背景人物图，可以直接批量生成候选人物任务：
+旧 `fixed_bg` 实验曾支持多张纯色背景人物图，但当前 `001skills` 固定流程不要用这类素材。当前流程的图片来源统一放在 `素材资产\美女图带光伏`。
 
 ```bash
 npm run pipeline -- --mode fixed_bg --input .\\光伏2.mp4 --speaker-image-urls https://example.com/美女1.png,https://example.com/美女2.png,https://example.com/美女3.png --source-video-url https://example.com/source.mp4

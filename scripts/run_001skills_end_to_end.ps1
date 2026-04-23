@@ -6,6 +6,8 @@ param(
 
     [string]$VideoPath,
 
+    [string]$ImageAssetDir,
+
     [string]$OfferId,
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
@@ -91,17 +93,86 @@ if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_A
 }
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
+if ([string]::IsNullOrWhiteSpace($ImageAssetDir)) {
+    $profileConfigPath = Join-Path $repoRoot "config\vast-workflow-profiles.json"
+    if (Test-Path -LiteralPath $profileConfigPath) {
+        $profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
+        $configuredImageAssetDir = [string]$profileConfig.profiles."001skills".default_image_asset_dir
+        if (-not [string]::IsNullOrWhiteSpace($configuredImageAssetDir)) {
+            $ImageAssetDir = $configuredImageAssetDir
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($ImageAssetDir)) {
+        $ImageAssetDir = ".\素材资产\美女图带光伏"
+    }
+}
+
 Write-Host "runtime_version=$RuntimeVersion"
 Write-Host "runtime_image=$Image"
+Write-Host "image_asset_dir=$ImageAssetDir"
+
+function Test-PathUnderDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Directory
+    )
+
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    $normalizedDirectory = [System.IO.Path]::GetFullPath($Directory).TrimEnd('\', '/')
+    $comparison = [System.StringComparison]::OrdinalIgnoreCase
+    return $normalizedPath.StartsWith($normalizedDirectory + [System.IO.Path]::DirectorySeparatorChar, $comparison)
+}
+
+function Resolve-Default001SkillsImage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$AssetDir
+    )
+
+    if (-not (Test-Path -LiteralPath $AssetDir)) {
+        throw "001skills image asset directory not found: $AssetDir"
+    }
+
+    $candidate = Get-ChildItem -LiteralPath $AssetDir -File |
+        Where-Object { @(".png", ".jpg", ".jpeg", ".webp") -contains $_.Extension.ToLowerInvariant() } |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+
+    if (-not $candidate) {
+        throw "No image assets found in 001skills image asset directory: $AssetDir"
+    }
+
+    return $candidate.FullName
+}
 
 $stageArgs = @()
 if (-not $SkipStage) {
-    if ([string]::IsNullOrWhiteSpace($ImagePath) -or [string]::IsNullOrWhiteSpace($VideoPath)) {
-        throw "ImagePath and VideoPath are required unless -SkipStage is used."
+    if ([string]::IsNullOrWhiteSpace($ImagePath)) {
+        $ImagePath = Resolve-Default001SkillsImage -AssetDir (Join-Path $repoRoot $ImageAssetDir)
+        Write-Host "selected_asset_image=$ImagePath"
+    }
+    if ([string]::IsNullOrWhiteSpace($VideoPath)) {
+        throw "VideoPath is required unless -SkipStage is used."
+    }
+
+    $resolvedImagePath = (Resolve-Path -LiteralPath $ImagePath).Path
+    $resolvedAssetDir = (Resolve-Path -LiteralPath (Join-Path $repoRoot $ImageAssetDir)).Path
+    $pureColorDir = Join-Path $repoRoot "素材资产\美女图无背景纯色"
+    if ((Test-Path -LiteralPath $pureColorDir) -and (Test-PathUnderDirectory -Path $resolvedImagePath -Directory (Resolve-Path -LiteralPath $pureColorDir).Path)) {
+        throw "001skills image must not come from 素材资产\美女图无背景纯色. Use 素材资产\美女图带光伏."
+    }
+    if ([System.IO.Path]::GetFileName($resolvedImagePath) -eq "美女图.png") {
+        throw "001skills image must not use 美女图.png. Use a composed photovoltaic-background image from 素材资产\美女图带光伏."
+    }
+    if (-not (Test-PathUnderDirectory -Path $resolvedImagePath -Directory $resolvedAssetDir)) {
+        throw "001skills image must come from $resolvedAssetDir. The workflow stages it as 美女带背景.png for ComfyUI."
     }
 
     $stageArgs += @(
-        "-ImagePath", (Resolve-Path -LiteralPath $ImagePath).Path,
+        "-ImagePath", $resolvedImagePath,
         "-VideoPath", (Resolve-Path -LiteralPath $VideoPath).Path,
         "-R2Prefix", $R2Prefix,
         "-R2Bucket", $R2Bucket,

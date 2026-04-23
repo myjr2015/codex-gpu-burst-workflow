@@ -14,13 +14,15 @@ Use it when the goal is to reproduce the already validated Wan2.2 talking-photo 
 ## Fixed Input Contract
 
 Use this branch only when all of the following are true:
-- final speaker image is `美女带背景.png`
+- source speaker image is selected from `素材资产/美女图带光伏/`
+- staged ComfyUI image name is `美女带背景.png`
 - source speech video is `光伏2.mp4`
 - target workflow is `workflows/Animate+Wan2.2换风格对口型.json`
 - output goal is one direct talking-photo clip, not segmented stitching
 
 Do not use this skill for:
 - `美女图.png`
+- pure-color speaker assets under `素材资产/美女图无背景纯色/`
 - multi-character generation
 - 30s to 120s segmented continuation
 - true background regeneration
@@ -40,6 +42,7 @@ Pinned workflow chain:
 Pinned runtime behavior:
 - input image name must stay `美女带背景.png`
 - input video name must stay `光伏2.mp4`
+- the local source image can have any filename, but it must come from `素材资产/美女图带光伏/`
 - `TorchCompileModelWanVideoV2` is removed at runtime conversion
 - `PathchSageAttentionKJ.sage_attention=disabled`
 - output prefix comes from the job name
@@ -329,9 +332,14 @@ Remote:
 1. Stage job:
 
 ```powershell
+$img = Get-ChildItem -LiteralPath '.\素材资产\美女图带光伏' -File |
+  Where-Object { $_.Extension -in '.png', '.jpg', '.jpeg', '.webp' } |
+  Sort-Object LastWriteTimeUtc -Descending |
+  Select-Object -First 1
+
 pwsh -File .\scripts\stage_001skills_job.ps1 `
   -JobName demo-001 `
-  -ImagePath .\美女带背景.png `
+  -ImagePath $img.FullName `
   -VideoPath .\光伏2.mp4 `
   -R2AccountId $env:CLOUDFLARE_ACCOUNT_ID `
   -R2AccessKeyId $env:R2_ACCESS_KEY_ID `
@@ -372,10 +380,11 @@ Recommended command for this branch:
 ```powershell
 pwsh -File .\scripts\run_001skills_end_to_end.ps1 `
   -JobName demo-001 `
-  -ImagePath .\美女带背景.png `
   -VideoPath .\光伏2.mp4 `
   -OfferId <vast_offer_id>
 ```
+
+If `-ImagePath` is omitted, the wrapper selects the newest image from `素材资产\美女图带光伏`.
 
 Recommended Vast search pattern before selecting `<vast_offer_id>`:
 
@@ -483,7 +492,7 @@ The current automation layer was verified against existing job `smoke-004`:
 
 The next live run `smoke-005` also proved two additional operational details:
 - a fresh job can be staged successfully with the new wrapper using:
-  - image `素材资产\美女图带光伏\美女带背景.png`
+  - an image from `素材资产\美女图带光伏\`
   - video `output\vast-wan22-root-strict-3090b\光伏2.mp4`
 - Vast instance creation can require UTF-8 forcing on the controller side
 - download logic must tolerate `loading` instances whose `ports` are not populated yet

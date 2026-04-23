@@ -17,7 +17,8 @@ Do not reintroduce abandoned Docker / cache-image experiments into this Wan2.2 s
 ## Fixed Scope
 
 These failures were observed on the same branch:
-- image: `美女带背景.png`
+- source image directory: `素材资产/美女图带光伏/`
+- staged ComfyUI image name: `美女带背景.png`
 - video: `光伏2.mp4`
 - workflow: `workflows/Animate+Wan2.2换风格对口型.json`
 - runtime chain:
@@ -77,6 +78,10 @@ These failures were observed on the same branch:
 - Symptom: prompt submission fails with `Invalid video file: 光伏2.mp4` or `Invalid image file: 美女带背景.png`
   - Root cause: `workflow_runtime.json` used Chinese names, but generated onstart script still downloaded files as `source.mp4` and `speaker.png`
   - Action: keep filenames consistent end to end
+
+- Symptom: the current `001skills` result uses a pure-color speaker asset or an old `美女图.png`
+  - Root cause: source image selection drifted back to an old branch that is not the proven Wan2.2 fixed flow
+  - Action: only select source images from `素材资产/美女图带光伏/`; stage may still rename the selected file to `美女带背景.png` for ComfyUI
 
 - Symptom: ComfyUI starts, then unused custom nodes die on import errors and pollute the logs
   - Root cause: staged bundle set included unused extras such as:

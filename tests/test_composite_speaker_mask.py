@@ -8,7 +8,6 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "composite_speaker_on_background.py"
-SPEAKER_PATH = ROOT / "美女3.png"
 
 
 def load_module():
@@ -22,11 +21,33 @@ class CompositeSpeakerMaskTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.module = load_module()
-        cls.speaker = Image.open(SPEAKER_PATH).convert("RGBA")
+        cls.speaker = cls.make_synthetic_speaker()
         cls.mask = cls.module.build_speaker_mask(cls.speaker)
         cls.mask_arr = np.array(cls.mask)
         ys, xs = np.where(cls.mask_arr > 128)
         cls.bbox = (xs.min(), ys.min(), xs.max(), ys.max())
+
+    @staticmethod
+    def make_synthetic_speaker():
+        image = Image.new("RGBA", (640, 960), (255, 255, 255, 255))
+        pixels = image.load()
+        for y in range(120, 900):
+            for x in range(185, 455):
+                cx = (x - 320) / 135
+                cy = (y - 500) / 390
+                if cx * cx + cy * cy < 1.0:
+                    pixels[x, y] = (82, 55, 135, 255)
+        for y in range(80, 235):
+            for x in range(250, 390):
+                cx = (x - 320) / 70
+                cy = (y - 158) / 78
+                if cx * cx + cy * cy < 1.0:
+                    pixels[x, y] = (229, 178, 144, 255)
+        for y in range(775, 940):
+            for x in range(220, 420):
+                if 0 <= (x - 220) < 80 or 120 <= (x - 220) < 200:
+                    pixels[x, y] = (45, 42, 48, 255)
+        return image
 
     def coverage(self, rel_box):
         x1, y1, x2, y2 = self.bbox
