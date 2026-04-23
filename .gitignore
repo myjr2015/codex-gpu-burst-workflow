@@ -4,6 +4,7 @@ output/
 .env
 api.txt
 .secrets/
+c_drive_backup_before_restore/
 .idea/
 .npm-cache/
 .playwright/
