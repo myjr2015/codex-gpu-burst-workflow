@@ -78,6 +78,11 @@ Expected behavior:
 - bootstrap logs `prewarmed image hit: custom_nodes`
 - bootstrap does not log `reinstalling torch stack`
 
+Current status:
+- `1.2-light` has not met these acceptance checks
+- the known-good production path remains `1.0-cold` or `1.1-machine-registry`
+- do not spend on a full `1.2-light` inference run until a short smoke test proves both custom-node and torch reuse
+
 It must also not absorb future unrelated model families such as LTX 2.3.
 For LTX 2.3 or any other new workflow family:
 - create a new profile in `config/vast-workflow-profiles.json`
@@ -602,6 +607,6 @@ If you need the shortest path back to production:
 - reuse the same four node bundles
 - use a 24GB class NVIDIA card on a `580.*` driver host
 - keep R2 as staging + archive
-- for cold-start reduction, use:
-  - `1.2-light` first: prewarmed Docker image for ComfyUI, nodes, Python deps, torch/cu124
-  - `1.3-heavy` later: heavy Docker image with models embedded, after it is separately proven
+- for cold-start reduction:
+  - do not use `1.2-light` as production yet
+  - next worthwhile experiment is `1.3-heavy` or a real provider-side cache strategy

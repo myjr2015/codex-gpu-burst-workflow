@@ -122,6 +122,7 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
   - 尽量跳过 Python/torch 安装
   - 大模型仍然按需下载
   - 做公平冷启动测试时，加 `-FreshMachine` 排除机器库里的成功老机器
+  - 当前实验未通过，不作为生产默认路线
 - `-RuntimeVersion 1.3-heavy`
   - 预留给重镜像
   - 当前未完成，不能用于生产
@@ -136,5 +137,6 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 - 不要把同一台机器等同于模型缓存命中；必须看日志里的命中/未命中。
 - 不要把以前失败过的重 Docker 镜像当 1.2 基础。
 - `1.2-light` 必须是干净轻镜像：不放模型，不放旧多余节点。
+- `1.2-light` 当前没有证明比 1.0 冷启动更快，默认不要继续烧机器跑完整推理。
 - `1.2-light` 只服务当前 Wan2.2 / `001skills` 固定流程，不为 LTX 2.3 或其他新大模型预装节点。
 - 以后如果接入 LTX 2.3，必须新增 profile 和镜像 tag，例如 `ltx23-light`，共用 runner，但不要污染 `001skills`。

@@ -134,6 +134,19 @@ These failures were observed on the same branch:
     - verify `extra_env` does not contain `PROVISIONING_SCRIPT`
     - only continue to full inference if bootstrap logs show custom nodes and torch are reused
 
+- Symptom: after removing `PROVISIONING_SCRIPT`, `1.2-light` still missed custom nodes and reinstalled torch
+  - Evidence from `v12-light-fixed-smoke-004` on instance `35470507`:
+    - `extra_env` correctly had no `PROVISIONING_SCRIPT`
+    - image tag was immutable `sha-b14e144`
+    - container spent about 366 seconds before running due to pulling the 9.6GB image
+    - bootstrap still logged `prewarmed image miss: custom_nodes`
+    - bootstrap still logged `reinstalling torch stack`
+    - model download phase started around 507 seconds after launch
+  - Conclusion:
+    - `1.2-light` is currently slower than the known `1.0-cold` path
+    - do not run full inference with this light-image path as a production optimization
+    - next real optimization should be either `1.3-heavy` with models included or a provider/cache strategy that actually preserves model and dependency files
+
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
   - Action: install `torchsde` in bootstrap, then re-stage before rerun
