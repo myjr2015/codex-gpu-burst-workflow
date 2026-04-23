@@ -26,8 +26,6 @@
 
 - `1.0`：冷启动跑通版
 - `1.1`：机器库优选 + 暖启动探测版
-- `1.2`：轻 Docker 镜像版，预装 ComfyUI、必需节点、Python 依赖、torch/cu124，不内置大模型
-- `1.3`：重 Docker 镜像版，计划内置模型，尚未完成
 
 ## Machine Registry
 
@@ -46,7 +44,6 @@ pwsh -File .\scripts\select_001skills_vast_offer.ps1
 - 如果当前可租机器命中机器库里的成功机器，优先租它。
 - 只有命中老机器时才启用 `WarmStart`。
 - 如果没有命中老机器，按 `1.0` 冷启动处理。
-- `1.2-light` 默认要求 `cuda_max_good>=12.4`，避免 torch/cu124 镜像被低驱动机器强制重装或失败。
 - `hit` 说中文叫“命中”。
 - `miss` 说中文叫“未命中”，意思是没有找到可复用缓存，不是文件丢失。
 
@@ -115,17 +112,6 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 - `-RuntimeVersion 1.1-machine-registry`
   - 用机器库优选老机器
   - 老机器命中时才启用 `WarmStart`
-- `-RuntimeVersion 1.2-light`
-  - 用轻 Docker 镜像 `j1c2k3/codex-comfy-wan22-root-canvas:1.2-light`
-  - 自动传 `PREWARMED_IMAGE=1`
-  - 跳过自定义节点解压
-  - 尽量跳过 Python/torch 安装
-  - 大模型仍然按需下载
-  - 做公平冷启动测试时，加 `-FreshMachine` 排除机器库里的成功老机器
-  - 当前实验未通过，不作为生产默认路线
-- `-RuntimeVersion 1.3-heavy`
-  - 预留给重镜像
-  - 当前未完成，不能用于生产
 
 ## Do Not Repeat
 
@@ -135,8 +121,5 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 - 不要猜输出文件名，必须从 ComfyUI `/history` 读取。
 - 不要给 `destroy_vast_instance.ps1` 传 `-JobName`，它只接受 `-InstanceId`。
 - 不要把同一台机器等同于模型缓存命中；必须看日志里的命中/未命中。
-- 不要把以前失败过的重 Docker 镜像当 1.2 基础。
-- `1.2-light` 必须是干净轻镜像：不放模型，不放旧多余节点。
-- `1.2-light` 当前没有证明比 1.0 冷启动更快，默认不要继续烧机器跑完整推理。
-- `1.2-light` 只服务当前 Wan2.2 / `001skills` 固定流程，不为 LTX 2.3 或其他新大模型预装节点。
-- 以后如果接入 LTX 2.3，必须新增 profile 和镜像 tag，例如 `ltx23-light`，共用 runner，但不要污染 `001skills`。
+- 不要把已放弃的 Docker / 缓存镜像实验重新写回 `001skills` 的生产记忆。
+- 新模型或新工作流必须新增独立 profile / skill，不要污染当前 Wan2.2 固定流程。

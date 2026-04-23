@@ -54,41 +54,10 @@ Only keep these four bundles in this branch:
 
 Anything else is noise unless re-proven.
 
-The `1.2-light` Docker image must follow the same rule.
-It must not include the old polluted node set:
-- `ComfyUI-Easy-Use`
-- `ComfyUI-WanVideoWrapper`
-- `ComfyUI-segment-anything-2`
-
-It also must not include model weights.
-Those remain runtime downloads until the separate `1.3-heavy` image is intentionally designed and tested.
-
-For `1.2-light`, prewarmed custom nodes live in the image under:
-- `/opt/wan22-prewarm/custom_nodes`
-
-At bootstrap, they are copied into:
-- `$COMFY_APP_ROOT/custom_nodes`
-
-Do not bake reusable node payloads directly into `/workspace/ComfyUI` or `/opt/workspace-internal/ComfyUI`; those paths are runtime-managed on Vast and can hide or remove the baked files.
-
-For `1.2-light`, the launch step must skip Vast's default ComfyUI provisioning script.
-Expected behavior:
-- `PREWARMED_IMAGE=1` is present
-- `PROVISIONING_SCRIPT` is absent from `extra_env`
-- bootstrap logs `prewarmed image hit: custom_nodes`
-- bootstrap does not log `reinstalling torch stack`
-
-Current status:
-- `1.2-light` has not met these acceptance checks
-- the known-good production path remains `1.0-cold` or `1.1-machine-registry`
-- do not spend on a full `1.2-light` inference run until a short smoke test proves both custom-node and torch reuse
-
-It must also not absorb future unrelated model families such as LTX 2.3.
-For LTX 2.3 or any other new workflow family:
-- create a new profile in `config/vast-workflow-profiles.json`
-- create a separate light image tag, for example `ltx23-light`
-- reuse the shared runner only where the lifecycle contract still matches
-- do not add LTX-specific nodes or dependencies to the `001skills` Wan2.2 image
+Current production boundary:
+- only `1.0-cold` and `1.1-machine-registry` belong in this skill
+- abandoned Docker / cache-image experiments do not belong in this production memory
+- new model families or new workflow families must get their own profile and skill
 
 ## Proven Fresh-Host Runs
 
@@ -188,9 +157,6 @@ Current default behavior:
    - choose the cheapest matching offer
    - keep `WarmStart=false`
 
-For a fair `1.2-light` fresh-machine test, pass `-FreshMachine`.
-That excludes machines already recorded in the registry and disables warm-start assumptions.
-
 Automatic registry update entry point:
 
 ```powershell
@@ -244,37 +210,17 @@ This means a truly fresh machine pays cold-start time twice:
 
 ## Vast Storage Optimization Direction
 
-Official Vast storage docs change the optimization strategy in a very specific way:
+Current accepted direction:
+- do not use paid Vast volumes as a default, because the user does not want ongoing storage fees
+- do not use Docker / cache-image experiments as the production path for this branch
+- R2 stores staged inputs, node bundles, and accepted outputs
+- fresh machines still download model files when no real cache is present
+- the only active speed optimization in this skill is machine-registry selection plus a warm-start probe
 
-- Local volumes are tied to one physical machine and cannot move to another machine
-- Cloud Sync can move data to and from supported cloud providers even while an instance is stopped
-- Scheduled Cloud Backups can automate repeated instance-to-cloud copies
-
-Practical consequence for this branch:
-
-1. Same-machine speedup:
-- create a Vast local volume on a machine that already works
-- mount it into later instances on that same machine
-- keep at least these directories on the volume:
-  - `/workspace/ComfyUI/models`
-  - `/workspace/ComfyUI/custom_nodes`
-  - optionally pip wheel / cache directories
-
-2. Cross-machine recovery:
-- do not rely on Vast local volumes alone, because they cannot move across machines
-- keep workspace scripts and stage payloads in R2
-- keep accepted outputs in R2
-- if you want cloud-native restore inside Vast, prefer Vast Cloud Sync / Cloud Backups to a supported provider
-
-3. Accepted current direction:
-- `1.2-light` uses a light Docker image for environment and dependencies
-- no Vast local volume is part of the current plan
-- R2 stores stage inputs and final outputs
-- model files are still downloaded on a fresh machine until `1.3-heavy` exists
-
-4. Reserved future direction:
-- `1.3-heavy` may use a heavier Docker image that also includes model files
-- do not use `1.3-heavy` until it has been built and proven on Vast
+Practical rule:
+- if a known machine is available, use `1.1-machine-registry`
+- if no known machine is available, use `1.0-cold`
+- if a new workflow needs a different cache strategy, create a separate profile and skill instead of changing this one
 
 ## Progress Markers To Expect In Logs
 
@@ -544,8 +490,6 @@ Before every run in this branch:
 3. state which version path is being used:
    - `1.0-cold`: baseline cold start
    - `1.1-machine-registry`: machine registry + warm-start probe
-   - `1.2-light`: light Docker image, no embedded models
-   - `1.3-heavy`: reserved heavy image with embedded models, not production yet
 
 For paid Vast runs, do not use one long silent blocking command as the operator interface.
 Use the numbered sequence above and report after each phase.
@@ -632,6 +576,5 @@ If you need the shortest path back to production:
 - reuse the same four node bundles
 - use a 24GB class NVIDIA card on a `580.*` driver host
 - keep R2 as staging + archive
-- for cold-start reduction:
-  - do not use `1.2-light` as production yet
-  - next worthwhile experiment is `1.3-heavy` or a real provider-side cache strategy
+- use `1.0-cold` by default
+- use `1.1-machine-registry` only to prefer known successful machines and probe for real cache hits

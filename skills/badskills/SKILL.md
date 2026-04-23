@@ -11,6 +11,9 @@ This skill records the failure path only.
 
 Use it before retrying a broken cold start, so the next action is based on evidence instead of another blind rebuild.
 
+Current production memory only supports the proven `1.0-cold` and `1.1-machine-registry` paths.
+Do not reintroduce abandoned Docker / cache-image experiments into this Wan2.2 skill.
+
 ## Fixed Scope
 
 These failures were observed on the same branch:
@@ -31,23 +34,6 @@ These failures were observed on the same branch:
 - Symptom: cold start spends forever reinstalling giant packages and then drifts into new import crashes
   - Root cause: old plugin requirements reintroduced heavy stacks like `accelerate`, `diffusers`, `peft`, `spandrel`
   - Action: keep filtered requirements logic in `bootstrap_wan22_root_canvas.sh`; do not restore removed heavy explicit installs
-
-- Symptom: a previous Docker image looked like an optimization but became slow or unusable to pull
-  - Root cause: it was effectively a heavy image strategy and mixed too much runtime state into one artifact
-  - Action: for `1.2-light`, rebuild the Docker directory as a clean light image only:
-    - no model files
-    - no old extra nodes
-    - no `ComfyUI-Easy-Use`
-    - no `ComfyUI-WanVideoWrapper`
-    - no `ComfyUI-segment-anything-2`
-    - no explicit `accelerate`, `diffusers`, `peft`, `spandrel`, or `clip_interrogator`
-
-- Symptom: a new model family such as LTX 2.3 gets mixed into the Wan2.2 `1.2-light` image
-  - Root cause: treating the light image as a general AI-video environment instead of a workflow-specific runtime
-  - Action:
-    - do not add LTX 2.3 dependencies, nodes, or model assumptions to `001skills`
-    - create a new profile and image tag for LTX 2.3
-    - only share orchestration scripts when the stage/launch/download/publish contract is still compatible
 
 - Symptom: cold start appears "stuck", but logs only show pip and curl progress for a long time
   - Root cause: the machine is still doing legitimate bootstrap work:
@@ -75,77 +61,6 @@ These failures were observed on the same branch:
   - Root cause: host driver and container CUDA stack are incompatible
   - Evidence seen on a failed host: `570.211.01`
   - Action: prefer `580.*` driver hosts; if Error 804 appears, stop and destroy
-
-- Symptom: `1.2-light` starts but still reinstalls torch/cu124 on a fresh machine
-  - Root cause: the selected host driver only supports CUDA below 12.4, so the prewarmed torch stack is not considered usable
-  - Evidence seen on failed `v12-light-fresh-001`: driver `535.274.02`, `cuda_max_good=12.2`
-  - Action: destroy and search with `cuda_max_good>=12.4`
-
-- Symptom: `1.2-light` was retested on the exact same physical machine as a successful `1.0`, but still reached `bootstrap.model_downloads` later than `1.0`
-  - Root cause: the `1.2-light` path was not actually preserving its preinstalled custom nodes at runtime
-  - Evidence from `v12-light-sameA-001` on host `264182` / machine `42568`:
-    - the container spent extra time in image preparation before `running`
-    - `remote_submit_wan22_root_canvas.sh` replaced `COMFY_APP_ROOT/custom_nodes` with a symlink to `/workspace/ComfyUI/custom_nodes`
-    - preinstalled nodes baked into the image were therefore hidden or removed before ComfyUI restart
-    - `bootstrap` then reinstalled custom-node requirements and still reinstalled `torch/cu124`
-  - Action:
-    - in prewarmed mode, inspect and preserve `COMFY_APP_ROOT/custom_nodes`
-    - do not overwrite preinstalled `custom_nodes` with an empty workspace symlink
-    - do not treat same-machine `1.2` slowness as a host problem; fix `1.2` itself first
-
-- Symptom: custom nodes were baked into `/workspace/ComfyUI` during image build, but missing at runtime
-  - Root cause: `/workspace` is a runtime-mounted data location on Vast, so image-baked content there is not a reliable place for prewarmed assets
-  - Action:
-    - bake prewarmed `custom_nodes` into `COMFY_APP_ROOT` or another non-mounted application path
-    - keep runtime-generated inputs, outputs, and models in `/workspace`
-
-- Symptom: custom nodes were baked into `/opt/workspace-internal/ComfyUI`, but `1.2-light` still logged `prewarmed image miss: custom_nodes`
-  - Root cause: the Vast Comfy base image can prepare or refresh the runnable ComfyUI tree at container startup, so that path is not stable enough for image-baked prewarm payloads
-  - Evidence from `v12-light-fixed-smoke-001` on instance `35469431`:
-    - image started successfully
-    - `PREWARMED_IMAGE=1` was injected
-    - bootstrap still reported missing `ComfyUI-GGUF`, `ComfyUI-KJNodes`, `ComfyUI-VideoHelperSuite`, and `ComfyUI-WanAnimatePreprocess`
-    - the run was destroyed before inference because continuing would only repeat the cold path
-  - Action:
-    - store image-baked node payloads under `/opt/wan22-prewarm/custom_nodes`
-    - at bootstrap time copy them into `$COMFY_APP_ROOT/custom_nodes`
-    - only accept `1.2-light` when logs show `prewarmed image hit: custom_nodes`
-    - avoid duplicate GitHub Actions workflows pushing the same Docker tag
-
-- Symptom: after rebuilding `1.2-light`, a retest on the same host still behaved like the old image
-  - Root cause: Docker tags such as `1.2-light` are mutable; a host that already pulled the old tag may keep using the cached local image
-  - Evidence from `v12-light-fixed-smoke-002`:
-    - same host and machine as the previous failed smoke test: `344939 / 68107`
-    - startup still showed old `prewarmed image miss: custom_nodes` behavior
-  - Action:
-    - for validation of a newly built image, use the immutable Git SHA tag, for example `j1c2k3/codex-comfy-wan22-root-canvas:sha-b14e144`
-    - or force a different clean host
-    - only move `config/vast-workflow-profiles.json` back to the mutable `1.2-light` tag after the SHA-tag smoke test passes
-
-- Symptom: even the immutable SHA-tag `1.2` image still reinstalled custom-node dependencies and torch
-  - Root cause: the launch path still injected Vast's default `PROVISIONING_SCRIPT`, which can rebuild or refresh the ComfyUI runtime at container startup and erase the benefit of a prewarmed image
-  - Evidence from `v12-light-fixed-smoke-003`:
-    - image tag was `sha-b14e144`
-    - instance environment still included `PROVISIONING_SCRIPT=.../comfyui/provisioning_scripts/default.sh`
-    - bootstrap reinstalled custom-node requirements and torch
-    - model download phase started only around 309 seconds after launch
-  - Action:
-    - when `-PrewarmedImage` is used, pass `-SkipDefaultProvisioning` to instance creation
-    - verify `extra_env` does not contain `PROVISIONING_SCRIPT`
-    - only continue to full inference if bootstrap logs show custom nodes and torch are reused
-
-- Symptom: after removing `PROVISIONING_SCRIPT`, `1.2-light` still missed custom nodes and reinstalled torch
-  - Evidence from `v12-light-fixed-smoke-004` on instance `35470507`:
-    - `extra_env` correctly had no `PROVISIONING_SCRIPT`
-    - image tag was immutable `sha-b14e144`
-    - container spent about 366 seconds before running due to pulling the 9.6GB image
-    - bootstrap still logged `prewarmed image miss: custom_nodes`
-    - bootstrap still logged `reinstalling torch stack`
-    - model download phase started around 507 seconds after launch
-  - Conclusion:
-    - `1.2-light` is currently slower than the known `1.0-cold` path
-    - do not run full inference with this light-image path as a production optimization
-    - next real optimization should be either `1.3-heavy` with models included or a provider/cache strategy that actually preserves model and dependency files
 
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
