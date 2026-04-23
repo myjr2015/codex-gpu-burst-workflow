@@ -43,7 +43,51 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-23T12:19:17"
+    },
+    {
+      "machine_id": 45200,
+      "host_id": 229807,
+      "offer_id": 34184482,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "590.48.01",
+      "geolocation": "Estonia, EE",
+      "verification": "verified",
+      "dph_total": 0.18333333333333335,
+      "job_name": "v10-stability-a",
+      "instance_id": 35471352,
+      "result": "succeeded",
+      "last_success_at": "2026-04-23T19:59:55",
+      "total_until_download_seconds": 1920.0,
+      "instance_started_to_submit_seconds": 1014.0,
+      "prompt_execution": "00:12:07",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-23T19:59:55"
+    },
+    {
+      "machine_id": 5314,
+      "host_id": 42512,
+      "offer_id": 27282455,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "580.95.05",
+      "geolocation": "Oklahoma, US",
+      "verification": "verified",
+      "dph_total": 0.1933333333333333,
+      "job_name": "v10-stability-b",
+      "instance_id": 35471353,
+      "result": "succeeded",
+      "last_success_at": "2026-04-23T19:59:55",
+      "total_until_download_seconds": 1818.0,
+      "instance_started_to_submit_seconds": 884.0,
+      "prompt_execution": "00:11:30",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-23T19:59:56"
     }
   ],
-  "updated_at": "2026-04-23T12:47:50"
+  "updated_at": "2026-04-23T19:59:56"
 }

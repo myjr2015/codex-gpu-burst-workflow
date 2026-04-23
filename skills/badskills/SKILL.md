@@ -230,6 +230,17 @@ These failures were observed on the same branch:
     6. `summarize_timings`
     7. `publish`
 
+- Symptom: two independent `stage_001skills_job.ps1` runs fail with Git errors such as `Cannot fast-forward to multiple branches`
+  - Root cause: both stage processes update the shared local custom-node cache under `.cache/001skills/custom_nodes` at the same time
+  - Evidence from `v10-stability-b` initial stage attempt:
+    - A and B were staged in parallel
+    - A succeeded
+    - B failed updating `.cache/001skills/custom_nodes/ComfyUI-GGUF`
+  - Action:
+    - stage jobs sequentially for this branch
+    - only launch machines after all staging is complete
+    - do not parallelize local cache mutation unless each job gets an isolated cache directory
+
 - Symptom: `watch_vast_workflow_job.ps1` crashes with `Cannot bind argument to parameter 'Lines' because it is an empty string`
   - Root cause: a fresh instance can return no logs yet, and the watch helper treated the log list as mandatory non-empty input
   - Action: watch scripts must tolerate empty log output and print `<no relevant log lines yet>` instead of stopping the run

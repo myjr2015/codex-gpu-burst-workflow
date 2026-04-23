@@ -109,9 +109,34 @@ Run 2:
 - local output: `output/001skills/smoke-003/downloads/001skills-smoke-003_00001-audio.mp4`
 - R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/smoke-003/output/001skills-smoke-003_00001-audio.mp4`
 
+Run 3:
+- job `v10-stability-a`
+- Vast instance `35471352`
+- host `229807`
+- machine `45200`
+- GPU `RTX 3090 24GB`
+- driver `590.48.01`
+- image `vastai/comfy:v0.19.3-cuda-12.9-py312`
+- prompt execution `00:12:07`
+- local output: `output/001skills/v10-stability-a/downloads/001skills-v10-stability-a_00001-audio.mp4`
+- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/v10-stability-a/output/001skills-v10-stability-a_00001-audio.mp4`
+
+Run 4:
+- job `v10-stability-b`
+- Vast instance `35471353`
+- host `42512`
+- machine `5314`
+- GPU `RTX 3090 24GB`
+- driver `580.95.05`
+- image `vastai/comfy:v0.19.3-cuda-12.9-py312`
+- prompt execution `00:11:30`
+- local output: `output/001skills/v10-stability-b/downloads/001skills-v10-stability-b_00001-audio.mp4`
+- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/v10-stability-b/output/001skills-v10-stability-b_00001-audio.mp4`
+
 Core conclusion:
 - this chain survives fresh-host cold start
 - this chain does not depend on one lucky mother machine
+- two separate 3090 machines completed successfully in the same stability test
 
 ## Machine Selection Rule
 
