@@ -1,4 +1,4 @@
-# Project Operating Rules
+# 项目运行规则
 
 本项目的长期记忆分三层：
 
@@ -15,7 +15,25 @@
    - 失败经验和禁止重复踩的坑。
    - 跑 Vast、调 ComfyUI、处理冷启动问题前必须加载。
 
-## Mandatory Startup Rule
+## 中文优先规则
+
+能用中文表达的地方优先用中文，包括：
+
+- 文档文件名和章节标题。
+- 项目说明、恢复说明、操作步骤。
+- 对用户的状态汇报和最终总结。
+- 目录说明、素材说明、经验记录。
+
+以下内容保持英文或 ASCII，不强行中文化：
+
+- 已跑通的脚本文件名，例如 `scripts/run_wan_2_2_animate_end_to_end.ps1`。
+- profile、JSON 字段、环境变量、命令参数、模型文件名。
+- 第三方平台、库、API 的官方名称。
+- 会影响自动化流程稳定性的固定输入输出名。
+
+原则：用户可读内容尽量中文，机器要读的接口保持稳定。
+
+## 必读启动规则
 
 每次开始跑付费 Vast 任务前，必须先读取：
 
@@ -27,7 +45,7 @@
 - `1.0`：冷启动跑通版
 - `1.1`：机器库优选 + 暖启动探测版
 
-## Machine Registry
+## 机器库规则
 
 老机器判断只以文件为准，不靠聊天记忆：
 
@@ -47,7 +65,7 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 - `hit` 说中文叫“命中”。
 - `miss` 说中文叫“未命中”，意思是没有找到可复用缓存，不是文件丢失。
 
-## Paid Run Reporting
+## 付费运行汇报
 
 付费机器运行时不能长时间沉默。必须按步骤汇报：
 
@@ -63,7 +81,7 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 10. `destroy`：销毁实例，停止计费
 11. `update registry`：更新机器库
 
-## Machine Switch Reporting
+## 切换机器汇报
 
 如果同一任务中途销毁实例并切换到另一台机器，不能只在后台切换，必须立即补一条状态：
 
@@ -85,7 +103,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   -MaxChecks 60
 ```
 
-## Current Production Branch
+## 当前生产主线
 
 当前已跑通的固定流程：
 
@@ -97,7 +115,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 共享配置：`config/vast-workflow-profiles.json`
 - 成功/失败经验：`skills/okskills/SKILL.md`、`skills/badskills/SKILL.md`
 
-## Workflow Directory
+## 工作流目录
 
 所有 ComfyUI / RunComfy workflow JSON 源文件统一放在：
 
@@ -111,7 +129,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 新 workflow 要上 Vast 跑时，必须先确认输入节点、输出文件匹配、依赖节点和模型清单，再新增 profile 或专用 stage 脚本。
 - `output/wan_2_2_animate/<job_name>/workflow_canvas.json` 和 `workflow_runtime.json` 是每次运行自动生成的副本，不要当源文件维护。
 
-## Local Key Fallback
+## 本地密钥兜底
 
 本地 key 读取顺序：
 
@@ -133,7 +151,7 @@ key
 - PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
 - Node 入口通过 `src/config.js` 自动做 fallback。
 
-## Runtime Versions
+## 运行版本
 
 默认运行入口仍然是：
 
@@ -150,7 +168,7 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
   - 用机器库优选老机器
   - 老机器命中时才启用 `WarmStart`
 
-## Do Not Repeat
+## 不要重复踩坑
 
 - 不要用 `美女图.png` 跑这个固定流程。
 - 不要用 `素材资产/美女图无背景纯色/` 里的纯色人物图跑当前 `wan_2_2_animate` 固定流程。
