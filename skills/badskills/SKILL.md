@@ -56,7 +56,7 @@ These failures were observed on the same branch:
 
 - Symptom: the cheapest host looks attractive on paper, but cold start is slow or unstable because external registries and model sources are hard to reach
   - Root cause: host geolocation is mainland China, while this branch depends on unattended pulls from Docker Hub, PyTorch, and Hugging Face
-  - Action: for `001skills`, exclude `CN` when searching Vast offers unless the runtime has been explicitly rebuilt for China-network constraints
+  - Action: for `wan_2_2_animate`, exclude `CN` when searching Vast offers unless the runtime has been explicitly rebuilt for China-network constraints
 
 - Symptom: ComfyUI exits with `cudaGetDeviceCount Error 804`
   - Root cause: host driver and container CUDA stack are incompatible
@@ -79,7 +79,7 @@ These failures were observed on the same branch:
   - Root cause: `workflow_runtime.json` used Chinese names, but generated onstart script still downloaded files as `source.mp4` and `speaker.png`
   - Action: keep filenames consistent end to end
 
-- Symptom: the current `001skills` result uses a pure-color speaker asset or an old `美女图.png`
+- Symptom: the current `wan_2_2_animate` result uses a pure-color speaker asset or an old `美女图.png`
   - Root cause: source image selection drifted back to an old branch that is not the proven Wan2.2 fixed flow
   - Action: only select source images from `素材资产/美女图带光伏/`; stage may still rename the selected file to `美女带背景.png` for ComfyUI
 
@@ -96,11 +96,11 @@ These failures were observed on the same branch:
 
 - Symptom: local scripts were fixed, but remote machine still used stale files
   - Root cause: job package was not re-staged and re-uploaded after script edits
-  - Action: always rerun `stage_001skills_job.ps1` after any change to bootstrap, runtime JSON generation, or onstart generation
+  - Action: always rerun `stage_wan_2_2_animate_job.ps1` after any change to bootstrap, runtime JSON generation, or onstart generation
 
-- Symptom: `onstart_001skills.sh` dies during long R2 pulls with `curl: (35) Recv failure: Connection reset by peer`
+- Symptom: `onstart_wan_2_2_animate.sh` dies during long R2 pulls with `curl: (35) Recv failure: Connection reset by peer`
   - Root cause: earlier fetch logic was too fragile for big staged downloads
-  - Action: keep hardened curl flags in `generate_001skills_onstart.mjs`:
+  - Action: keep hardened curl flags in `generate_wan_2_2_animate_onstart.mjs`:
     - `--http1.1`
     - `--retry 10`
     - `--retry-all-errors`
@@ -150,12 +150,12 @@ These failures were observed on the same branch:
     6. `summarize_timings`
     7. `publish`
 
-- Symptom: two independent `stage_001skills_job.ps1` runs fail with Git errors such as `Cannot fast-forward to multiple branches`
-  - Root cause: both stage processes update the shared local custom-node cache under `.cache/001skills/custom_nodes` at the same time
+- Symptom: two independent `stage_wan_2_2_animate_job.ps1` runs fail with Git errors such as `Cannot fast-forward to multiple branches`
+  - Root cause: both stage processes update the shared local custom-node cache under `.cache/wan_2_2_animate/custom_nodes` at the same time
   - Evidence from `v10-stability-b` initial stage attempt:
     - A and B were staged in parallel
     - A succeeded
-    - B failed updating `.cache/001skills/custom_nodes/ComfyUI-GGUF`
+    - B failed updating `.cache/wan_2_2_animate/custom_nodes/ComfyUI-GGUF`
   - Action:
     - stage jobs sequentially for this branch
     - only launch machines after all staging is complete
@@ -292,12 +292,12 @@ Required live-run reporting cadence:
 4. during inference, report the latest progress marker such as `0/4`, `1/4`, `2/4`, `3/4`, or `4/4`
 5. after output appears, report download path, publish URL, and destroy status
 
-Avoid one long monolithic `run_001skills_end_to_end.ps1` call when the human is actively watching.
+Avoid one long monolithic `run_wan_2_2_animate_end_to_end.ps1` call when the human is actively watching.
 Use short polling with `watch_vast_workflow_job.ps1` so progress is visible.
 
 ## Structural Rule For Future Workflows
 
-When the workflow itself changes, do not assume the proven `001skills` output-matching logic still applies.
+When the workflow itself changes, do not assume the proven `wan_2_2_animate` output-matching logic still applies.
 
 You must re-prove at least these workflow-specific pieces:
 - source workflow JSON under `workflows/`

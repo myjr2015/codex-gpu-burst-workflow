@@ -4,7 +4,7 @@ param(
 
     [string]$ResultPath,
 
-    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/001skills" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/001skills" }),
+    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/wan_2_2_animate" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/wan_2_2_animate" }),
 
     [string]$R2Bucket = $(if ($env:ASSET_S3_BUCKET) { $env:ASSET_S3_BUCKET } elseif ($env:R2_BUCKET) { $env:R2_BUCKET } else { "runcomfy" }),
 
@@ -36,7 +36,7 @@ if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_A
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
 $uploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
-$jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
+$jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
 $manifestPath = Join-Path $jobDir "manifest.json"
 if (-not (Test-Path -LiteralPath $uploadScript)) {
     throw "Missing upload helper: $uploadScript"

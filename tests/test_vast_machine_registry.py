@@ -98,7 +98,7 @@ class MachineRegistryUpdateTests(unittest.TestCase):
                 "geolocation": "Quebec, CA",
                 "verification": "verified",
                 "dph_total": 0.21,
-                "label": "001skills-job-v11-warmstart-samehost-002",
+                "label": "wan_2_2_animate-job-v11-warmstart-samehost-002",
             }
             timing = {
                 "lifecycle": {

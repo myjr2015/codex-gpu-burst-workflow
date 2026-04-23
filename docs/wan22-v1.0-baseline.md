@@ -9,7 +9,7 @@ Pinned contract:
 - source image directory: `素材资产/美女图带光伏/`
 - staged ComfyUI image input: `美女带背景.png`
 - video input: `光伏2.mp4`
-- runtime profile: `001skills`
+- runtime profile: `wan_2_2_animate`
 - target: one direct MP4 output with lip sync, local download, and R2 publish
 
 This baseline is for reproducibility first. It does not yet claim minimum-cost startup.
@@ -27,15 +27,15 @@ Verified path:
 8. collect timing summary and run report
 
 Proven output example:
-- local: `output/001skills/smoke-006/downloads/001skills-smoke-006_00001-audio.mp4`
-- public: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/smoke-006/output/001skills-smoke-006_00001-audio.mp4`
+- local: `output/wan_2_2_animate/smoke-006/downloads/wan_2_2_animate-smoke-006_00001-audio.mp4`
+- public: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate/smoke-006/output/wan_2_2_animate-smoke-006_00001-audio.mp4`
 
 ## Main Entry Point
 
 Full run:
 
 ```powershell
-pwsh -File .\scripts\run_001skills_end_to_end.ps1 \
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1 \
   -JobName demo-001 \
   -VideoPath .\output\vast-wan22-root-strict-3090b\光伏2.mp4 \
   -OfferId <vast_offer_id>
@@ -46,7 +46,7 @@ If `-ImagePath` is omitted, the wrapper selects the newest image from `素材资
 Resume an already running job:
 
 ```powershell
-pwsh -File .\scripts\run_001skills_end_to_end.ps1 \
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1 \
   -JobName demo-001 \
   -SkipStage \
   -SkipLaunch
@@ -56,7 +56,7 @@ Watch progress with numbered steps:
 
 ```powershell
 pwsh -File .\scripts\watch_vast_workflow_job.ps1 \
-  -Profile 001skills \
+  -Profile wan_2_2_animate \
   -JobName demo-001 \
   -IntervalSeconds 20 \
   -MaxChecks 60
@@ -67,16 +67,16 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 \
 Core files:
 - `workflows/Animate+Wan2.2换风格对口型.json`
 - `config/vast-workflow-profiles.json`
-- `scripts/stage_001skills_job.ps1`
-- `scripts/launch_001skills_vast_job.ps1`
-- `scripts/download_001skills_result.ps1`
-- `scripts/publish_001skills_result.ps1`
+- `scripts/stage_wan_2_2_animate_job.ps1`
+- `scripts/launch_wan_2_2_animate_vast_job.ps1`
+- `scripts/download_wan_2_2_animate_result.ps1`
+- `scripts/publish_wan_2_2_animate_result.ps1`
 - `scripts/run_vast_workflow_job.ps1`
-- `scripts/run_001skills_end_to_end.ps1`
+- `scripts/run_wan_2_2_animate_end_to_end.ps1`
 - `scripts/watch_vast_workflow_job.ps1`
 - `scripts/summarize_vast_job_timing.ps1`
 - `scripts/bootstrap_wan22_root_canvas.sh`
-- `scripts/generate_001skills_onstart.mjs`
+- `scripts/generate_wan_2_2_animate_onstart.mjs`
 - `skills/okskills/SKILL.md`
 - `skills/badskills/SKILL.md`
 

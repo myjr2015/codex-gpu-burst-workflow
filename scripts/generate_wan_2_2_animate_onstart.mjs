@@ -28,7 +28,7 @@ function encodePath(input) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.manifest || !options.output) {
-    throw new Error("Usage: node scripts/generate_001skills_onstart.mjs --manifest <manifest.json> --output <onstart.sh>");
+    throw new Error("Usage: node scripts/generate_wan_2_2_animate_onstart.mjs --manifest <manifest.json> --output <onstart.sh>");
   }
 
   const manifestPath = path.resolve(process.cwd(), options.manifest);

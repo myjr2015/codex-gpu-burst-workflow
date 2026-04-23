@@ -1,4 +1,4 @@
-function Get-001SkillsLaunchExtraEnv {
+function Get-Wan22AnimateLaunchExtraEnv {
     param(
         [switch]$WarmStart
     )

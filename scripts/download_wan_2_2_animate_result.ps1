@@ -24,7 +24,7 @@ function Get-JobPaths {
     )
 
     $repoRoot = (Resolve-Path ".").Path
-    $jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
+    $jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
     if (-not (Test-Path -LiteralPath $jobDir)) {
         throw "Missing job directory: $jobDir"
     }
@@ -133,7 +133,7 @@ function Find-OutputCandidate {
         [string]$JobName
     )
 
-    $prefix = "001skills-$JobName"
+    $prefix = "wan_2_2_animate-$JobName"
     $candidates = New-Object System.Collections.Generic.List[object]
 
     foreach ($historyProperty in $History.PSObject.Properties) {
@@ -242,9 +242,9 @@ $history | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $paths.HistoryAp
 
 if (-not $candidate) {
     if ($Wait) {
-        throw "No output file matching 001skills-$JobName was found after waiting."
+        throw "No output file matching wan_2_2_animate-$JobName was found after waiting."
     }
-    throw "No output file matching 001skills-$JobName was found in ComfyUI history."
+    throw "No output file matching wan_2_2_animate-$JobName was found in ComfyUI history."
 }
 
 $query = "filename=$([uri]::EscapeDataString($candidate.Filename))&type=$([uri]::EscapeDataString($candidate.Type))&subfolder=$([uri]::EscapeDataString($candidate.Subfolder))"

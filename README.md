@@ -4,7 +4,7 @@
 
 - [docs/wan22-v1.0-baseline.md](./docs/wan22-v1.0-baseline.md)
 
-这份 `V1.0` 文档固定的是已经跑通的 `001skills` 链路，后续省时/省钱优化会在此基线之上推进。
+这份 `V1.0` 文档固定的是已经跑通的 `wan_2_2_animate` 链路，后续省时/省钱优化会在此基线之上推进。
 
 这个项目只做你已经确认的生成链路，不碰监控层。
 
@@ -227,7 +227,7 @@ npm run pipeline -- --mode fixed_bg --input .\\光伏2.mp4 --speaker-image-url h
 
 如果你还没把 `audio.wav` 上传到公网，`avatar-jobs.json` 会明确提示缺少 `--source-audio-url`。
 
-旧 `fixed_bg` 实验曾支持多张纯色背景人物图，但当前 `001skills` 固定流程不要用这类素材。当前流程的图片来源统一放在 `素材资产\美女图带光伏`。
+旧 `fixed_bg` 实验曾支持多张纯色背景人物图，但当前 `wan_2_2_animate` 固定流程不要用这类素材。当前流程的图片来源统一放在 `素材资产\美女图带光伏`。
 
 ```bash
 npm run pipeline -- --mode fixed_bg --input .\\光伏2.mp4 --speaker-image-urls https://example.com/美女1.png,https://example.com/美女2.png,https://example.com/美女3.png --source-video-url https://example.com/source.mp4

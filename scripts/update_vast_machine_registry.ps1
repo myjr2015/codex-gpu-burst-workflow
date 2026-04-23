@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path ".").Path
-$jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
+$jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
 $registryResolved = Join-Path $repoRoot $RegistryPath
 $scriptPath = Join-Path $repoRoot "scripts\vast_machine_registry.py"
 $instancePath = Join-Path $jobDir "vast-instance.json"

@@ -8,7 +8,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$VideoPath,
 
-    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/001skills" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/001skills" }),
+    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/wan_2_2_animate" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/wan_2_2_animate" }),
 
     [string]$R2Bucket = $(if ($env:ASSET_S3_BUCKET) { $env:ASSET_S3_BUCKET } elseif ($env:R2_BUCKET) { $env:R2_BUCKET } else { "runcomfy" }),
 
@@ -50,7 +50,7 @@ if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_A
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
 $profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
-$workflowSourceRel = [string]$profileConfig.profiles."001skills".workflow_source
+$workflowSourceRel = [string]$profileConfig.profiles."wan_2_2_animate".workflow_source
 if ([string]::IsNullOrWhiteSpace($workflowSourceRel)) {
     $workflowSourceRel = "workflows\Animate+Wan2.2换风格对口型.json"
 }
@@ -58,11 +58,11 @@ $sourceWorkflow = Join-Path $repoRoot $workflowSourceRel
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_wan22_root_canvas.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_wan22_root_canvas.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_root_canvas_prompt.mjs"
-$generateOnstartScript = Join-Path $repoRoot "scripts\generate_001skills_onstart.mjs"
+$generateOnstartScript = Join-Path $repoRoot "scripts\generate_wan_2_2_animate_onstart.mjs"
 $warmstartInspectorScript = Join-Path $repoRoot "scripts\inspect_wan22_warmstart.py"
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $bundleSourceDir = Join-Path $repoRoot "output\vast-wan22-root-strict-3090b\node-bundles"
-$customNodeCacheRoot = Join-Path $repoRoot ".cache\001skills\custom_nodes"
+$customNodeCacheRoot = Join-Path $repoRoot ".cache\wan_2_2_animate\custom_nodes"
 $requiredBundledZips = @(
     "ComfyUI-KJNodes.zip"
     "ComfyUI-VideoHelperSuite.zip"
@@ -107,7 +107,7 @@ function New-RepoBundleZip {
     )
 
     $cachePath = Join-Path $customNodeCacheRoot $RepoName
-    $stagingRoot = Join-Path $env:TEMP ("001skills-bundle-" + $RepoName)
+    $stagingRoot = Join-Path $env:TEMP ("wan_2_2_animate-bundle-" + $RepoName)
 
     New-Item -ItemType Directory -Force -Path $customNodeCacheRoot | Out-Null
     Update-GitRepoCache -RepoUrl $RepoUrl -CachePath $cachePath
@@ -150,13 +150,13 @@ foreach ($bundleName in $requiredBundledZips) {
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
 
-$jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
+$jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
 $inputDir = Join-Path $jobDir "input"
 $bundleDir = Join-Path $jobDir "node-bundles"
 New-Item -ItemType Directory -Force -Path $inputDir | Out-Null
 New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
 
-foreach ($staleFile in @("onstart_001skills.sh", "vast-create-response.json", "vast-instance.json")) {
+foreach ($staleFile in @("onstart_wan_2_2_animate.sh", "vast-create-response.json", "vast-instance.json")) {
     $stalePath = Join-Path $jobDir $staleFile
     if (Test-Path -LiteralPath $stalePath) {
         Remove-Item -LiteralPath $stalePath -Force
@@ -171,7 +171,7 @@ $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_root_canvas.sh"
 $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_root_canvas.sh"
 $warmstartInspectorOut = Join-Path $jobDir "inspect_wan22_warmstart.py"
 $manifestOut = Join-Path $jobDir "manifest.json"
-$onstartOut = Join-Path $jobDir "onstart_001skills.sh"
+$onstartOut = Join-Path $jobDir "onstart_wan_2_2_animate.sh"
 
 Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
 Copy-Item -LiteralPath $resolvedVideo -Destination $stagedVideo -Force
@@ -191,15 +191,15 @@ New-RepoBundleZip -RepoUrl "https://github.com/city96/ComfyUI-GGUF.git" -RepoNam
     --output $runtimeOut `
     --image-name "美女带背景.png" `
     --video-name "光伏2.mp4" `
-    --output-prefix ("001skills-" + $JobName)
+    --output-prefix ("wan_2_2_animate-" + $JobName)
 
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to prepare workflow runtime json."
 }
 
 $manifest = [ordered]@{
-    profile = "001skills"
-    skill = "001skills"
+    profile = "wan_2_2_animate"
+    skill = "wan_2_2_animate"
     job_name = $JobName
     created_at = (Get-Date).ToString("s")
     workflow = [ordered]@{
@@ -249,7 +249,7 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestOut -Enc
     --output $onstartOut
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed to generate onstart_001skills.sh."
+    throw "Failed to generate onstart_wan_2_2_animate.sh."
 }
 
 if ($UploadToR2) {

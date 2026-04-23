@@ -21,13 +21,13 @@ param(
     [ValidateSet("1.0-cold", "1.1-machine-registry")]
     [string]$RuntimeVersion = "1.1-machine-registry",
 
-    [string]$Label = "001skills-job",
+    [string]$Label = "wan_2_2_animate-job",
 
     [int]$DiskGb = 180,
 
     [string[]]$MountArgs = @(),
 
-    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/001skills" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/001skills" }),
+    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/wan_2_2_animate" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/wan_2_2_animate" }),
 
     [string]$R2Bucket = $(if ($env:ASSET_S3_BUCKET) { $env:ASSET_S3_BUCKET } elseif ($env:R2_BUCKET) { $env:R2_BUCKET } else { "runcomfy" }),
 
@@ -62,7 +62,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path ".").Path
 $runnerPath = Join-Path $repoRoot "scripts\run_vast_workflow_job.ps1"
-$selectorPath = Join-Path $repoRoot "scripts\select_001skills_vast_offer.ps1"
+$selectorPath = Join-Path $repoRoot "scripts\select_wan_2_2_animate_vast_offer.ps1"
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 if (-not (Test-Path -LiteralPath $runnerPath)) {
     throw "Missing runner: $runnerPath"
@@ -77,7 +77,7 @@ if (-not (Test-Path -LiteralPath $r2HelperPath)) {
 . $r2HelperPath
 Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
 if ([string]::IsNullOrWhiteSpace($R2Prefix) -and $env:ASSET_S3_PREFIX) {
-    $R2Prefix = $env:ASSET_S3_PREFIX.TrimEnd("/") + "/001skills"
+    $R2Prefix = $env:ASSET_S3_PREFIX.TrimEnd("/") + "/wan_2_2_animate"
 }
 if ([string]::IsNullOrWhiteSpace($R2Bucket) -and $env:ASSET_S3_BUCKET) {
     $R2Bucket = $env:ASSET_S3_BUCKET
@@ -97,7 +97,7 @@ if ([string]::IsNullOrWhiteSpace($ImageAssetDir)) {
     $profileConfigPath = Join-Path $repoRoot "config\vast-workflow-profiles.json"
     if (Test-Path -LiteralPath $profileConfigPath) {
         $profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
-        $configuredImageAssetDir = [string]$profileConfig.profiles."001skills".default_image_asset_dir
+        $configuredImageAssetDir = [string]$profileConfig.profiles."wan_2_2_animate".default_image_asset_dir
         if (-not [string]::IsNullOrWhiteSpace($configuredImageAssetDir)) {
             $ImageAssetDir = $configuredImageAssetDir
         }
@@ -126,14 +126,14 @@ function Test-PathUnderDirectory {
     return $normalizedPath.StartsWith($normalizedDirectory + [System.IO.Path]::DirectorySeparatorChar, $comparison)
 }
 
-function Resolve-Default001SkillsImage {
+function Resolve-DefaultWan22AnimateImage {
     param(
         [Parameter(Mandatory = $true)]
         [string]$AssetDir
     )
 
     if (-not (Test-Path -LiteralPath $AssetDir)) {
-        throw "001skills image asset directory not found: $AssetDir"
+        throw "wan_2_2_animate image asset directory not found: $AssetDir"
     }
 
     $candidate = Get-ChildItem -LiteralPath $AssetDir -File |
@@ -142,7 +142,7 @@ function Resolve-Default001SkillsImage {
         Select-Object -First 1
 
     if (-not $candidate) {
-        throw "No image assets found in 001skills image asset directory: $AssetDir"
+        throw "No image assets found in wan_2_2_animate image asset directory: $AssetDir"
     }
 
     return $candidate.FullName
@@ -151,7 +151,7 @@ function Resolve-Default001SkillsImage {
 $stageArgs = @()
 if (-not $SkipStage) {
     if ([string]::IsNullOrWhiteSpace($ImagePath)) {
-        $ImagePath = Resolve-Default001SkillsImage -AssetDir (Join-Path $repoRoot $ImageAssetDir)
+        $ImagePath = Resolve-DefaultWan22AnimateImage -AssetDir (Join-Path $repoRoot $ImageAssetDir)
         Write-Host "selected_asset_image=$ImagePath"
     }
     if ([string]::IsNullOrWhiteSpace($VideoPath)) {
@@ -162,13 +162,13 @@ if (-not $SkipStage) {
     $resolvedAssetDir = (Resolve-Path -LiteralPath (Join-Path $repoRoot $ImageAssetDir)).Path
     $pureColorDir = Join-Path $repoRoot "素材资产\美女图无背景纯色"
     if ((Test-Path -LiteralPath $pureColorDir) -and (Test-PathUnderDirectory -Path $resolvedImagePath -Directory (Resolve-Path -LiteralPath $pureColorDir).Path)) {
-        throw "001skills image must not come from 素材资产\美女图无背景纯色. Use 素材资产\美女图带光伏."
+        throw "wan_2_2_animate image must not come from 素材资产\美女图无背景纯色. Use 素材资产\美女图带光伏."
     }
     if ([System.IO.Path]::GetFileName($resolvedImagePath) -eq "美女图.png") {
-        throw "001skills image must not use 美女图.png. Use a composed photovoltaic-background image from 素材资产\美女图带光伏."
+        throw "wan_2_2_animate image must not use 美女图.png. Use a composed photovoltaic-background image from 素材资产\美女图带光伏."
     }
     if (-not (Test-PathUnderDirectory -Path $resolvedImagePath -Directory $resolvedAssetDir)) {
-        throw "001skills image must come from $resolvedAssetDir. The workflow stages it as 美女带背景.png for ComfyUI."
+        throw "wan_2_2_animate image must come from $resolvedAssetDir. The workflow stages it as 美女带背景.png for ComfyUI."
     }
 
     $stageArgs += @(
@@ -257,7 +257,7 @@ if (-not $SkipPublish) {
 }
 
 $runnerParams = @{
-    Profile = "001skills"
+    Profile = "wan_2_2_animate"
     JobName = $JobName
     SkipStage = [bool]$SkipStage
     SkipLaunch = [bool]$SkipLaunch

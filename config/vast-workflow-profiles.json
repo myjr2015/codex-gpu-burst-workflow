@@ -1,26 +1,26 @@
 {
   "profiles": {
-    "001skills": {
-      "skill": "001skills",
-      "job_root": "output/001skills",
+    "wan_2_2_animate": {
+      "skill": "wan_2_2_animate",
+      "job_root": "output/wan_2_2_animate",
       "workflow_source": "workflows/Animate+Wan2.2换风格对口型.json",
       "default_image_asset_dir": "素材资产/美女图带光伏",
-      "stage_script": "scripts/stage_001skills_job.ps1",
-      "launch_script": "scripts/launch_001skills_vast_job.ps1",
-      "download_script": "scripts/download_001skills_result.ps1",
-      "publish_script": "scripts/publish_001skills_result.ps1",
+      "stage_script": "scripts/stage_wan_2_2_animate_job.ps1",
+      "launch_script": "scripts/launch_wan_2_2_animate_vast_job.ps1",
+      "download_script": "scripts/download_wan_2_2_animate_result.ps1",
+      "publish_script": "scripts/publish_wan_2_2_animate_result.ps1",
       "destroy_script": "scripts/destroy_vast_instance.ps1",
       "manifest_file": "manifest.json",
       "instance_file": "vast-instance.json",
-      "default_label": "001skills-job",
+      "default_label": "wan_2_2_animate-job",
       "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",
       "default_disk_gb": 180,
       "default_search_query": "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
-      "default_r2_prefix": "runcomfy-inputs/001skills",
+      "default_r2_prefix": "runcomfy-inputs/wan_2_2_animate",
       "default_r2_bucket": "runcomfy",
       "default_r2_public_base_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev",
       "machine_registry_path": "data/vast-machine-registry.json",
-      "offer_selector_script": "scripts/select_001skills_vast_offer.ps1",
+      "offer_selector_script": "scripts/select_wan_2_2_animate_vast_offer.ps1",
       "machine_registry_update_script": "scripts/update_vast_machine_registry.ps1"
     }
   }

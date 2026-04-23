@@ -7,7 +7,7 @@ param(
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
-    [string]$Label = "001skills-job",
+    [string]$Label = "wan_2_2_animate-job",
 
     [int]$DiskGb = 180,
 
@@ -21,12 +21,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path ".").Path
-$jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
+$jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
 $manifestPath = Join-Path $jobDir "manifest.json"
-$onstartPath = Join-Path $jobDir "onstart_001skills.sh"
-$generator = Join-Path $repoRoot "scripts\generate_001skills_onstart.mjs"
+$onstartPath = Join-Path $jobDir "onstart_wan_2_2_animate.sh"
+$generator = Join-Path $repoRoot "scripts\generate_wan_2_2_animate_onstart.mjs"
 $createScript = Join-Path $repoRoot "scripts\create_vast_instance_minimal.ps1"
-$helpersPath = Join-Path $repoRoot "scripts\launch_001skills_vast_job_helpers.ps1"
+$helpersPath = Join-Path $repoRoot "scripts\launch_wan_2_2_animate_vast_job_helpers.ps1"
 
 foreach ($required in @($manifestPath, $generator, $createScript, $helpersPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -53,7 +53,7 @@ $createArgs = @(
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
-foreach ($extraEnv in (Get-001SkillsLaunchExtraEnv -WarmStart:$WarmStart)) {
+foreach ($extraEnv in (Get-Wan22AnimateLaunchExtraEnv -WarmStart:$WarmStart)) {
     $createArgs += @("-ExtraEnv", $extraEnv)
 }
 if ($MountArgs.Count -gt 0) {

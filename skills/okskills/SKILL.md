@@ -36,7 +36,7 @@ Pinned workflow chain:
 4. `scripts/remote_submit_wan22_root_canvas.sh`
 5. `config/vast-workflow-profiles.json`
 6. `scripts/run_vast_workflow_job.ps1`
-7. `scripts/run_001skills_end_to_end.ps1`
+7. `scripts/run_wan_2_2_animate_end_to_end.ps1`
 8. `scripts/summarize_vast_job_timing.ps1`
 
 Pinned runtime behavior:
@@ -61,7 +61,7 @@ Current production boundary:
 - only `1.0-cold` and `1.1-machine-registry` belong in this skill
 - abandoned Docker / cache-image experiments do not belong in this production memory
 - new model families or new workflow families must get their own profile and skill
-- `config/vast-workflow-profiles.json` must keep `profiles.001skills.workflow_source` pointed at the current source workflow under `workflows/`
+- `config/vast-workflow-profiles.json` must keep `profiles.wan_2_2_animate.workflow_source` pointed at the current source workflow under `workflows/`
 
 ## Proven Fresh-Host Runs
 
@@ -71,7 +71,7 @@ Run 1:
 - machine `47075`
 - GPU `RTX 3090 24GB`
 - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
-- local output: `output/001skills/smoke-002/downloads/001skills-smoke-002_00001-audio.mp4`
+- local output: `output/wan_2_2_animate/smoke-002/downloads/wan_2_2_animate-smoke-002_00001-audio.mp4`
 
 Run 2:
 - Vast instance `35440443`
@@ -79,8 +79,8 @@ Run 2:
 - machine `48954`
 - GPU `RTX 3090 24GB`
 - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
-- local output: `output/001skills/smoke-003/downloads/001skills-smoke-003_00001-audio.mp4`
-- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/smoke-003/output/001skills-smoke-003_00001-audio.mp4`
+- local output: `output/wan_2_2_animate/smoke-003/downloads/wan_2_2_animate-smoke-003_00001-audio.mp4`
+- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate/smoke-003/output/wan_2_2_animate-smoke-003_00001-audio.mp4`
 
 Run 3:
 - job `v10-stability-a`
@@ -91,8 +91,8 @@ Run 3:
 - driver `590.48.01`
 - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
 - prompt execution `00:12:07`
-- local output: `output/001skills/v10-stability-a/downloads/001skills-v10-stability-a_00001-audio.mp4`
-- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/v10-stability-a/output/001skills-v10-stability-a_00001-audio.mp4`
+- local output: `output/wan_2_2_animate/v10-stability-a/downloads/wan_2_2_animate-v10-stability-a_00001-audio.mp4`
+- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate/v10-stability-a/output/wan_2_2_animate-v10-stability-a_00001-audio.mp4`
 
 Run 4:
 - job `v10-stability-b`
@@ -103,8 +103,8 @@ Run 4:
 - driver `580.95.05`
 - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
 - prompt execution `00:11:30`
-- local output: `output/001skills/v10-stability-b/downloads/001skills-v10-stability-b_00001-audio.mp4`
-- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/001skills/v10-stability-b/output/001skills-v10-stability-b_00001-audio.mp4`
+- local output: `output/wan_2_2_animate/v10-stability-b/downloads/wan_2_2_animate-v10-stability-b_00001-audio.mp4`
+- R2 output: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate/v10-stability-b/output/wan_2_2_animate-v10-stability-b_00001-audio.mp4`
 
 Core conclusion:
 - this chain survives fresh-host cold start
@@ -129,7 +129,7 @@ Preferred order when searching:
 5. enough disk for the configured job
 6. then sort by `dph_total`
 
-If the absolute cheapest offer is in `CN`, do not automatically choose it for `001skills`.
+If the absolute cheapest offer is in `CN`, do not automatically choose it for `wan_2_2_animate`.
 Choose the cheapest non-`CN` offer that satisfies the runtime assumptions.
 
 ## Machine Registry Rule
@@ -148,7 +148,7 @@ Local Codex mirror:
 Selection entry point:
 
 ```powershell
-pwsh -File .\scripts\select_001skills_vast_offer.ps1
+pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 ```
 
 Current default behavior:
@@ -288,7 +288,7 @@ Practical consequence:
 The launcher also now exposes raw mount args for Vast env strings, so the same flow can attach a known local volume later, for example:
 
 ```powershell
-pwsh -File .\scripts\launch_001skills_vast_job.ps1 `
+pwsh -File .\scripts\launch_wan_2_2_animate_vast_job.ps1 `
   -JobName demo-001 `
   -OfferId <offer_id> `
   -MountArgs '-v V.123456:/workspace/ComfyUI/models'
@@ -298,10 +298,10 @@ pwsh -File .\scripts\launch_001skills_vast_job.ps1 `
 
 Workflow source:
 - `workflows/Animate+Wan2.2换风格对口型.json`
-- `config/vast-workflow-profiles.json -> profiles.001skills.workflow_source`
+- `config/vast-workflow-profiles.json -> profiles.wan_2_2_animate.workflow_source`
 
 Local staged job:
-- `output/001skills/<job_name>/`
+- `output/wan_2_2_animate/<job_name>/`
 
 Inside staged job:
 - `input/美女带背景.png`
@@ -310,16 +310,16 @@ Inside staged job:
 - `workflow_runtime.json`
 - `bootstrap_wan22_root_canvas.sh`
 - `remote_submit_wan22_root_canvas.sh`
-- `onstart_001skills.sh`
+- `onstart_wan_2_2_animate.sh`
 - `manifest.json`
 - `run-report.json`
 - `timing-summary.json`
 - `result.api.json`
 
 R2:
-- `runcomfy-inputs/001skills/<job_name>/input/`
-- `runcomfy-inputs/001skills/<job_name>/output/`
-- `runcomfy-inputs/001skills/<job_name>/node-bundles/`
+- `runcomfy-inputs/wan_2_2_animate/<job_name>/input/`
+- `runcomfy-inputs/wan_2_2_animate/<job_name>/output/`
+- `runcomfy-inputs/wan_2_2_animate/<job_name>/node-bundles/`
 
 Remote:
 - `/workspace/ComfyUI/input/美女带背景.png`
@@ -337,7 +337,7 @@ $img = Get-ChildItem -LiteralPath '.\素材资产\美女图带光伏' -File |
   Sort-Object LastWriteTimeUtc -Descending |
   Select-Object -First 1
 
-pwsh -File .\scripts\stage_001skills_job.ps1 `
+pwsh -File .\scripts\stage_wan_2_2_animate_job.ps1 `
   -JobName demo-001 `
   -ImagePath $img.FullName `
   -VideoPath .\光伏2.mp4 `
@@ -350,14 +350,14 @@ pwsh -File .\scripts\stage_001skills_job.ps1 `
 2. Launch Vast instance:
 
 ```powershell
-pwsh -File .\scripts\launch_001skills_vast_job.ps1 `
+pwsh -File .\scripts\launch_wan_2_2_animate_vast_job.ps1 `
   -JobName demo-001 `
   -OfferId <vast_offer_id> `
   -Image vastai/comfy:v0.19.3-cuda-12.9-py312 `
   -CancelUnavail
 ```
 
-3. Let generated `onstart_001skills.sh` pull the staged files from R2.
+3. Let generated `onstart_wan_2_2_animate.sh` pull the staged files from R2.
 
 4. Wait for:
 - bootstrap complete
@@ -373,12 +373,12 @@ Lowest-level reusable entry:
 - `scripts/run_vast_workflow_job.ps1`
 
 Convenience wrapper for this exact branch:
-- `scripts/run_001skills_end_to_end.ps1`
+- `scripts/run_wan_2_2_animate_end_to_end.ps1`
 
 Recommended command for this branch:
 
 ```powershell
-pwsh -File .\scripts\run_001skills_end_to_end.ps1 `
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1 `
   -JobName demo-001 `
   -VideoPath .\光伏2.mp4 `
   -OfferId <vast_offer_id>
@@ -395,7 +395,7 @@ vastai search offers 'gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 di
 Resume an already running job without restaging or relaunching:
 
 ```powershell
-pwsh -File .\scripts\run_001skills_end_to_end.ps1 `
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1 `
   -JobName demo-001 `
   -SkipStage `
   -SkipLaunch
@@ -421,7 +421,7 @@ Known-good pattern:
 
 ```powershell
 (Invoke-WebRequest -UseBasicParsing 'http://<ip>:<mapped_8188>/history').Content
-Invoke-WebRequest -UseBasicParsing "http://<ip>:<mapped_8188>/view?filename=<actual_filename>&type=output&subfolder=" -OutFile '.\output\001skills\<job>\downloads\<actual_filename>'
+Invoke-WebRequest -UseBasicParsing "http://<ip>:<mapped_8188>/view?filename=<actual_filename>&type=output&subfolder=" -OutFile '.\output\wan_2_2_animate\<job>\downloads\<actual_filename>'
 ```
 
 The key rule is:
@@ -432,9 +432,9 @@ The key rule is:
 6. Publish accepted result:
 
 ```powershell
-pwsh -File .\scripts\publish_001skills_result.ps1 `
+pwsh -File .\scripts\publish_wan_2_2_animate_result.ps1 `
   -JobName demo-001 `
-  -ResultPath .\output\001skills\demo-001\downloads\001skills-demo-001_00001-audio.mp4 `
+  -ResultPath .\output\wan_2_2_animate\demo-001\downloads\wan_2_2_animate-demo-001_00001-audio.mp4 `
   -R2AccountId $env:CLOUDFLARE_ACCOUNT_ID `
   -R2AccessKeyId $env:R2_ACCESS_KEY_ID `
   -R2SecretAccessKey $env:R2_SECRET_ACCESS_KEY
@@ -450,7 +450,7 @@ pwsh -File .\scripts\destroy_vast_instance.ps1 `
 ```
 
 Do not pass `-JobName` to `destroy_vast_instance.ps1`.
-Resolve the instance id from `output/001skills/<job_name>/vast-instance.json` or `run-report.json` first, then destroy.
+Resolve the instance id from `output/wan_2_2_animate/<job_name>/vast-instance.json` or `run-report.json` first, then destroy.
 
 ## New Observable Outputs
 
@@ -477,16 +477,16 @@ The automation layer now writes these files and they are part of the success pat
 ## What Was Verified
 
 The current automation layer was verified against existing job `smoke-004`:
-- `download_001skills_result.ps1`
+- `download_wan_2_2_animate_result.ps1`
   - re-read ComfyUI history
   - re-downloaded the finished MP4
 - `summarize_vast_job_timing.ps1`
   - fetched live Vast logs
   - wrote `timing-summary.json`
-- `publish_001skills_result.ps1`
+- `publish_wan_2_2_animate_result.ps1`
   - uploaded the local result back to R2
   - wrote `published_result.public_url`
-- `run_001skills_end_to_end.ps1`
+- `run_wan_2_2_animate_end_to_end.ps1`
   - resumed the existing job with `-SkipStage -SkipLaunch -SkipPublish`
   - wrote a step-complete `run-report.json`
 
@@ -552,7 +552,7 @@ Example:
 
 ```powershell
 pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
-  -Profile 001skills `
+  -Profile wan_2_2_animate `
   -JobName demo-001 `
   -IntervalSeconds 20 `
   -MaxChecks 60

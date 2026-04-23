@@ -75,10 +75,10 @@ class WarmStartStateTests(unittest.TestCase):
 
 class LaunchExtraEnvTests(unittest.TestCase):
     def test_warm_start_switch_adds_only_warm_start_env(self):
-        helper_path = ROOT / "scripts" / "launch_001skills_vast_job_helpers.ps1"
+        helper_path = ROOT / "scripts" / "launch_wan_2_2_animate_vast_job_helpers.ps1"
         command = (
             f". '{helper_path}'; "
-            "$result = Get-001SkillsLaunchExtraEnv -WarmStart:$true; "
+            "$result = Get-Wan22AnimateLaunchExtraEnv -WarmStart:$true; "
             "ConvertTo-Json -InputObject ([object[]]@($result)) -Compress"
         )
 

@@ -9,7 +9,7 @@
 
 2. `skills/okskills/SKILL.md`
    - 成功经验。
-   - 跑 `001skills` / Wan2.2 口播流程前必须加载。
+   - 跑 `wan_2_2_animate` / Wan2.2 口播流程前必须加载。
 
 3. `skills/badskills/SKILL.md`
    - 失败经验和禁止重复踩的坑。
@@ -36,7 +36,7 @@
 选择机器时先运行：
 
 ```powershell
-pwsh -File .\scripts\select_001skills_vast_offer.ps1
+pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 ```
 
 规则：
@@ -79,7 +79,7 @@ pwsh -File .\scripts\select_001skills_vast_offer.ps1
 
 ```powershell
 pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
-  -Profile 001skills `
+  -Profile wan_2_2_animate `
   -JobName <job_name> `
   -IntervalSeconds 20 `
   -MaxChecks 60
@@ -93,7 +93,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 远端固定输入图片名：`美女带背景.png`
 - 输入视频：`光伏2.mp4`
 - 工作流：`workflows/Animate+Wan2.2换风格对口型.json`
-- 主入口：`scripts/run_001skills_end_to_end.ps1`
+- 主入口：`scripts/run_wan_2_2_animate_end_to_end.ps1`
 - 共享配置：`config/vast-workflow-profiles.json`
 - 成功/失败经验：`skills/okskills/SKILL.md`、`skills/badskills/SKILL.md`
 
@@ -109,7 +109,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 当前 profile 里的 `workflow_source` 也必须指向这个源文件。
 - 以后新增 workflow，直接保存到 `workflows/`。
 - 新 workflow 要上 Vast 跑时，必须先确认输入节点、输出文件匹配、依赖节点和模型清单，再新增 profile 或专用 stage 脚本。
-- `output/001skills/<job_name>/workflow_canvas.json` 和 `workflow_runtime.json` 是每次运行自动生成的副本，不要当源文件维护。
+- `output/wan_2_2_animate/<job_name>/workflow_canvas.json` 和 `workflow_runtime.json` 是每次运行自动生成的副本，不要当源文件维护。
 
 ## Local Key Fallback
 
@@ -138,7 +138,7 @@ key
 默认运行入口仍然是：
 
 ```powershell
-pwsh -File .\scripts\run_001skills_end_to_end.ps1
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
 ```
 
 版本选择：
@@ -153,12 +153,12 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 ## Do Not Repeat
 
 - 不要用 `美女图.png` 跑这个固定流程。
-- 不要用 `素材资产/美女图无背景纯色/` 里的纯色人物图跑当前 `001skills` 固定流程。
-- 当前 `001skills` 源图必须从 `素材资产/美女图带光伏/` 选择；脚本会在 stage 阶段统一暂存为 `美女带背景.png`，这是 ComfyUI 工作流的固定输入名，不代表源文件必须叫这个名字。
+- 不要用 `素材资产/美女图无背景纯色/` 里的纯色人物图跑当前 `wan_2_2_animate` 固定流程。
+- 当前 `wan_2_2_animate` 源图必须从 `素材资产/美女图带光伏/` 选择；脚本会在 stage 阶段统一暂存为 `美女带背景.png`，这是 ComfyUI 工作流的固定输入名，不代表源文件必须叫这个名字。
 - 不要恢复未验证的 ComfyUI 节点包。
 - 不要把 `launch` 和 `stage` 并行。
 - 不要猜输出文件名，必须从 ComfyUI `/history` 读取。
 - 不要给 `destroy_vast_instance.ps1` 传 `-JobName`，它只接受 `-InstanceId`。
 - 不要把同一台机器等同于模型缓存命中；必须看日志里的命中/未命中。
-- 不要把已放弃的 Docker / 缓存镜像实验重新写回 `001skills` 的生产记忆。
+- 不要把已放弃的 Docker / 缓存镜像实验重新写回 `wan_2_2_animate` 的生产记忆。
 - 新模型或新工作流必须新增独立 profile / skill，不要污染当前 Wan2.2 固定流程。

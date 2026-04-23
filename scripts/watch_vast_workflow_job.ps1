@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$JobName,
 
-    [string]$Profile = "001skills",
+    [string]$Profile = "wan_2_2_animate",
 
     [string]$ProfileConfigPath = ".\config\vast-workflow-profiles.json",
 
