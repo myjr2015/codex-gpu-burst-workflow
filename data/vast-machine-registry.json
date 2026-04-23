@@ -87,7 +87,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-23T19:59:56"
+    },
+    {
+      "machine_id": 47075,
+      "host_id": 74292,
+      "offer_id": null,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "580.126.09",
+      "geolocation": "Nevada, US",
+      "verification": "verified",
+      "dph_total": 0.21666666666666667,
+      "job_name": "wan22-live-test-0423-215712",
+      "instance_id": 35477303,
+      "result": "succeeded",
+      "last_success_at": "2026-04-23T22:19:34",
+      "total_until_download_seconds": 1338.0,
+      "instance_started_to_submit_seconds": 482.0,
+      "prompt_execution": "00:11:23",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-23T22:19:45"
     }
   ],
-  "updated_at": "2026-04-23T19:59:56"
+  "updated_at": "2026-04-23T22:19:45"
 }
