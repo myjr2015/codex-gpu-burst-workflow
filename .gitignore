@@ -1,6 +1,7 @@
 node_modules/
 output/
 .env
+api.txt
 .idea/
 .npm-cache/
 .playwright/
