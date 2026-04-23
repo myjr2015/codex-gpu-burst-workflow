@@ -8,17 +8,17 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$VideoPath,
 
-    [string]$R2Prefix = "runcomfy-inputs/001skills",
+    [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/001skills" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/001skills" }),
 
-    [string]$R2Bucket = "runcomfy",
+    [string]$R2Bucket = $(if ($env:ASSET_S3_BUCKET) { $env:ASSET_S3_BUCKET } elseif ($env:R2_BUCKET) { $env:R2_BUCKET } else { "runcomfy" }),
 
-    [string]$R2PublicBaseUrl = "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev",
+    [string]$R2PublicBaseUrl = $(if ($env:ASSET_S3_PUBLIC_BASE_URL) { $env:ASSET_S3_PUBLIC_BASE_URL } elseif ($env:R2_PUBLIC_BASE_URL) { $env:R2_PUBLIC_BASE_URL } else { "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev" }),
 
-    [string]$R2AccountId = $env:CLOUDFLARE_ACCOUNT_ID,
+    [string]$R2AccountId = $(if ($env:CLOUDFLARE_ACCOUNT_ID) { $env:CLOUDFLARE_ACCOUNT_ID } elseif ($env:ASSET_S3_ACCOUNT_ID) { $env:ASSET_S3_ACCOUNT_ID } else { "" }),
 
-    [string]$R2AccessKeyId = $env:R2_ACCESS_KEY_ID,
+    [string]$R2AccessKeyId = $(if ($env:R2_ACCESS_KEY_ID) { $env:R2_ACCESS_KEY_ID } elseif ($env:ASSET_S3_ACCESS_KEY_ID) { $env:ASSET_S3_ACCESS_KEY_ID } else { "" }),
 
-    [string]$R2SecretAccessKey = $env:R2_SECRET_ACCESS_KEY,
+    [string]$R2SecretAccessKey = $(if ($env:R2_SECRET_ACCESS_KEY) { $env:R2_SECRET_ACCESS_KEY } elseif ($env:ASSET_S3_SECRET_ACCESS_KEY) { $env:ASSET_S3_SECRET_ACCESS_KEY } else { "" }),
 
     [switch]$UploadToR2
 )
@@ -38,6 +38,11 @@ $generateOnstartScript = Join-Path $repoRoot "scripts\generate_001skills_onstart
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $bundleSourceDir = Join-Path $repoRoot "output\vast-wan22-root-strict-3090b\node-bundles"
 $customNodeCacheRoot = Join-Path $repoRoot ".cache\001skills\custom_nodes"
+$requiredBundledZips = @(
+    "ComfyUI-KJNodes.zip"
+    "ComfyUI-VideoHelperSuite.zip"
+    "ComfyUI-WanAnimatePreprocess.zip"
+)
 
 function Update-GitRepoCache {
     param(
@@ -110,6 +115,13 @@ if (-not (Test-Path -LiteralPath $bundleSourceDir)) {
     throw "Missing node bundle directory: $bundleSourceDir"
 }
 
+foreach ($bundleName in $requiredBundledZips) {
+    $bundlePath = Join-Path $bundleSourceDir $bundleName
+    if (-not (Test-Path -LiteralPath $bundlePath)) {
+        throw "Missing required node bundle: $bundlePath"
+    }
+}
+
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
 
@@ -141,10 +153,11 @@ Copy-Item -LiteralPath $sourceWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
 Copy-Item -LiteralPath $remoteSubmitScript -Destination $remoteSubmitOut -Force
 Get-ChildItem -LiteralPath $bundleSourceDir -File | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $bundleDir $_.Name) -Force
+    if ($requiredBundledZips -contains $_.Name) {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $bundleDir $_.Name) -Force
+    }
 }
 New-RepoBundleZip -RepoUrl "https://github.com/city96/ComfyUI-GGUF.git" -RepoName "ComfyUI-GGUF" -DestinationZip (Join-Path $bundleDir "ComfyUI-GGUF.zip")
-New-RepoBundleZip -RepoUrl "https://github.com/yolain/ComfyUI-Easy-Use.git" -RepoName "ComfyUI-Easy-Use" -DestinationZip (Join-Path $bundleDir "ComfyUI-Easy-Use.zip")
 
 & node $prepareScript `
     --input $canvasOut `
@@ -158,9 +171,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $manifest = [ordered]@{
+    profile = "001skills"
     skill = "001skills"
     job_name = $JobName
     created_at = (Get-Date).ToString("s")
+    workflow = [ordered]@{
+        canvas_source = $sourceWorkflow
+        canvas_name = [System.IO.Path]::GetFileName($sourceWorkflow)
+        prepare_script = $prepareScript
+        bootstrap_template = $bootstrapScript
+        remote_submit_template = $remoteSubmitScript
+        onstart_generator = $generateOnstartScript
+    }
     local = [ordered]@{
         job_dir = $jobDir
         input_image = $stagedImage
@@ -183,6 +205,11 @@ $manifest = [ordered]@{
         comfy_input_image = "/workspace/ComfyUI/input/美女带背景.png"
         comfy_input_video = "/workspace/ComfyUI/input/光伏2.mp4"
         run_dir = "/workspace/wan22-root-canvas-run"
+    }
+    automation = [ordered]@{
+        profile_config = (Join-Path $repoRoot "config\vast-workflow-profiles.json")
+        run_report = (Join-Path $jobDir "run-report.json")
+        timing_summary = (Join-Path $jobDir "timing-summary.json")
     }
 }
 

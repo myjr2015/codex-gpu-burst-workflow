@@ -14,6 +14,12 @@ COMFY_PID_PATH="${COMFY_PID_PATH:-$RUN_DIR/comfyui.pid}"
 mkdir -p "$RUN_DIR"
 exec > >(tee -a "$RUN_DIR/run.log") 2>&1
 
+stage_event() {
+  local stage_name="$1"
+  local stage_status="$2"
+  echo "[stage] $(date -Iseconds) $stage_name $stage_status"
+}
+
 echo "[remote-run] started at $(date -Iseconds)"
 echo "[remote-run] comfy app root: $COMFY_APP_ROOT"
 echo "[remote-run] comfy data root: $COMFY_ROOT"
@@ -40,9 +46,12 @@ if [ ! -f "$COMFY_ROOT/input/$INPUT_VIDEO_NAME" ]; then
 fi
 
 echo "[remote-run] bootstrapping"
+stage_event "remote.bootstrap" "start"
 bash "$BOOTSTRAP_PATH"
+stage_event "remote.bootstrap" "end"
 
 echo "[remote-run] restarting ComfyUI"
+stage_event "remote.restart_comfy" "start"
 # This Vast image keeps the runnable ComfyUI code under /opt/workspace-internal/ComfyUI
 # while our workflow assets/models live under /workspace/ComfyUI. Link the runtime
 # directories so the app sees the downloaded inputs, models, outputs, and custom nodes.
@@ -63,8 +72,10 @@ rm -f "$COMFY_LOG_PATH" "$COMFY_PID_PATH"
 ) &
 COMFY_PID="$!"
 echo "$COMFY_PID" > "$COMFY_PID_PATH"
+stage_event "remote.restart_comfy" "end"
 
 echo "[remote-run] waiting for ComfyUI API"
+stage_event "remote.wait_api" "start"
 for _ in $(seq 1 240); do
   if curl -sf http://127.0.0.1:8188/object_info > "$RUN_DIR/object_info.json"; then
     break
@@ -79,6 +90,7 @@ for _ in $(seq 1 240); do
   fi
   sleep 5
 done
+stage_event "remote.wait_api" "end"
 
 if ! test -s "$RUN_DIR/object_info.json"; then
   echo "[remote-run] ComfyUI API did not become ready in time" >&2
@@ -90,6 +102,7 @@ if ! test -s "$RUN_DIR/object_info.json"; then
 fi
 
 echo "[remote-run] submitting workflow"
+stage_event "remote.submit_workflow" "start"
 python3 - "$WORKFLOW_PATH" "$RUN_DIR/prompt_submit.json" <<'PY'
 import json
 import sys
@@ -142,8 +155,10 @@ fi
 
 echo "[remote-run] submitted at $(date -Iseconds) prompt_id=$PROMPT_ID"
 echo "$PROMPT_ID" > "$RUN_DIR/prompt_id.txt"
+stage_event "remote.submit_workflow" "end"
 
 echo "[remote-run] waiting for history"
+stage_event "remote.wait_history" "start"
 python3 - "$PROMPT_ID" "$RUN_DIR/history.json" <<'PY'
 import json
 import sys
@@ -174,5 +189,6 @@ while time.time() < deadline:
 print("history-timeout", file=sys.stderr)
 raise SystemExit(124)
 PY
+stage_event "remote.wait_history" "end"
 
 echo "[remote-run] finished at $(date -Iseconds)"

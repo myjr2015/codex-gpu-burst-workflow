@@ -13,7 +13,9 @@ param(
 
     [switch]$CancelUnavail,
 
-    [switch]$PrewarmedImage
+    [switch]$PrewarmedImage,
+
+    [string[]]$MountArgs = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +53,9 @@ if ($CancelUnavail) {
 if ($PrewarmedImage) {
     $createArgs += @("-ExtraEnv", "PREWARMED_IMAGE=1")
 }
+if ($MountArgs.Count -gt 0) {
+    $createArgs += @("-MountArgs", $MountArgs)
+}
 
 $raw = & pwsh @createArgs
 if ($LASTEXITCODE -ne 0) {
@@ -61,8 +66,15 @@ $jsonText = ($raw | Out-String).Trim()
 $jsonText | Set-Content -LiteralPath (Join-Path $jobDir "vast-create-response.json") -Encoding UTF8
 
 Start-Sleep -Seconds 3
-$instances = vastai show instances --raw | ConvertFrom-Json
-$instance = $instances | Where-Object { $_.label -eq $fullLabel } | Sort-Object start_date -Descending | Select-Object -First 1
+$instance = $null
+for ($attempt = 1; $attempt -le 10; $attempt += 1) {
+    $instances = vastai show instances --raw | ConvertFrom-Json
+    $instance = $instances | Where-Object { $_.label -eq $fullLabel } | Sort-Object start_date -Descending | Select-Object -First 1
+    if ($null -ne $instance) {
+        break
+    }
+    Start-Sleep -Seconds 6
+}
 if ($null -eq $instance) {
     throw "Instance created but could not be found by label: $fullLabel"
 }

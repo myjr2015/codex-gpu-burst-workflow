@@ -15,6 +15,12 @@ PIP_RETRIES="${PIP_RETRIES:-20}"
 
 mkdir -p "$CUSTOM_NODES_DIR" "$MODELS_DIR" "$RUN_DIR"
 
+stage_event() {
+  local stage_name="$1"
+  local stage_status="$2"
+  echo "[stage] $(date -Iseconds) $stage_name $stage_status"
+}
+
 pip_install() {
   python3 -m pip install \
     --timeout "$PIP_TIMEOUT" \
@@ -50,6 +56,27 @@ raise SystemExit(0 if importlib.util.find_spec(module_name) else 1)
 PY
 }
 
+torch_stack_matches_expected() {
+  python3 <<'PY' >/dev/null 2>&1
+import importlib
+import sys
+
+required = ("torch", "torchvision", "torchaudio")
+for name in required:
+    try:
+        importlib.import_module(name)
+    except Exception:
+        raise SystemExit(1)
+
+import torch
+cuda_version = getattr(torch.version, "cuda", None) or ""
+if not cuda_version.startswith("12.4"):
+    raise SystemExit(1)
+
+raise SystemExit(0)
+PY
+}
+
 ensure_python_package() {
   local package_spec="$1"
   local module_name="$2"
@@ -75,13 +102,13 @@ ensure_python_package_no_deps() {
 }
 
 ensure_torch_stack() {
-  local should_reinstall="$FORCE_TORCH_REINSTALL"
-  if [ "$should_reinstall" != "1" ] && [ "$PREWARMED_IMAGE" != "1" ]; then
-    should_reinstall="1"
-  fi
-
-  if [ "$should_reinstall" != "1" ] && python_has_module "torch" && python_has_module "torchvision" && python_has_module "torchaudio"; then
-    echo "[bootstrap] python modules exist: torch torchvision torchaudio"
+  if [ "$FORCE_TORCH_REINSTALL" = "1" ]; then
+    echo "[bootstrap] FORCE_TORCH_REINSTALL=1, reinstalling torch stack"
+  elif torch_stack_matches_expected; then
+    echo "[bootstrap] existing torch stack matches expected cu124 runtime"
+    return 0
+  elif [ "$PREWARMED_IMAGE" = "1" ] && python_has_module "torch" && python_has_module "torchvision" && python_has_module "torchaudio"; then
+    echo "[bootstrap] prewarmed image provides torch torchvision torchaudio"
     return 0
   fi
 
@@ -155,6 +182,72 @@ PY
   pip_install --upgrade-strategy only-if-needed -r "$filtered_path"
 }
 
+install_filtered_requirements_file() {
+  local requirements_path="$1"
+  local label="$2"
+  if [ ! -f "$requirements_path" ]; then
+    return 0
+  fi
+
+  local filtered_path="$RUN_DIR/$label.filtered.txt"
+  python3 - "$requirements_path" "$filtered_path" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+dest = Path(sys.argv[2])
+skip_prefixes = (
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "accelerate",
+    "diffusers",
+    "transformers",
+    "peft",
+    "clip-interrogator",
+    "clip_interrogator",
+    "open-clip-torch",
+    "open_clip_torch",
+    "spandrel",
+    "timm",
+    "triton",
+    "xformers",
+    "flash-attn",
+    "flash_attn",
+    "bitsandbytes",
+    "cupy",
+    "nvidia-",
+    "nvidia_",
+    "cuda-",
+    "cuda_",
+)
+
+lines = []
+for raw in src.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    match = re.match(r"[A-Za-z0-9_.-]+", line)
+    normalized = (match.group(0) if match else line).lower()
+    if normalized.startswith(skip_prefixes):
+        print(f"[bootstrap] skip heavy requirement: {line}")
+        continue
+    lines.append(line)
+
+dest.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+print(f"[bootstrap] wrote filtered requirements: {dest}")
+PY
+
+  if [ ! -s "$filtered_path" ]; then
+    echo "[bootstrap] no lightweight requirements left for $label"
+    return 0
+  fi
+
+  echo "[bootstrap] installing filtered requirements for $label"
+  pip_install --upgrade-strategy only-if-needed -r "$filtered_path"
+}
+
 sync_git_plugin() {
   local repo_url="$1"
   local target_dir="$2"
@@ -192,16 +285,21 @@ extract_or_sync_plugin() {
 download_if_missing() {
   local url="$1"
   local target="$2"
+  local stage_name="download.$(basename "$target")"
   if [ -f "$target" ]; then
     echo "[bootstrap] exists: $target"
+    stage_event "$stage_name" "skip"
     return 0
   fi
   mkdir -p "$(dirname "$target")"
   echo "[bootstrap] downloading: $(basename "$target")"
+  stage_event "$stage_name" "start"
   curl -L --fail --retry 5 --retry-delay 8 -o "$target" "$url"
+  stage_event "$stage_name" "end"
 }
 
 echo "[bootstrap] preparing custom nodes"
+stage_event "bootstrap.custom_nodes" "start"
 if [ "$PREWARMED_IMAGE" != "1" ]; then
   mkdir -p "$BUNDLE_DIR"
   find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
@@ -209,10 +307,8 @@ if [ "$PREWARMED_IMAGE" != "1" ]; then
     -exec rm -rf {} +
 
   declare -a BUNDLES=(
-    "ComfyUI-WanVideoWrapper.zip:ComfyUI-WanVideoWrapper"
     "ComfyUI-VideoHelperSuite.zip:ComfyUI-VideoHelperSuite"
     "ComfyUI-KJNodes.zip:ComfyUI-KJNodes"
-    "ComfyUI-segment-anything-2.zip:ComfyUI-segment-anything-2"
     "ComfyUI-WanAnimatePreprocess.zip:ComfyUI-WanAnimatePreprocess"
   )
 
@@ -228,18 +324,16 @@ if [ "$PREWARMED_IMAGE" != "1" ]; then
     "$BUNDLE_DIR/ComfyUI-GGUF.zip" \
     "$CUSTOM_NODES_DIR/ComfyUI-GGUF" \
     "https://github.com/city96/ComfyUI-GGUF.git"
-
-  extract_or_sync_plugin \
-    "$BUNDLE_DIR/ComfyUI-Easy-Use.zip" \
-    "$CUSTOM_NODES_DIR/ComfyUI-Easy-Use" \
-    "https://github.com/yolain/ComfyUI-Easy-Use.git"
 else
   echo "[bootstrap] prewarmed image mode: skip custom node extraction"
 fi
+stage_event "bootstrap.custom_nodes" "end"
 
 echo "[bootstrap] installing python dependencies"
 echo "[bootstrap] ensuring ComfyUI runtime essentials"
+stage_event "bootstrap.python_dependencies" "start"
 ensure_torch_stack
+install_filtered_requirements_file "$COMFY_APP_ROOT/requirements.txt" "comfyui-core-requirements"
 ensure_python_package "sqlalchemy>=2.0" "sqlalchemy"
 ensure_python_package "alembic" "alembic"
 ensure_python_package "blake3" "blake3"
@@ -256,8 +350,6 @@ ensure_python_package_no_deps "kornia" "kornia"
 ensure_python_package_no_deps "comfy-kitchen>=0.2.8" "comfy_kitchen"
 ensure_python_package_no_deps "comfy-aimdo>=0.2.12" "comfy_aimdo"
 echo "[bootstrap] ensuring core workflow runtime packages"
-ensure_python_package "accelerate>=1.2.1" "accelerate"
-ensure_python_package "diffusers>=0.33.0" "diffusers"
 ensure_python_package "einops" "einops"
 ensure_python_package "ftfy" "ftfy"
 ensure_python_package "gguf>=0.17.1" "gguf"
@@ -268,18 +360,21 @@ ensure_python_package "numpy" "numpy"
 ensure_python_package "onnx" "onnx"
 ensure_python_package "onnxruntime-gpu" "onnxruntime"
 ensure_python_package "opencv-python" "cv2"
-ensure_python_package "peft>=0.17.0" "peft"
 ensure_python_package "pillow>=10.3.0" "PIL"
 ensure_python_package "protobuf" "google.protobuf"
 ensure_python_package "pyloudnorm" "pyloudnorm"
 ensure_python_package "requests" "requests"
+ensure_python_package "transformers>=4.50.3" "transformers"
 ensure_python_package "PyNaCl" "nacl"
 ensure_python_package "lark" "lark"
 ensure_python_package "scipy" "scipy"
 ensure_python_package "sentencepiece>=0.2.0" "sentencepiece"
+ensure_python_package "torchsde" "torchsde"
 ensure_python_package "color-matcher" "color_matcher"
+stage_event "bootstrap.python_dependencies" "end"
 
 echo "[bootstrap] creating model directories"
+stage_event "bootstrap.model_downloads" "start"
 mkdir -p \
   "$MODELS_DIR/unet" \
   "$MODELS_DIR/loras" \
@@ -327,6 +422,7 @@ download_if_missing \
 download_if_missing \
   "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx" \
   "$MODELS_DIR/detection/vitpose-l-wholebody.onnx"
+stage_event "bootstrap.model_downloads" "end"
 
 mkdir -p "$COMFY_ROOT/input" "$COMFY_ROOT/output"
 

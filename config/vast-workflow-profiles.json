@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "001skills": {
+      "skill": "001skills",
+      "job_root": "output/001skills",
+      "stage_script": "scripts/stage_001skills_job.ps1",
+      "launch_script": "scripts/launch_001skills_vast_job.ps1",
+      "download_script": "scripts/download_001skills_result.ps1",
+      "publish_script": "scripts/publish_001skills_result.ps1",
+      "destroy_script": "scripts/destroy_vast_instance.ps1",
+      "manifest_file": "manifest.json",
+      "instance_file": "vast-instance.json",
+      "default_label": "001skills-job",
+      "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",
+      "default_disk_gb": 180,
+      "default_r2_prefix": "runcomfy-inputs/001skills",
+      "default_r2_bucket": "runcomfy",
+      "default_r2_public_base_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev"
+    }
+  }
+}

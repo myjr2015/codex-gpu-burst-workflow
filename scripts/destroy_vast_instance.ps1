@@ -5,4 +5,4 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-cmd /c "echo y| vastai destroy instance $InstanceId --raw"
+vastai destroy instance $InstanceId --yes --raw
