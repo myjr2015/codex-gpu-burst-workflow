@@ -14,7 +14,9 @@ param(
 
     [string[]]$ExtraEnv = @(),
 
-    [string[]]$MountArgs = @()
+    [string[]]$MountArgs = @(),
+
+    [switch]$SkipDefaultProvisioning
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,8 +25,10 @@ $envItems = @(
     "DATA_DIRECTORY=/workspace/"
     "JUPYTER_DIR=/"
     "OPEN_BUTTON_PORT=8188"
-    "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
 )
+if (-not $SkipDefaultProvisioning) {
+    $envItems += "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
+}
 if ($ExtraEnv.Count -gt 0) {
     foreach ($item in $ExtraEnv) {
         if ([string]::IsNullOrWhiteSpace($item)) {

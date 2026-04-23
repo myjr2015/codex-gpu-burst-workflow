@@ -78,6 +78,14 @@ class Wan22LightImageContractTests(unittest.TestCase):
         self.assertIn('if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$COMFY_APP_ROOT/custom_nodes" ]; then', bootstrap)
         self.assertIn('CUSTOM_NODES_DIR="$COMFY_APP_ROOT/custom_nodes"', bootstrap)
 
+    def test_prewarmed_launch_skips_default_vast_provisioning(self):
+        launcher = (ROOT / "scripts" / "launch_001skills_vast_job.ps1").read_text(encoding="utf-8")
+        creator = (ROOT / "scripts" / "create_vast_instance_minimal.ps1").read_text(encoding="utf-8")
+        self.assertIn("if ($PrewarmedImage)", launcher)
+        self.assertIn('$createArgs += "-SkipDefaultProvisioning"', launcher)
+        self.assertIn("[switch]$SkipDefaultProvisioning", creator)
+        self.assertIn("if (-not $SkipDefaultProvisioning)", creator)
+
     def test_profile_pins_light_image_tag(self):
         config = json.loads((ROOT / "config" / "vast-workflow-profiles.json").read_text(encoding="utf-8"))
         image = config["profiles"]["001skills"]["light_image"]

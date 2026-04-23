@@ -55,6 +55,9 @@ $createArgs = @(
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
+if ($PrewarmedImage) {
+    $createArgs += "-SkipDefaultProvisioning"
+}
 foreach ($extraEnv in (Get-001SkillsLaunchExtraEnv -PrewarmedImage:$PrewarmedImage -WarmStart:$WarmStart)) {
     $createArgs += @("-ExtraEnv", $extraEnv)
 }

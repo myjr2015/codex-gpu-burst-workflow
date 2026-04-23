@@ -71,6 +71,13 @@ At bootstrap, they are copied into:
 
 Do not bake reusable node payloads directly into `/workspace/ComfyUI` or `/opt/workspace-internal/ComfyUI`; those paths are runtime-managed on Vast and can hide or remove the baked files.
 
+For `1.2-light`, the launch step must skip Vast's default ComfyUI provisioning script.
+Expected behavior:
+- `PREWARMED_IMAGE=1` is present
+- `PROVISIONING_SCRIPT` is absent from `extra_env`
+- bootstrap logs `prewarmed image hit: custom_nodes`
+- bootstrap does not log `reinstalling torch stack`
+
 It must also not absorb future unrelated model families such as LTX 2.3.
 For LTX 2.3 or any other new workflow family:
 - create a new profile in `config/vast-workflow-profiles.json`

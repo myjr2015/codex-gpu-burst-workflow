@@ -112,6 +112,28 @@ These failures were observed on the same branch:
     - only accept `1.2-light` when logs show `prewarmed image hit: custom_nodes`
     - avoid duplicate GitHub Actions workflows pushing the same Docker tag
 
+- Symptom: after rebuilding `1.2-light`, a retest on the same host still behaved like the old image
+  - Root cause: Docker tags such as `1.2-light` are mutable; a host that already pulled the old tag may keep using the cached local image
+  - Evidence from `v12-light-fixed-smoke-002`:
+    - same host and machine as the previous failed smoke test: `344939 / 68107`
+    - startup still showed old `prewarmed image miss: custom_nodes` behavior
+  - Action:
+    - for validation of a newly built image, use the immutable Git SHA tag, for example `j1c2k3/codex-comfy-wan22-root-canvas:sha-b14e144`
+    - or force a different clean host
+    - only move `config/vast-workflow-profiles.json` back to the mutable `1.2-light` tag after the SHA-tag smoke test passes
+
+- Symptom: even the immutable SHA-tag `1.2` image still reinstalled custom-node dependencies and torch
+  - Root cause: the launch path still injected Vast's default `PROVISIONING_SCRIPT`, which can rebuild or refresh the ComfyUI runtime at container startup and erase the benefit of a prewarmed image
+  - Evidence from `v12-light-fixed-smoke-003`:
+    - image tag was `sha-b14e144`
+    - instance environment still included `PROVISIONING_SCRIPT=.../comfyui/provisioning_scripts/default.sh`
+    - bootstrap reinstalled custom-node requirements and torch
+    - model download phase started only around 309 seconds after launch
+  - Action:
+    - when `-PrewarmedImage` is used, pass `-SkipDefaultProvisioning` to instance creation
+    - verify `extra_env` does not contain `PROVISIONING_SCRIPT`
+    - only continue to full inference if bootstrap logs show custom nodes and torch are reused
+
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
   - Action: install `torchsde` in bootstrap, then re-stage before rerun
