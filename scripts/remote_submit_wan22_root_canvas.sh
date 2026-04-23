@@ -62,12 +62,8 @@ if [ "$COMFY_APP_ROOT" != "$COMFY_ROOT" ]; then
     ln -s "$COMFY_ROOT/$entry" "$COMFY_APP_ROOT/$entry"
   done
 
-  if [ "${PREWARMED_IMAGE:-0}" = "1" ]; then
-    mkdir -p "$COMFY_APP_ROOT/custom_nodes"
-  else
-    rm -rf "$COMFY_APP_ROOT/custom_nodes"
-    ln -s "$COMFY_ROOT/custom_nodes" "$COMFY_APP_ROOT/custom_nodes"
-  fi
+  rm -rf "$COMFY_APP_ROOT/custom_nodes"
+  ln -s "$COMFY_ROOT/custom_nodes" "$COMFY_APP_ROOT/custom_nodes"
 fi
 
 pkill -f 'python.*main.py' || true

@@ -13,8 +13,6 @@ param(
 
     [switch]$CancelUnavail,
 
-    [switch]$PrewarmedImage,
-
     [switch]$WarmStart,
 
     [string[]]$MountArgs = @()
@@ -55,10 +53,7 @@ $createArgs = @(
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
-if ($PrewarmedImage) {
-    $createArgs += "-SkipDefaultProvisioning"
-}
-foreach ($extraEnv in (Get-001SkillsLaunchExtraEnv -PrewarmedImage:$PrewarmedImage -WarmStart:$WarmStart)) {
+foreach ($extraEnv in (Get-001SkillsLaunchExtraEnv -WarmStart:$WarmStart)) {
     $createArgs += @("-ExtraEnv", $extraEnv)
 }
 if ($MountArgs.Count -gt 0) {

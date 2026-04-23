@@ -12,8 +12,6 @@
       "instance_file": "vast-instance.json",
       "default_label": "001skills-job",
       "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",
-      "light_image": "j1c2k3/codex-comfy-wan22-root-canvas:1.2-light",
-      "heavy_image": "",
       "default_disk_gb": 180,
       "default_search_query": "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
       "default_r2_prefix": "runcomfy-inputs/001skills",

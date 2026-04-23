@@ -78,7 +78,7 @@ class LaunchExtraEnvTests(unittest.TestCase):
         helper_path = ROOT / "scripts" / "launch_001skills_vast_job_helpers.ps1"
         command = (
             f". '{helper_path}'; "
-            "$result = Get-001SkillsLaunchExtraEnv -WarmStart:$true -PrewarmedImage:$false; "
+            "$result = Get-001SkillsLaunchExtraEnv -WarmStart:$true; "
             "ConvertTo-Json -InputObject ([object[]]@($result)) -Compress"
         )
 

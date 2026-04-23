@@ -3,30 +3,15 @@ set -euo pipefail
 
 COMFY_ROOT="${COMFY_ROOT:-/workspace/ComfyUI}"
 COMFY_APP_ROOT="${COMFY_APP_ROOT:-/opt/workspace-internal/ComfyUI}"
-PREWARM_ROOT="${PREWARM_ROOT:-/opt/wan22-prewarm}"
 RUN_DIR="${RUN_DIR:-/workspace/wan22-root-canvas-run}"
 BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
 MODELS_DIR="$COMFY_ROOT/models"
-PREWARMED_IMAGE="${PREWARMED_IMAGE:-0}"
 WARM_START="${WARM_START:-0}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
-
-if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$PREWARM_ROOT/custom_nodes" ]; then
-  mkdir -p "$COMFY_APP_ROOT/custom_nodes"
-  if ! find "$COMFY_APP_ROOT/custom_nodes" -mindepth 1 -maxdepth 1 | grep -q .; then
-    echo "[bootstrap] restoring prewarmed custom nodes from $PREWARM_ROOT/custom_nodes"
-    cp -a "$PREWARM_ROOT/custom_nodes/." "$COMFY_APP_ROOT/custom_nodes/"
-  fi
-fi
-
-if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$COMFY_APP_ROOT/custom_nodes" ]; then
-  CUSTOM_NODES_DIR="$COMFY_APP_ROOT/custom_nodes"
-else
-  CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
-fi
+CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
 
 mkdir -p "$CUSTOM_NODES_DIR" "$MODELS_DIR" "$RUN_DIR"
 
@@ -157,9 +142,6 @@ ensure_torch_stack() {
   elif torch_stack_matches_expected; then
     describe_existing_torch_stack
     echo "[bootstrap] existing torch stack is compatible with this workflow runtime"
-    return 0
-  elif [ "$PREWARMED_IMAGE" = "1" ] && python_has_module "torch" && python_has_module "torchvision" && python_has_module "torchaudio"; then
-    echo "[bootstrap] prewarmed image provides torch torchvision torchaudio"
     return 0
   fi
 
@@ -378,68 +360,45 @@ install_staged_custom_nodes() {
     "https://github.com/city96/ComfyUI-GGUF.git"
 }
 
-if [ "$PREWARMED_IMAGE" != "1" ]; then
-  mkdir -p "$BUNDLE_DIR"
+mkdir -p "$BUNDLE_DIR"
 
-  if [ "$WARM_START" = "1" ]; then
-    warm_state="$(inspect_warmstart_state)"
-    if python3 - "$warm_state" <<'PY'
+if [ "$WARM_START" = "1" ]; then
+  warm_state="$(inspect_warmstart_state)"
+  if python3 - "$warm_state" <<'PY'
 import json
 import sys
 state = json.loads(sys.argv[1])
 raise SystemExit(0 if state["custom_nodes_ready"] else 1)
 PY
-    then
-      echo "[bootstrap] warm-start hit: custom_nodes"
-      stage_event "bootstrap.custom_nodes" "skip"
-    else
-      echo "[bootstrap] warm-start miss: custom_nodes"
-      python3 - "$warm_state" <<'PY'
+  then
+    echo "[bootstrap] warm-start hit: custom_nodes"
+    stage_event "bootstrap.custom_nodes" "skip"
+  else
+    echo "[bootstrap] warm-start miss: custom_nodes"
+    python3 - "$warm_state" <<'PY'
 import json
 import sys
 state = json.loads(sys.argv[1])
 print("[bootstrap] missing custom nodes: " + ", ".join(state["missing_custom_nodes"]))
 PY
-      find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
-        ! -name 'ComfyUI-Manager' \
-        -exec rm -rf {} +
-    fi
-  else
     find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
       ! -name 'ComfyUI-Manager' \
       -exec rm -rf {} +
   fi
-
-  if [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
-import json
-import sys
-state = json.loads(sys.argv[1])
-raise SystemExit(0 if state["custom_nodes_ready"] else 1)
-PY
-  then
-    install_staged_custom_nodes
-  fi
 else
-  prewarmed_state="$(inspect_warmstart_state)"
-  if python3 - "$prewarmed_state" <<'PY'
+  find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
+    ! -name 'ComfyUI-Manager' \
+    -exec rm -rf {} +
+fi
+
+if [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
 import json
 import sys
 state = json.loads(sys.argv[1])
 raise SystemExit(0 if state["custom_nodes_ready"] else 1)
 PY
-  then
-    echo "[bootstrap] prewarmed image hit: custom_nodes"
-    stage_event "bootstrap.custom_nodes" "skip"
-  else
-    echo "[bootstrap] prewarmed image miss: custom_nodes"
-    python3 - "$prewarmed_state" <<'PY'
-import json
-import sys
-state = json.loads(sys.argv[1])
-print("[bootstrap] missing custom nodes: " + ", ".join(state["missing_custom_nodes"]))
-PY
-    install_staged_custom_nodes
-  fi
+then
+  install_staged_custom_nodes
 fi
 stage_event "bootstrap.custom_nodes" "end"
 

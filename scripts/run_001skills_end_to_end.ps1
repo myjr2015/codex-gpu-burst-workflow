@@ -16,7 +16,7 @@ param(
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
-    [ValidateSet("1.0-cold", "1.1-machine-registry", "1.2-light", "1.3-heavy")]
+    [ValidateSet("1.0-cold", "1.1-machine-registry")]
     [string]$RuntimeVersion = "1.1-machine-registry",
 
     [string]$Label = "001skills-job",
@@ -51,8 +51,6 @@ param(
 
     [switch]$WarmStart,
 
-    [switch]$PrewarmedImage,
-
     [int]$DownloadIntervalSeconds = 30,
 
     [int]$DownloadMaxChecks = 240
@@ -64,7 +62,6 @@ $repoRoot = (Resolve-Path ".").Path
 $runnerPath = Join-Path $repoRoot "scripts\run_vast_workflow_job.ps1"
 $selectorPath = Join-Path $repoRoot "scripts\select_001skills_vast_offer.ps1"
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
-$profileConfigPath = Join-Path $repoRoot "config\vast-workflow-profiles.json"
 if (-not (Test-Path -LiteralPath $runnerPath)) {
     throw "Missing runner: $runnerPath"
 }
@@ -73,9 +70,6 @@ if (-not (Test-Path -LiteralPath $selectorPath)) {
 }
 if (-not (Test-Path -LiteralPath $r2HelperPath)) {
     throw "Missing R2 helper: $r2HelperPath"
-}
-if (-not (Test-Path -LiteralPath $profileConfigPath)) {
-    throw "Missing profile config: $profileConfigPath"
 }
 
 . $r2HelperPath
@@ -97,30 +91,8 @@ if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_A
 }
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
-$profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
-$profile = $profileConfig.profiles."001skills"
-if ($RuntimeVersion -eq "1.2-light") {
-    if ([string]::IsNullOrWhiteSpace($profile.light_image)) {
-        throw "RuntimeVersion 1.2-light requires profiles.001skills.light_image."
-    }
-    $Image = [string]$profile.light_image
-    $PrewarmedImage = $true
-    Write-Host "runtime_version=1.2-light"
-    Write-Host "runtime_meaning=轻镜像：预装 ComfyUI 节点、Python 依赖、torch/cu124；模型仍按需下载"
-    Write-Host "runtime_image=$Image"
-} elseif ($RuntimeVersion -eq "1.3-heavy") {
-    if ([string]::IsNullOrWhiteSpace($profile.heavy_image)) {
-        throw "RuntimeVersion 1.3-heavy is not configured yet."
-    }
-    $Image = [string]$profile.heavy_image
-    $PrewarmedImage = $true
-    Write-Host "runtime_version=1.3-heavy"
-    Write-Host "runtime_meaning=重镜像：预装环境和模型"
-    Write-Host "runtime_image=$Image"
-} else {
-    Write-Host "runtime_version=$RuntimeVersion"
-    Write-Host "runtime_image=$Image"
-}
+Write-Host "runtime_version=$RuntimeVersion"
+Write-Host "runtime_image=$Image"
 
 $stageArgs = @()
 if (-not $SkipStage) {
@@ -189,9 +161,6 @@ if (-not $SkipLaunch) {
     }
     if ($WarmStart) {
         $launchArgs += "-WarmStart"
-    }
-    if ($PrewarmedImage) {
-        $launchArgs += "-PrewarmedImage"
     }
     if ($MountArgs.Count -gt 0) {
         $launchArgs += @("-MountArgs", $MountArgs)
