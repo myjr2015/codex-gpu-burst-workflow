@@ -17,7 +17,7 @@ $profilesSourcePath = Join-Path $repoRoot "config\vast-workflow-profiles.json"
 $machineRegistrySourcePath = Join-Path $repoRoot "data\vast-machine-registry.json"
 
 foreach ($requiredPath in @(
-    (Join-Path $skillsSourceRoot "000skills"),
+    (Join-Path $skillsSourceRoot "history_video_pipeline_skills"),
     (Join-Path $skillsSourceRoot "okskills"),
     (Join-Path $skillsSourceRoot "badskills"),
     $docsSourcePath,
@@ -35,7 +35,7 @@ $referenceRoot = Join-Path $CodexHome "references\wan22\$VersionName"
 New-Item -ItemType Directory -Force -Path $skillsTargetRoot | Out-Null
 New-Item -ItemType Directory -Force -Path $referenceRoot | Out-Null
 
-foreach ($skillName in @("000skills", "okskills", "badskills")) {
+foreach ($skillName in @("history_video_pipeline_skills", "okskills", "badskills")) {
     $sourceDir = Join-Path $skillsSourceRoot $skillName
     $targetDir = Join-Path $skillsTargetRoot $skillName
 
@@ -68,7 +68,7 @@ $metadata = [ordered]@{
     repo_root = $repoRoot
     synced_at = (Get-Date).ToString("s")
     synced_items = @(
-        "skills/000skills",
+        "skills/history_video_pipeline_skills",
         "skills/okskills",
         "skills/badskills",
         "docs/wan22-v1.0-baseline.md",

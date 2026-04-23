@@ -1,13 +1,13 @@
 ---
-name: 000skills
-description: Use when reviewing, switching, or debugging AI talking-head video pipelines with lip sync, background replacement, segmented generation, Vast or RunningHub migration, or text-heavy source footage that may reintroduce old quality failures.
+name: history_video_pipeline_skills
+description: Historical lessons for reviewing, switching, or debugging older AI talking-head video pipelines with lip sync, background replacement, segmented generation, Vast or RunningHub migration, or text-heavy source footage that may reintroduce old quality failures.
 ---
 
-# 000skills
+# history_video_pipeline_skills
 
 ## Overview
 
-This skill is a compact failure-mode checklist for AI avatar and talking-head pipelines. Use it before changing workflow stacks, when reviewing results, or when a new platform appears to solve one problem but quietly reintroduces older ones.
+This skill is the historical failure-mode archive for AI avatar and talking-head pipelines. Use it before changing workflow stacks, when reviewing results, or when a new platform appears to solve one problem but quietly reintroduces older ones.
 
 ## When to Use
 
@@ -23,6 +23,14 @@ Do not use this skill for pure image generation or non-speaking video tasks.
 ## Core Rule
 
 Never evaluate a workflow on one success criterion alone.
+
+For cloud GPU selection in this project, do not rent mainland China hosts by default.
+
+Reason:
+- cold-start downloads are slower and less predictable
+- Docker Hub / Hugging Face access may require extra network workarounds
+- this breaks the assumption that a fresh machine can bootstrap by itself from public sources
+- a host that is cheap on paper can become more expensive in time and retry waste
 
 A pipeline is only production-usable if it survives all of:
 - mouth sync
@@ -199,6 +207,7 @@ Mitigation:
 - verify custom nodes and model paths before renting GPU time
 - prefer runtime patching for incompatible settings such as attention mode
 - on platforms like RunningHub, ensure the workflow has been manually run successfully before API use
+- when searching Vast offers for this branch, exclude `CN` geolocation unless the workflow is explicitly prepared for China-network constraints
 
 ### 10. Cloud storage and result retrieval break automation
 
