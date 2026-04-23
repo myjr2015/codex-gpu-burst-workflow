@@ -2,6 +2,7 @@ node_modules/
 output/
 .env
 api.txt
+.secrets/
 .idea/
 .npm-cache/
 .playwright/
