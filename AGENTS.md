@@ -108,6 +108,7 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
   - 跳过自定义节点解压
   - 尽量跳过 Python/torch 安装
   - 大模型仍然按需下载
+  - 做公平冷启动测试时，加 `-FreshMachine` 排除机器库里的成功老机器
 - `-RuntimeVersion 1.3-heavy`
   - 预留给重镜像
   - 当前未完成，不能用于生产

@@ -56,9 +56,26 @@ def _offer_sort_key(offer: dict[str, Any]) -> tuple[float, float, int]:
     )
 
 
-def choose_offer(offers: list[dict[str, Any]], registry: dict[str, Any]) -> dict[str, Any]:
+def _successful_machine_ids(registry: dict[str, Any]) -> set[int]:
+    result: set[int] = set()
+    for record in registry.get("machines", []):
+        if record.get("result") != "succeeded":
+            continue
+        machine_id = record.get("machine_id")
+        if machine_id is not None:
+            result.add(int(machine_id))
+    return result
+
+
+def choose_offer(offers: list[dict[str, Any]], registry: dict[str, Any], exclude_known: bool = False) -> dict[str, Any]:
     if not offers:
         raise ValueError("No Vast offers available for selection.")
+
+    if exclude_known:
+        known_ids = _successful_machine_ids(registry)
+        offers = [offer for offer in offers if offer.get("machine_id") not in known_ids]
+        if not offers:
+            raise ValueError("No Vast offers remain after excluding known machines.")
 
     successful_by_machine: dict[int, dict[str, Any]] = {}
     for record in registry.get("machines", []):
@@ -236,6 +253,7 @@ def main() -> int:
     choose_parser = subparsers.add_parser("choose-offer")
     choose_parser.add_argument("--registry-path", required=True)
     choose_parser.add_argument("--offers-path", required=True)
+    choose_parser.add_argument("--exclude-known", action="store_true")
 
     update_parser = subparsers.add_parser("record-run")
     update_parser.add_argument("--registry-path", required=True)
@@ -250,7 +268,7 @@ def main() -> int:
     if args.command == "choose-offer":
         registry = load_registry(Path(args.registry_path))
         offers = _read_json(Path(args.offers_path))
-        decision = choose_offer(offers=offers, registry=registry)
+        decision = choose_offer(offers=offers, registry=registry, exclude_known=args.exclude_known)
         print(json.dumps(decision, ensure_ascii=False))
         return 0
 

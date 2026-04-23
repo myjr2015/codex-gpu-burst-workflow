@@ -3,7 +3,9 @@ param(
 
     [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
 
-    [int]$Storage = 180
+    [int]$Storage = 180,
+
+    [switch]$ExcludeKnownMachines
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,9 +24,17 @@ try {
 
     $rawOffers | Set-Content -LiteralPath $tempOffersPath -Encoding UTF8
 
-    $decisionJson = & D:\code\YuYan\python\python.exe $selectorPy choose-offer `
-        --registry-path $registryResolved `
-        --offers-path $tempOffersPath
+    $selectorArgs = @(
+        $selectorPy,
+        "choose-offer",
+        "--registry-path", $registryResolved,
+        "--offers-path", $tempOffersPath
+    )
+    if ($ExcludeKnownMachines) {
+        $selectorArgs += "--exclude-known"
+    }
+
+    $decisionJson = & D:\code\YuYan\python\python.exe @selectorArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Machine registry selector failed."
     }

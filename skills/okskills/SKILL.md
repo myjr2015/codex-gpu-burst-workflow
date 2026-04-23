@@ -136,6 +136,9 @@ Current default behavior:
    - choose the cheapest matching offer
    - keep `WarmStart=false`
 
+For a fair `1.2-light` fresh-machine test, pass `-FreshMachine`.
+That excludes machines already recorded in the registry and disables warm-start assumptions.
+
 Automatic registry update entry point:
 
 ```powershell

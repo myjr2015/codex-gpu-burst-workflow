@@ -55,6 +55,29 @@ class MachineRegistrySelectionTests(unittest.TestCase):
         self.assertFalse(decision["warm_start"])
         self.assertEqual(decision["selection_mode"], "cold_start")
 
+    def test_can_exclude_known_successful_machines_for_fresh_test(self):
+        module = load_module("vast_machine_registry.py")
+        registry = {
+            "machines": [
+                {
+                    "machine_id": 56268,
+                    "host_id": 1820,
+                    "result": "succeeded",
+                    "last_success_at": "2026-04-23T11:47:28",
+                }
+            ]
+        }
+        offers = [
+            {"id": 35314367, "machine_id": 56268, "host_id": 1820, "dph_total": 0.17, "verification": "verified"},
+            {"id": 999001, "machine_id": 90001, "host_id": 5001, "dph_total": 0.21, "verification": "verified"},
+        ]
+
+        decision = module.choose_offer(offers=offers, registry=registry, exclude_known=True)
+
+        self.assertEqual(decision["offer_id"], 999001)
+        self.assertEqual(decision["machine_id"], 90001)
+        self.assertFalse(decision["warm_start"])
+
 
 class MachineRegistryUpdateTests(unittest.TestCase):
     def test_records_successful_run_with_warmstart_flags_and_timings(self):

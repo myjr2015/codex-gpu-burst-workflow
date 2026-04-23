@@ -12,6 +12,8 @@ param(
 
     [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
 
+    [switch]$FreshMachine,
+
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
     [ValidateSet("1.0-cold", "1.1-machine-registry", "1.2-light", "1.3-heavy")]
@@ -135,7 +137,8 @@ if (-not $SkipLaunch) {
         $selectionJson = & pwsh -File $selectorPath `
             -RegistryPath $RegistryPath `
             -SearchQuery $SearchQuery `
-            -Storage $DiskGb
+            -Storage $DiskGb `
+            -ExcludeKnownMachines:$FreshMachine
         if ($LASTEXITCODE -ne 0) {
             throw "Automatic Vast offer selection failed."
         }
@@ -147,7 +150,7 @@ if (-not $SkipLaunch) {
 
         $OfferId = [string]$selection.offer_id
         if ($selection.warm_start) {
-            if ($RuntimeVersion -ne "1.0-cold") {
+            if ($RuntimeVersion -ne "1.0-cold" -and -not $FreshMachine) {
                 $WarmStart = $true
             }
         }
