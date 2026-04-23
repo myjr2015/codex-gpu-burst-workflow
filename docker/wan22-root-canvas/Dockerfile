@@ -15,7 +15,8 @@ COPY docker/wan22-root-canvas/install_custom_nodes.py /tmp/wan22-root-canvas/ins
 RUN python3 -m pip install --upgrade pip setuptools wheel && \
     python3 -m pip install --index-url https://download.pytorch.org/whl/cu124 torch torchvision torchaudio && \
     python3 -m pip install -r /tmp/wan22-root-canvas/requirements-extra.txt && \
-    python3 /tmp/wan22-root-canvas/install_custom_nodes.py && \
-    mkdir -p /workspace/ComfyUI/input /workspace/ComfyUI/output /workspace/ComfyUI/models && \
+    COMFY_ROOT=/opt/workspace-internal/ComfyUI python3 /tmp/wan22-root-canvas/install_custom_nodes.py && \
+    mkdir -p /opt/workspace-internal/ComfyUI/custom_nodes && \
+    mkdir -p /workspace/ComfyUI/input /workspace/ComfyUI/output /workspace/ComfyUI/models /workspace/ComfyUI/custom_nodes && \
     python3 -m pip cache purge || true && \
     rm -rf /root/.cache /tmp/wan22-root-canvas

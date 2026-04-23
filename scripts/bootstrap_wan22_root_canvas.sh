@@ -5,7 +5,6 @@ COMFY_ROOT="${COMFY_ROOT:-/workspace/ComfyUI}"
 COMFY_APP_ROOT="${COMFY_APP_ROOT:-/opt/workspace-internal/ComfyUI}"
 RUN_DIR="${RUN_DIR:-/workspace/wan22-root-canvas-run}"
 BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
-CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
 MODELS_DIR="$COMFY_ROOT/models"
 PREWARMED_IMAGE="${PREWARMED_IMAGE:-0}"
 WARM_START="${WARM_START:-0}"
@@ -13,6 +12,12 @@ PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
+
+if [ "$PREWARMED_IMAGE" = "1" ] && [ -d "$COMFY_APP_ROOT/custom_nodes" ]; then
+  CUSTOM_NODES_DIR="$COMFY_APP_ROOT/custom_nodes"
+else
+  CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
+fi
 
 mkdir -p "$CUSTOM_NODES_DIR" "$MODELS_DIR" "$RUN_DIR"
 
@@ -343,6 +348,27 @@ inspect_warmstart_state() {
 
 echo "[bootstrap] preparing custom nodes"
 stage_event "bootstrap.custom_nodes" "start"
+install_staged_custom_nodes() {
+  declare -a BUNDLES=(
+    "ComfyUI-VideoHelperSuite.zip:ComfyUI-VideoHelperSuite"
+    "ComfyUI-KJNodes.zip:ComfyUI-KJNodes"
+    "ComfyUI-WanAnimatePreprocess.zip:ComfyUI-WanAnimatePreprocess"
+  )
+
+  for bundle in "${BUNDLES[@]}"; do
+    zip_name="${bundle%%:*}"
+    dir_name="${bundle##*:}"
+    zip_path="$BUNDLE_DIR/$zip_name"
+    dest_dir="$CUSTOM_NODES_DIR/$dir_name"
+    extract_or_sync_plugin "$zip_path" "$dest_dir"
+  done
+
+  extract_or_sync_plugin \
+    "$BUNDLE_DIR/ComfyUI-GGUF.zip" \
+    "$CUSTOM_NODES_DIR/ComfyUI-GGUF" \
+    "https://github.com/city96/ComfyUI-GGUF.git"
+}
+
 if [ "$PREWARMED_IMAGE" != "1" ]; then
   mkdir -p "$BUNDLE_DIR"
 
@@ -382,27 +408,29 @@ state = json.loads(sys.argv[1])
 raise SystemExit(0 if state["custom_nodes_ready"] else 1)
 PY
   then
-    declare -a BUNDLES=(
-      "ComfyUI-VideoHelperSuite.zip:ComfyUI-VideoHelperSuite"
-      "ComfyUI-KJNodes.zip:ComfyUI-KJNodes"
-      "ComfyUI-WanAnimatePreprocess.zip:ComfyUI-WanAnimatePreprocess"
-    )
-
-    for bundle in "${BUNDLES[@]}"; do
-      zip_name="${bundle%%:*}"
-      dir_name="${bundle##*:}"
-      zip_path="$BUNDLE_DIR/$zip_name"
-      dest_dir="$CUSTOM_NODES_DIR/$dir_name"
-      extract_or_sync_plugin "$zip_path" "$dest_dir"
-    done
-
-    extract_or_sync_plugin \
-      "$BUNDLE_DIR/ComfyUI-GGUF.zip" \
-      "$CUSTOM_NODES_DIR/ComfyUI-GGUF" \
-      "https://github.com/city96/ComfyUI-GGUF.git"
+    install_staged_custom_nodes
   fi
 else
-  echo "[bootstrap] prewarmed image mode: skip custom node extraction"
+  prewarmed_state="$(inspect_warmstart_state)"
+  if python3 - "$prewarmed_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+raise SystemExit(0 if state["custom_nodes_ready"] else 1)
+PY
+  then
+    echo "[bootstrap] prewarmed image hit: custom_nodes"
+    stage_event "bootstrap.custom_nodes" "skip"
+  else
+    echo "[bootstrap] prewarmed image miss: custom_nodes"
+    python3 - "$prewarmed_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+print("[bootstrap] missing custom nodes: " + ", ".join(state["missing_custom_nodes"]))
+PY
+    install_staged_custom_nodes
+  fi
 fi
 stage_event "bootstrap.custom_nodes" "end"
 

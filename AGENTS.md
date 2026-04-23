@@ -66,6 +66,18 @@ pwsh -File .\scripts\select_001skills_vast_offer.ps1
 10. `destroy`：销毁实例，停止计费
 11. `update registry`：更新机器库
 
+## Machine Switch Reporting
+
+如果同一任务中途销毁实例并切换到另一台机器，不能只在后台切换，必须立即补一条状态：
+
+- 说明为什么切机
+- 说明旧实例 `instance_id`
+- 说明新实例 `instance_id`
+- 说明新机器的 `host_id`、`machine_id`
+- 明确当前流程重新回到哪一步
+
+切机后的汇报格式也继续沿用上面的编号步骤，不允许省略。
+
 需要可见日志时，用轮询脚本：
 
 ```powershell
@@ -124,3 +136,5 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1
 - 不要把同一台机器等同于模型缓存命中；必须看日志里的命中/未命中。
 - 不要把以前失败过的重 Docker 镜像当 1.2 基础。
 - `1.2-light` 必须是干净轻镜像：不放模型，不放旧多余节点。
+- `1.2-light` 只服务当前 Wan2.2 / `001skills` 固定流程，不为 LTX 2.3 或其他新大模型预装节点。
+- 以后如果接入 LTX 2.3，必须新增 profile 和镜像 tag，例如 `ltx23-light`，共用 runner，但不要污染 `001skills`。

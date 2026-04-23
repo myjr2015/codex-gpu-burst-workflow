@@ -57,10 +57,17 @@ stage_event "remote.restart_comfy" "start"
 # directories so the app sees the downloaded inputs, models, outputs, and custom nodes.
 if [ "$COMFY_APP_ROOT" != "$COMFY_ROOT" ]; then
   mkdir -p "$COMFY_ROOT/input" "$COMFY_ROOT/output" "$COMFY_ROOT/custom_nodes" "$COMFY_ROOT/models"
-  for entry in input output custom_nodes models; do
+  for entry in input output models; do
     rm -rf "$COMFY_APP_ROOT/$entry"
     ln -s "$COMFY_ROOT/$entry" "$COMFY_APP_ROOT/$entry"
   done
+
+  if [ "${PREWARMED_IMAGE:-0}" = "1" ]; then
+    mkdir -p "$COMFY_APP_ROOT/custom_nodes"
+  else
+    rm -rf "$COMFY_APP_ROOT/custom_nodes"
+    ln -s "$COMFY_ROOT/custom_nodes" "$COMFY_APP_ROOT/custom_nodes"
+  fi
 fi
 
 pkill -f 'python.*main.py' || true

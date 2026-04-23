@@ -63,6 +63,13 @@ It must not include the old polluted node set:
 It also must not include model weights.
 Those remain runtime downloads until the separate `1.3-heavy` image is intentionally designed and tested.
 
+It must also not absorb future unrelated model families such as LTX 2.3.
+For LTX 2.3 or any other new workflow family:
+- create a new profile in `config/vast-workflow-profiles.json`
+- create a separate light image tag, for example `ltx23-light`
+- reuse the shared runner only where the lifecycle contract still matches
+- do not add LTX-specific nodes or dependencies to the `001skills` Wan2.2 image
+
 ## Proven Fresh-Host Runs
 
 Run 1:

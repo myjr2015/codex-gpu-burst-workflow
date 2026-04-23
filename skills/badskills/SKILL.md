@@ -42,6 +42,13 @@ These failures were observed on the same branch:
     - no `ComfyUI-segment-anything-2`
     - no explicit `accelerate`, `diffusers`, `peft`, `spandrel`, or `clip_interrogator`
 
+- Symptom: a new model family such as LTX 2.3 gets mixed into the Wan2.2 `1.2-light` image
+  - Root cause: treating the light image as a general AI-video environment instead of a workflow-specific runtime
+  - Action:
+    - do not add LTX 2.3 dependencies, nodes, or model assumptions to `001skills`
+    - create a new profile and image tag for LTX 2.3
+    - only share orchestration scripts when the stage/launch/download/publish contract is still compatible
+
 - Symptom: cold start appears "stuck", but logs only show pip and curl progress for a long time
   - Root cause: the machine is still doing legitimate bootstrap work:
     - torch / cu124 wheels from `download.pytorch.org`
@@ -73,6 +80,24 @@ These failures were observed on the same branch:
   - Root cause: the selected host driver only supports CUDA below 12.4, so the prewarmed torch stack is not considered usable
   - Evidence seen on failed `v12-light-fresh-001`: driver `535.274.02`, `cuda_max_good=12.2`
   - Action: destroy and search with `cuda_max_good>=12.4`
+
+- Symptom: `1.2-light` was retested on the exact same physical machine as a successful `1.0`, but still reached `bootstrap.model_downloads` later than `1.0`
+  - Root cause: the `1.2-light` path was not actually preserving its preinstalled custom nodes at runtime
+  - Evidence from `v12-light-sameA-001` on host `264182` / machine `42568`:
+    - the container spent extra time in image preparation before `running`
+    - `remote_submit_wan22_root_canvas.sh` replaced `COMFY_APP_ROOT/custom_nodes` with a symlink to `/workspace/ComfyUI/custom_nodes`
+    - preinstalled nodes baked into the image were therefore hidden or removed before ComfyUI restart
+    - `bootstrap` then reinstalled custom-node requirements and still reinstalled `torch/cu124`
+  - Action:
+    - in prewarmed mode, inspect and preserve `COMFY_APP_ROOT/custom_nodes`
+    - do not overwrite preinstalled `custom_nodes` with an empty workspace symlink
+    - do not treat same-machine `1.2` slowness as a host problem; fix `1.2` itself first
+
+- Symptom: custom nodes were baked into `/workspace/ComfyUI` during image build, but missing at runtime
+  - Root cause: `/workspace` is a runtime-mounted data location on Vast, so image-baked content there is not a reliable place for prewarmed assets
+  - Action:
+    - bake prewarmed `custom_nodes` into `COMFY_APP_ROOT` or another non-mounted application path
+    - keep runtime-generated inputs, outputs, and models in `/workspace`
 
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
