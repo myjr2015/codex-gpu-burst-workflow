@@ -164,6 +164,14 @@ These failures were observed on the same branch:
   - Root cause: the controller `.env` used `ASSET_S3_*` names while the wrapper defaulted to `CLOUDFLARE_*` / `R2_*`, so empty credential values were still appended into `PublishArgs`
   - Action: support `ASSET_S3_*` fallback in stage and publish scripts, and never append an arg pair when the value is blank
 
+- Symptom: `.env` is missing a platform key even though the user already backed it up locally
+  - Root cause: the key may only exist in root `api.txt`, which is intentionally ignored by Git
+  - Action:
+    - read `.env` first
+    - if the required key is blank, read `api.txt`
+    - never print key values; report only site names
+    - keep `api.txt` in two-line repeated format: site name, then key
+
 - Symptom: cleanup step fails immediately with `A parameter cannot be found that matches parameter name 'JobName'`
   - Root cause: `scripts/destroy_vast_instance.ps1` accepts only `-InstanceId`, but the operator guessed it behaved like the job wrappers
   - Action: call it only as `pwsh -File .\scripts\destroy_vast_instance.ps1 -InstanceId <id>`; resolve the id from `vast-instance.json` before cleanup

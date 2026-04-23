@@ -96,6 +96,28 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 共享配置：`config/vast-workflow-profiles.json`
 - 成功/失败经验：`skills/okskills/SKILL.md`、`skills/badskills/SKILL.md`
 
+## Local Key Fallback
+
+本地 key 读取顺序：
+
+1. 先读 `.env`
+2. 如果 `.env` 没有对应 key，再读根目录 `api.txt`
+
+`api.txt` 是本地明文备份，只允许使用这种格式：
+
+```text
+网站名
+key
+```
+
+规则：
+
+- 不要把 `api.txt` 内容打印到聊天或终端。
+- 不要提交 `api.txt`，它必须保持在 `.gitignore`。
+- 新增平台 key 时，先写入 `api.txt`，再按需同步到 `.env`。
+- PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
+- Node 入口通过 `src/config.js` 自动做 fallback。
+
 ## Runtime Versions
 
 默认运行入口仍然是：

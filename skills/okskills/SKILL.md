@@ -184,6 +184,35 @@ Keep responsibilities separate:
 - Vast:
   - temporary execution only
 
+## Local Key Fallback
+
+Credential lookup order for this branch:
+1. read `.env`
+2. if the needed key is still missing, read root `api.txt`
+
+`api.txt` is local-only and must stay ignored by Git.
+Its format is exactly:
+
+```text
+site name
+key
+```
+
+Known site names used by the automation:
+- `RunComfy`
+- `Cloudflare API Token`
+- `Cloudflare Account ID`
+- `Cloudflare R2 AccessKeyId`
+- `Cloudflare R2 SecretAccessKey`
+- `Vast.ai`
+- `GitHub`
+- `GitHub PAT 用户给过`
+- `DockerHub`
+- `RunPod`
+
+Do not print `api.txt` values in logs or chat.
+Only report which site names exist.
+
 ## Current Download Sources
 
 This branch currently pulls its heavy runtime from two places:

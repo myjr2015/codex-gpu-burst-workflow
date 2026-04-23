@@ -53,6 +53,40 @@ class R2EnvHelperTests(unittest.TestCase):
 
             self.assertEqual(completed.stdout.strip(), "test-key")
 
+    def test_import_project_dotenv_falls_back_to_api_txt_for_missing_keys(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            api_path = temp_root / "api.txt"
+            env_path.write_text("ASSET_S3_BUCKET=test-bucket\n", encoding="utf-8")
+            api_path.write_text(
+                "Cloudflare R2 AccessKeyId\napi-access-key\n\n"
+                "Cloudflare R2 SecretAccessKey\napi-secret-key\n\n",
+                encoding="utf-8",
+            )
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:ASSET_S3_ACCESS_KEY_ID -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:ASSET_S3_SECRET_ACCESS_KEY -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "$result = @{ access=$env:ASSET_S3_ACCESS_KEY_ID; secret=$env:ASSET_S3_SECRET_ACCESS_KEY }; "
+                "ConvertTo-Json -InputObject $result -Compress"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads(completed.stdout.strip()),
+                {"access": "api-access-key", "secret": "api-secret-key"},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
