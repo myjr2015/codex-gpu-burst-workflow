@@ -54,6 +54,7 @@ async function main() {
     workflowRuntime: `${prefix}/workflow_runtime.json`,
     bootstrap: `${prefix}/bootstrap_wan22_root_canvas.sh`,
     remoteSubmit: `${prefix}/remote_submit_wan22_root_canvas.sh`,
+    warmstartInspector: `${prefix}/inspect_wan22_warmstart.py`,
     inputVideo: `${prefix}/input/光伏2.mp4`,
     inputImage: `${prefix}/input/美女带背景.png`,
   };
@@ -87,6 +88,7 @@ echo "[onstart] started at $(date -Iseconds)"
 fetch "${url(files.workflowRuntime)}" "$RUN_DIR/workflow_runtime.json"
 fetch "${url(files.bootstrap)}" "$RUN_DIR/bootstrap_wan22_root_canvas.sh"
 fetch "${url(files.remoteSubmit)}" "$RUN_DIR/remote_submit_wan22_root_canvas.sh"
+fetch "${url(files.warmstartInspector)}" "$RUN_DIR/inspect_wan22_warmstart.py"
 fetch "${url(files.inputVideo)}" "$COMFY_ROOT/input/光伏2.mp4"
 fetch "${url(files.inputImage)}" "$COMFY_ROOT/input/美女带背景.png"
 ${bundleFetchLines}

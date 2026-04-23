@@ -20,6 +20,14 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path ".").Path
+$r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
+if (-not (Test-Path -LiteralPath $r2HelperPath)) {
+    throw "Missing R2 helper: $r2HelperPath"
+}
+
+. $r2HelperPath
+$R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
+
 $uploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $jobDir = Join-Path $repoRoot ("output\001skills\" + $JobName)
 $manifestPath = Join-Path $jobDir "manifest.json"

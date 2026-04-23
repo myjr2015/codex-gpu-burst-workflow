@@ -54,6 +54,15 @@ Only keep these four bundles in this branch:
 
 Anything else is noise unless re-proven.
 
+The `1.2-light` Docker image must follow the same rule.
+It must not include the old polluted node set:
+- `ComfyUI-Easy-Use`
+- `ComfyUI-WanVideoWrapper`
+- `ComfyUI-segment-anything-2`
+
+It also must not include model weights.
+Those remain runtime downloads until the separate `1.3-heavy` image is intentionally designed and tested.
+
 ## Proven Fresh-Host Runs
 
 Run 1:
@@ -76,6 +85,67 @@ Run 2:
 Core conclusion:
 - this chain survives fresh-host cold start
 - this chain does not depend on one lucky mother machine
+
+## Machine Selection Rule
+
+Default Vast search rule for this branch:
+- exclude mainland China hosts: `geolocation notin [CN]`
+
+Reason:
+- the current cold-start path downloads from Docker Hub, PyTorch, and Hugging Face
+- China-region hosts can be slower or require extra network workarounds
+- that adds retry waste and breaks the assumption that a fresh machine should bootstrap unattended
+
+Preferred order when searching:
+1. `RTX 3090 24GB`
+2. `verified=true`
+3. `geolocation notin [CN]`
+4. `driver_version` in the proven-safe range, preferably `580.*` or `590.*`
+5. enough disk for the configured job
+6. then sort by `dph_total`
+
+If the absolute cheapest offer is in `CN`, do not automatically choose it for `001skills`.
+Choose the cheapest non-`CN` offer that satisfies the runtime assumptions.
+
+## Machine Registry Rule
+
+The merged `1.1` path is now:
+- prefer a previously successful machine when it is currently rentable
+- enable `WarmStart` only for that preferred-machine case
+- otherwise fall back to normal cold start on the cheapest matching offer
+
+Authoritative registry file in the repo:
+- `data/vast-machine-registry.json`
+
+Local Codex mirror:
+- `C:\Users\myjr2\.codex\references\wan22\machine-registry.json`
+
+Selection entry point:
+
+```powershell
+pwsh -File .\scripts\select_001skills_vast_offer.ps1
+```
+
+Current default behavior:
+1. search non-`CN` `RTX 3090 24GB` offers
+2. match available offers against `data/vast-machine-registry.json`
+3. if a machine already has a successful run record:
+   - choose that machine
+   - set `WarmStart=true`
+4. if no known machine is available:
+   - choose the cheapest matching offer
+   - keep `WarmStart=false`
+
+Automatic registry update entry point:
+
+```powershell
+pwsh -File .\scripts\update_vast_machine_registry.ps1 `
+  -JobName <job_name>
+```
+
+This writes:
+- repo registry: `data/vast-machine-registry.json`
+- local mirror: `C:\Users\myjr2\.codex\references\wan22\machine-registry.json`
 
 ## Storage Roles
 
@@ -141,11 +211,15 @@ Practical consequence for this branch:
 - keep accepted outputs in R2
 - if you want cloud-native restore inside Vast, prefer Vast Cloud Sync / Cloud Backups to a supported provider
 
-3. Best future state:
-- Docker image stores environment and preinstalled Python deps
-- Vast local volume stores model cache on one proven machine
+3. Accepted current direction:
+- `1.2-light` uses a light Docker image for environment and dependencies
+- no Vast local volume is part of the current plan
 - R2 stores stage inputs and final outputs
-- optional cloud backup stores model archives if you want provider-managed restore logic
+- model files are still downloaded on a fresh machine until `1.3-heavy` exists
+
+4. Reserved future direction:
+- `1.3-heavy` may use a heavier Docker image that also includes model files
+- do not use `1.3-heavy` until it has been built and proven on Vast
 
 ## Progress Markers To Expect In Logs
 
@@ -268,6 +342,12 @@ pwsh -File .\scripts\run_001skills_end_to_end.ps1 `
   -OfferId <vast_offer_id>
 ```
 
+Recommended Vast search pattern before selecting `<vast_offer_id>`:
+
+```powershell
+vastai search offers 'gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]' --storage 180 -o 'dph_total'
+```
+
 Resume an already running job without restaging or relaunching:
 
 ```powershell
@@ -317,6 +397,16 @@ pwsh -File .\scripts\publish_001skills_result.ps1 `
 ```
 
 7. Destroy the instance after the file is confirmed.
+
+Use the destroy helper with the instance id only:
+
+```powershell
+pwsh -File .\scripts\destroy_vast_instance.ps1 `
+  -InstanceId <vast_instance_id>
+```
+
+Do not pass `-JobName` to `destroy_vast_instance.ps1`.
+Resolve the instance id from `output/001skills/<job_name>/vast-instance.json` or `run-report.json` first, then destroy.
 
 ## New Observable Outputs
 
@@ -393,6 +483,25 @@ When reporting progress, keep the sequence explicit:
 
 Do not collapse `launch` and `download` into one vague status line.
 
+Before every run in this branch:
+1. load `okskills`
+2. load `badskills`
+3. state which version path is being used:
+   - `1.0-cold`: baseline cold start
+   - `1.1-machine-registry`: machine registry + warm-start probe
+   - `1.2-light`: light Docker image, no embedded models
+   - `1.3-heavy`: reserved heavy image with embedded models, not production yet
+
+For paid Vast runs, do not use one long silent blocking command as the operator interface.
+Use the numbered sequence above and report after each phase.
+During the long remote phase, report at least:
+- current local step
+- instance id
+- host id and machine id
+- whether `WARM_START=1` was injected
+- whether warm-start model/node checks hit or missed, once logs show it
+- latest generation progress such as `0/4`, `1/4`, `2/4`, `3/4`, `4/4`
+
 When the operator wants visibility, use:
 - `scripts/watch_vast_workflow_job.ps1`
 
@@ -419,6 +528,30 @@ This is the preferred way to expose:
 - bootstrap stage changes
 - prompt execution completion
 
+## 1.1 Quick Cache Probe Rule
+
+In `1.1`, same-machine preference is only a scheduling optimization.
+Still probe the remote machine quickly before assuming anything is cached.
+
+The current probe is:
+- `scripts/inspect_wan22_warmstart.py`
+
+Expected log lines:
+- `[bootstrap] warm-start hit: custom_nodes`
+- `[bootstrap] warm-start miss: custom_nodes`
+- `[bootstrap] warm-start hit: models`
+- `[bootstrap] warm-start miss: models`
+- `[bootstrap] existing torch stack is compatible with this workflow runtime`
+- `[bootstrap] reinstalling torch stack from https://download.pytorch.org/whl/cu124`
+
+Interpretation:
+- hit on `models` means the big model files already exist and model download time should collapse
+- miss on `models` means the run is still a cold model download even if the machine id is familiar
+- hit on `custom_nodes` means node extraction can be skipped
+- hit on torch means Python dependency time should shrink
+
+If all three miss, treat the run as effectively cold start even if it was same-machine selected.
+
 ## Acceptance Check
 
 Only accept the clip if:
@@ -440,9 +573,10 @@ Only accept the clip if:
 If you need the shortest path back to production:
 - reuse the same workflow
 - reuse the same scripts
+- reuse the machine registry and let selection prefer a previously successful machine
 - reuse the same four node bundles
 - use a 24GB class NVIDIA card on a `580.*` driver host
 - keep R2 as staging + archive
-- for real cold-start reduction, add either:
-  - a same-machine Vast local volume for `/workspace/ComfyUI/models`
-  - or a prewarmed Docker image plus model cache strategy
+- for cold-start reduction, use:
+  - `1.2-light` first: prewarmed Docker image for ComfyUI, nodes, Python deps, torch/cu124
+  - `1.3-heavy` later: heavy Docker image with models embedded, after it is separately proven

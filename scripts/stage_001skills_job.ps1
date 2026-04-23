@@ -30,11 +30,20 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 }
 
 $repoRoot = (Resolve-Path ".").Path
+$r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
+if (-not (Test-Path -LiteralPath $r2HelperPath)) {
+    throw "Missing R2 helper: $r2HelperPath"
+}
+
+. $r2HelperPath
+$R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
+
 $sourceWorkflow = Join-Path $repoRoot "Animate+Wan2.2换风格对口型.json"
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_wan22_root_canvas.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_wan22_root_canvas.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_root_canvas_prompt.mjs"
 $generateOnstartScript = Join-Path $repoRoot "scripts\generate_001skills_onstart.mjs"
+$warmstartInspectorScript = Join-Path $repoRoot "scripts\inspect_wan22_warmstart.py"
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $bundleSourceDir = Join-Path $repoRoot "output\vast-wan22-root-strict-3090b\node-bundles"
 $customNodeCacheRoot = Join-Path $repoRoot ".cache\001skills\custom_nodes"
@@ -106,7 +115,7 @@ function New-RepoBundleZip {
     Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $DestinationZip -Force
 }
 
-foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $generateOnstartScript, $r2UploadScript)) {
+foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $generateOnstartScript, $warmstartInspectorScript, $r2UploadScript)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required file: $required"
     }
@@ -144,6 +153,7 @@ $canvasOut = Join-Path $jobDir "workflow_canvas.json"
 $runtimeOut = Join-Path $jobDir "workflow_runtime.json"
 $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_root_canvas.sh"
 $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_root_canvas.sh"
+$warmstartInspectorOut = Join-Path $jobDir "inspect_wan22_warmstart.py"
 $manifestOut = Join-Path $jobDir "manifest.json"
 $onstartOut = Join-Path $jobDir "onstart_001skills.sh"
 
@@ -152,6 +162,7 @@ Copy-Item -LiteralPath $resolvedVideo -Destination $stagedVideo -Force
 Copy-Item -LiteralPath $sourceWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
 Copy-Item -LiteralPath $remoteSubmitScript -Destination $remoteSubmitOut -Force
+Copy-Item -LiteralPath $warmstartInspectorScript -Destination $warmstartInspectorOut -Force
 Get-ChildItem -LiteralPath $bundleSourceDir -File | ForEach-Object {
     if ($requiredBundledZips -contains $_.Name) {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $bundleDir $_.Name) -Force
@@ -181,6 +192,7 @@ $manifest = [ordered]@{
         prepare_script = $prepareScript
         bootstrap_template = $bootstrapScript
         remote_submit_template = $remoteSubmitScript
+        warmstart_inspector_template = $warmstartInspectorScript
         onstart_generator = $generateOnstartScript
     }
     local = [ordered]@{
@@ -191,6 +203,7 @@ $manifest = [ordered]@{
         workflow_runtime = $runtimeOut
         bootstrap = $bootstrapOut
         remote_submit = $remoteSubmitOut
+        warmstart_inspector = $warmstartInspectorOut
         onstart = $onstartOut
         node_bundles = $bundleDir
     }

@@ -26,6 +26,10 @@ param(
 
     [switch]$SkipLogFetch,
 
+    [string]$MachineRegistryPath = ".\data\vast-machine-registry.json",
+
+    [switch]$SkipMachineRegistryUpdate,
+
     [int]$DownloadIntervalSeconds = 30,
 
     [int]$DownloadMaxChecks = 240,
@@ -206,6 +210,7 @@ $resolvedDownloadScript = Join-Path $paths.RepoRoot $profileDef.download_script
 $resolvedPublishScript = Join-Path $paths.RepoRoot $profileDef.publish_script
 $resolvedDestroyScript = Join-Path $paths.RepoRoot $profileDef.destroy_script
 $resolvedTimingScript = Join-Path $paths.RepoRoot "scripts\summarize_vast_job_timing.ps1"
+$resolvedRegistryUpdateScript = Join-Path $paths.RepoRoot "scripts\update_vast_machine_registry.ps1"
 
 $report = [ordered]@{
     profile = $Profile
@@ -375,6 +380,29 @@ try {
         } else {
             $report.warnings += "DestroyInstance requested but instance metadata was unavailable."
         }
+    }
+
+    if (-not $SkipMachineRegistryUpdate -and (Test-Path -LiteralPath $resolvedRegistryUpdateScript) -and (Test-Path -LiteralPath $paths.TimingSummaryPath) -and ($report.status -ne "failed")) {
+        $step = New-StepRecord -Name "update_machine_registry" -ScriptPath $resolvedRegistryUpdateScript -ScriptArgs @(
+            "-JobName", $JobName,
+            "-RegistryPath", $MachineRegistryPath
+        )
+        $report.steps += $step
+        $stepIndex = $report.steps.Count - 1
+        Write-RunReport -Path $paths.RunReportPath -Report $report
+
+        $result = Invoke-PwshScriptStep -ScriptPath $resolvedRegistryUpdateScript -ScriptArgs @(
+            "-JobName", $JobName,
+            "-RegistryPath", $MachineRegistryPath
+        )
+        if ($result.ExitCode -ne 0) {
+            Complete-StepRecord -Step $step -Status "failed" -OutputTail $result.Output
+            $report.steps[$stepIndex] = $step
+            throw "Machine registry update step failed."
+        }
+        Complete-StepRecord -Step $step -Status "succeeded" -OutputTail $result.Output
+        $report.steps[$stepIndex] = $step
+        Write-RunReport -Path $paths.RunReportPath -Report $report
     }
 
     $report.status = "succeeded"

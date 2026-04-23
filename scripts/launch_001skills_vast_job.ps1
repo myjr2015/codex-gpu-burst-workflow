@@ -15,6 +15,8 @@ param(
 
     [switch]$PrewarmedImage,
 
+    [switch]$WarmStart,
+
     [string[]]$MountArgs = @()
 )
 
@@ -26,12 +28,15 @@ $manifestPath = Join-Path $jobDir "manifest.json"
 $onstartPath = Join-Path $jobDir "onstart_001skills.sh"
 $generator = Join-Path $repoRoot "scripts\generate_001skills_onstart.mjs"
 $createScript = Join-Path $repoRoot "scripts\create_vast_instance_minimal.ps1"
+$helpersPath = Join-Path $repoRoot "scripts\launch_001skills_vast_job_helpers.ps1"
 
-foreach ($required in @($manifestPath, $generator, $createScript)) {
+foreach ($required in @($manifestPath, $generator, $createScript, $helpersPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required file: $required"
     }
 }
+
+. $helpersPath
 
 & node $generator --manifest $manifestPath --output $onstartPath
 if ($LASTEXITCODE -ne 0) {
@@ -50,8 +55,8 @@ $createArgs = @(
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
-if ($PrewarmedImage) {
-    $createArgs += @("-ExtraEnv", "PREWARMED_IMAGE=1")
+foreach ($extraEnv in (Get-001SkillsLaunchExtraEnv -PrewarmedImage:$PrewarmedImage -WarmStart:$WarmStart)) {
+    $createArgs += @("-ExtraEnv", $extraEnv)
 }
 if ($MountArgs.Count -gt 0) {
     $createArgs += @("-MountArgs", $MountArgs)

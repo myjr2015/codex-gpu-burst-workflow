@@ -8,6 +8,7 @@ BUNDLE_DIR="${BUNDLE_DIR:-$RUN_DIR/node-bundles}"
 CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
 MODELS_DIR="$COMFY_ROOT/models"
 PREWARMED_IMAGE="${PREWARMED_IMAGE:-0}"
+WARM_START="${WARM_START:-0}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
@@ -70,10 +71,45 @@ for name in required:
 
 import torch
 cuda_version = getattr(torch.version, "cuda", None) or ""
-if not cuda_version.startswith("12.4"):
+parts = cuda_version.split(".")
+try:
+    major = int(parts[0])
+    minor = int(parts[1]) if len(parts) > 1 else 0
+except Exception:
+    raise SystemExit(1)
+
+if major < 12 or (major == 12 and minor < 4):
+    raise SystemExit(1)
+
+if not torch.cuda.is_available():
+    raise SystemExit(1)
+
+try:
+    if torch.cuda.device_count() < 1:
+        raise SystemExit(1)
+    _ = torch.cuda.get_device_name(0)
+except Exception:
     raise SystemExit(1)
 
 raise SystemExit(0)
+PY
+}
+
+describe_existing_torch_stack() {
+  python3 <<'PY' 2>/dev/null || true
+import importlib
+
+for name in ("torch", "torchvision", "torchaudio"):
+    importlib.import_module(name)
+
+import torch
+
+print(
+    f"[bootstrap] reusing existing torch stack: "
+    f"torch={torch.__version__} "
+    f"cuda={getattr(torch.version, 'cuda', '')} "
+    f"device={torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}"
+)
 PY
 }
 
@@ -105,7 +141,8 @@ ensure_torch_stack() {
   if [ "$FORCE_TORCH_REINSTALL" = "1" ]; then
     echo "[bootstrap] FORCE_TORCH_REINSTALL=1, reinstalling torch stack"
   elif torch_stack_matches_expected; then
-    echo "[bootstrap] existing torch stack matches expected cu124 runtime"
+    describe_existing_torch_stack
+    echo "[bootstrap] existing torch stack is compatible with this workflow runtime"
     return 0
   elif [ "$PREWARMED_IMAGE" = "1" ] && python_has_module "torch" && python_has_module "torchvision" && python_has_module "torchaudio"; then
     echo "[bootstrap] prewarmed image provides torch torchvision torchaudio"
@@ -298,32 +335,72 @@ download_if_missing() {
   stage_event "$stage_name" "end"
 }
 
+inspect_warmstart_state() {
+  python3 "$RUN_DIR/inspect_wan22_warmstart.py" \
+    --custom-nodes-dir "$CUSTOM_NODES_DIR" \
+    --models-dir "$MODELS_DIR"
+}
+
 echo "[bootstrap] preparing custom nodes"
 stage_event "bootstrap.custom_nodes" "start"
 if [ "$PREWARMED_IMAGE" != "1" ]; then
   mkdir -p "$BUNDLE_DIR"
-  find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
-    ! -name 'ComfyUI-Manager' \
-    -exec rm -rf {} +
 
-  declare -a BUNDLES=(
-    "ComfyUI-VideoHelperSuite.zip:ComfyUI-VideoHelperSuite"
-    "ComfyUI-KJNodes.zip:ComfyUI-KJNodes"
-    "ComfyUI-WanAnimatePreprocess.zip:ComfyUI-WanAnimatePreprocess"
-  )
+  if [ "$WARM_START" = "1" ]; then
+    warm_state="$(inspect_warmstart_state)"
+    if python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+raise SystemExit(0 if state["custom_nodes_ready"] else 1)
+PY
+    then
+      echo "[bootstrap] warm-start hit: custom_nodes"
+      stage_event "bootstrap.custom_nodes" "skip"
+    else
+      echo "[bootstrap] warm-start miss: custom_nodes"
+      python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+print("[bootstrap] missing custom nodes: " + ", ".join(state["missing_custom_nodes"]))
+PY
+      find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
+        ! -name 'ComfyUI-Manager' \
+        -exec rm -rf {} +
+    fi
+  else
+    find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 \
+      ! -name 'ComfyUI-Manager' \
+      -exec rm -rf {} +
+  fi
 
-  for bundle in "${BUNDLES[@]}"; do
-    zip_name="${bundle%%:*}"
-    dir_name="${bundle##*:}"
-    zip_path="$BUNDLE_DIR/$zip_name"
-    dest_dir="$CUSTOM_NODES_DIR/$dir_name"
-    extract_or_sync_plugin "$zip_path" "$dest_dir"
-  done
+  if [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+raise SystemExit(0 if state["custom_nodes_ready"] else 1)
+PY
+  then
+    declare -a BUNDLES=(
+      "ComfyUI-VideoHelperSuite.zip:ComfyUI-VideoHelperSuite"
+      "ComfyUI-KJNodes.zip:ComfyUI-KJNodes"
+      "ComfyUI-WanAnimatePreprocess.zip:ComfyUI-WanAnimatePreprocess"
+    )
 
-  extract_or_sync_plugin \
-    "$BUNDLE_DIR/ComfyUI-GGUF.zip" \
-    "$CUSTOM_NODES_DIR/ComfyUI-GGUF" \
-    "https://github.com/city96/ComfyUI-GGUF.git"
+    for bundle in "${BUNDLES[@]}"; do
+      zip_name="${bundle%%:*}"
+      dir_name="${bundle##*:}"
+      zip_path="$BUNDLE_DIR/$zip_name"
+      dest_dir="$CUSTOM_NODES_DIR/$dir_name"
+      extract_or_sync_plugin "$zip_path" "$dest_dir"
+    done
+
+    extract_or_sync_plugin \
+      "$BUNDLE_DIR/ComfyUI-GGUF.zip" \
+      "$CUSTOM_NODES_DIR/ComfyUI-GGUF" \
+      "https://github.com/city96/ComfyUI-GGUF.git"
+  fi
 else
   echo "[bootstrap] prewarmed image mode: skip custom node extraction"
 fi
@@ -383,45 +460,75 @@ mkdir -p \
   "$MODELS_DIR/clip_vision" \
   "$MODELS_DIR/detection"
 
-download_if_missing \
-  "https://huggingface.co/QuantStack/Wan2.2-Animate-14B-GGUF/resolve/main/Wan2.2-Animate-14B-Q4_K_S.gguf" \
-  "$MODELS_DIR/unet/Wan2.2-Animate-14B-Q4_K_S.gguf"
+if [ "$WARM_START" = "1" ]; then
+  warm_state="$(inspect_warmstart_state)"
+  if python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+raise SystemExit(0 if state["models_ready"] else 1)
+PY
+  then
+    echo "[bootstrap] warm-start hit: models"
+    stage_event "bootstrap.model_downloads" "skip"
+  else
+    echo "[bootstrap] warm-start miss: models"
+    python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+print("[bootstrap] missing models: " + ", ".join(state["missing_models"]))
+PY
+  fi
+fi
 
-download_if_missing \
-  "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
-  "$MODELS_DIR/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+if [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
+import json
+import sys
+state = json.loads(sys.argv[1])
+raise SystemExit(0 if state["models_ready"] else 1)
+PY
+then
+  download_if_missing \
+    "https://huggingface.co/QuantStack/Wan2.2-Animate-14B-GGUF/resolve/main/Wan2.2-Animate-14B-Q4_K_S.gguf" \
+    "$MODELS_DIR/unet/Wan2.2-Animate-14B-Q4_K_S.gguf"
 
-download_if_missing \
-  "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors" \
-  "$MODELS_DIR/vae/wan_2.1_vae.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
+    "$MODELS_DIR/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors" \
-  "$MODELS_DIR/clip_vision/clip_vision_h.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors" \
+    "$MODELS_DIR/vae/wan_2.1_vae.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/eddy1111111/lightx2v_it2v_adaptive_fusionv_1.safetensors/resolve/main/lightx2v_elite_it2v_animate_face.safetensors" \
-  "$MODELS_DIR/loras/lightx2v_elite_it2v_animate_face.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors" \
+    "$MODELS_DIR/clip_vision/clip_vision_h.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/FullDynamic_Ultimate_Fusion_Elite.safetensors" \
-  "$MODELS_DIR/loras/FullDynamic_Ultimate_Fusion_Elite.safetensors"
+  download_if_missing \
+    "https://huggingface.co/eddy1111111/lightx2v_it2v_adaptive_fusionv_1.safetensors/resolve/main/lightx2v_elite_it2v_animate_face.safetensors" \
+    "$MODELS_DIR/loras/lightx2v_elite_it2v_animate_face.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/wan2.2_face_complete_distilled.safetensors" \
-  "$MODELS_DIR/loras/wan2.2_face_complete_distilled.safetensors"
+  download_if_missing \
+    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/FullDynamic_Ultimate_Fusion_Elite.safetensors" \
+    "$MODELS_DIR/loras/FullDynamic_Ultimate_Fusion_Elite.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Wan22_relight/WanAnimate_relight_lora_fp16.safetensors" \
-  "$MODELS_DIR/loras/WanAnimate_relight_lora_fp16.safetensors"
+  download_if_missing \
+    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/wan2.2_face_complete_distilled.safetensors" \
+    "$MODELS_DIR/loras/wan2.2_face_complete_distilled.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx" \
-  "$MODELS_DIR/detection/yolov10m.onnx"
+  download_if_missing \
+    "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/LoRAs/Wan22_relight/WanAnimate_relight_lora_fp16.safetensors" \
+    "$MODELS_DIR/loras/WanAnimate_relight_lora_fp16.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx" \
-  "$MODELS_DIR/detection/vitpose-l-wholebody.onnx"
+  download_if_missing \
+    "https://huggingface.co/Wan-AI/Wan2.2-Animate-14B/resolve/main/process_checkpoint/det/yolov10m.onnx" \
+    "$MODELS_DIR/detection/yolov10m.onnx"
+
+  download_if_missing \
+    "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/wholebody/vitpose-l-wholebody.onnx" \
+    "$MODELS_DIR/detection/vitpose-l-wholebody.onnx"
+fi
 stage_event "bootstrap.model_downloads" "end"
 
 mkdir -p "$COMFY_ROOT/input" "$COMFY_ROOT/output"

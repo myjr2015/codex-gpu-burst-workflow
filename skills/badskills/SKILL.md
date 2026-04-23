@@ -32,6 +32,16 @@ These failures were observed on the same branch:
   - Root cause: old plugin requirements reintroduced heavy stacks like `accelerate`, `diffusers`, `peft`, `spandrel`
   - Action: keep filtered requirements logic in `bootstrap_wan22_root_canvas.sh`; do not restore removed heavy explicit installs
 
+- Symptom: a previous Docker image looked like an optimization but became slow or unusable to pull
+  - Root cause: it was effectively a heavy image strategy and mixed too much runtime state into one artifact
+  - Action: for `1.2-light`, rebuild the Docker directory as a clean light image only:
+    - no model files
+    - no old extra nodes
+    - no `ComfyUI-Easy-Use`
+    - no `ComfyUI-WanVideoWrapper`
+    - no `ComfyUI-segment-anything-2`
+    - no explicit `accelerate`, `diffusers`, `peft`, `spandrel`, or `clip_interrogator`
+
 - Symptom: cold start appears "stuck", but logs only show pip and curl progress for a long time
   - Root cause: the machine is still doing legitimate bootstrap work:
     - torch / cu124 wheels from `download.pytorch.org`
@@ -49,6 +59,10 @@ These failures were observed on the same branch:
 - Symptom: instance never becomes usable and status mentions host port bind failure
   - Root cause: host-level port conflict, often on `8188`
   - Action: destroy immediately and move hosts; this is not a workflow bug
+
+- Symptom: the cheapest host looks attractive on paper, but cold start is slow or unstable because external registries and model sources are hard to reach
+  - Root cause: host geolocation is mainland China, while this branch depends on unattended pulls from Docker Hub, PyTorch, and Hugging Face
+  - Action: for `001skills`, exclude `CN` when searching Vast offers unless the runtime has been explicitly rebuilt for China-network constraints
 
 - Symptom: ComfyUI exits with `cudaGetDeviceCount Error 804`
   - Root cause: host driver and container CUDA stack are incompatible
@@ -146,6 +160,10 @@ These failures were observed on the same branch:
   - Root cause: the controller `.env` used `ASSET_S3_*` names while the wrapper defaulted to `CLOUDFLARE_*` / `R2_*`, so empty credential values were still appended into `PublishArgs`
   - Action: support `ASSET_S3_*` fallback in stage and publish scripts, and never append an arg pair when the value is blank
 
+- Symptom: cleanup step fails immediately with `A parameter cannot be found that matches parameter name 'JobName'`
+  - Root cause: `scripts/destroy_vast_instance.ps1` accepts only `-InstanceId`, but the operator guessed it behaved like the job wrappers
+  - Action: call it only as `pwsh -File .\scripts\destroy_vast_instance.ps1 -InstanceId <id>`; resolve the id from `vast-instance.json` before cleanup
+
 ## Fast Triage Order
 
 1. `vastai show instance --raw`
@@ -186,6 +204,7 @@ Do not destroy immediately when:
 - Vast local volumes are not a general cross-machine solution; they are tied to one physical machine
 - if you want faster retries across the same machine, volumes help
 - if you want faster recovery across different machines, volumes alone do not solve it
+- for this branch, the cheapest `CN` host is not automatically the cheapest real choice once retry waste and network friction are counted
 
 ## Log Patterns That Are Slow But Healthy
 
@@ -246,6 +265,19 @@ When the operator asks for visibility:
 In this chat environment, continuous byte-for-byte log streaming is not guaranteed.
 Use repeated polling output instead of pretending true live streaming exists.
 
+Do not start a paid Vast run and then wait silently for 20 minutes.
+This has already caused operator confusion.
+
+Required live-run reporting cadence:
+1. after `stage`, report duration and staged job path
+2. after `launch`, report instance id, host id, machine id, mapped `8188` port, and whether `WARM_START=1`
+3. during `bootstrap`, report whether it is in custom node setup, Python dependency setup, or model download
+4. during inference, report the latest progress marker such as `0/4`, `1/4`, `2/4`, `3/4`, or `4/4`
+5. after output appears, report download path, publish URL, and destroy status
+
+Avoid one long monolithic `run_001skills_end_to_end.ps1` call when the human is actively watching.
+Use short polling with `watch_vast_workflow_job.ps1` so progress is visible.
+
 ## Structural Rule For Future Workflows
 
 When the workflow itself changes, do not assume the proven `001skills` output-matching logic still applies.
@@ -257,6 +289,39 @@ You must re-prove at least these workflow-specific pieces:
 
 The orchestration layer can stay shared.
 The workflow contract cannot be guessed.
+
+## Same-Machine Trap
+
+Do not confuse these two ideas:
+- same-machine preference
+- real cache reuse
+
+What was proven:
+- renting the same physical machine again can reduce startup wait
+- it can save a few minutes before bootstrap or before instance readiness
+
+What was not proven:
+- `custom_nodes` will already be reusable
+- models will already be reusable
+- torch will already be reusable
+
+Concrete example from the validated `56268` machine:
+- total runtime improved versus the first cold run
+- but logs still showed:
+  - `warm-start miss: custom_nodes`
+  - `warm-start miss: models`
+  - torch reinstall or non-hit behavior
+
+So the correct rule is:
+- treat same-machine preference as a probabilistic speedup
+- do not treat it as a guaranteed cache hit
+
+## Registry Update Trap
+
+When the same machine has multiple successful runs, never let an older success overwrite a newer one.
+
+Registry write logic must preserve the newest `last_success_at` record for a machine.
+Otherwise selection can drift back to stale timing data and stale offer assumptions.
 
 ## Reminder
 

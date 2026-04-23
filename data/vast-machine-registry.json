@@ -1,0 +1,49 @@
+{
+  "machines": [
+    {
+      "machine_id": 56268,
+      "host_id": 1820,
+      "offer_id": null,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "590.48.01",
+      "geolocation": "Quebec, CA",
+      "verification": "verified",
+      "dph_total": 0.21000000000000002,
+      "job_name": "v11-registry-auto-001",
+      "instance_id": 35457591,
+      "result": "succeeded",
+      "last_success_at": "2026-04-23T12:47:37",
+      "total_until_download_seconds": 1443.0,
+      "instance_started_to_submit_seconds": 549.0,
+      "prompt_execution": "00:13:09",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-23T12:47:50"
+    },
+    {
+      "machine_id": 13815,
+      "host_id": 69403,
+      "offer_id": null,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "590.48.01",
+      "geolocation": "Taiwan, TW",
+      "verification": "verified",
+      "dph_total": 0.18333333333333335,
+      "job_name": "smoke-006",
+      "instance_id": 35450817,
+      "result": "succeeded",
+      "last_success_at": "2026-04-23T09:04:57",
+      "total_until_download_seconds": 1412.0,
+      "instance_started_to_submit_seconds": 665.0,
+      "prompt_execution": "00:11:48",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-23T12:19:17"
+    }
+  ],
+  "updated_at": "2026-04-23T12:47:50"
+}
