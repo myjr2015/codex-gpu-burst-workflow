@@ -3,6 +3,7 @@
     "001skills": {
       "skill": "001skills",
       "job_root": "output/001skills",
+      "workflow_source": "workflows/Animate+Wan2.2换风格对口型.json",
       "stage_script": "scripts/stage_001skills_job.ps1",
       "launch_script": "scripts/launch_001skills_vast_job.ps1",
       "download_script": "scripts/download_001skills_result.ps1",

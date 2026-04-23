@@ -31,8 +31,12 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 
 $repoRoot = (Resolve-Path ".").Path
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
+$profileConfigPath = Join-Path $repoRoot "config\vast-workflow-profiles.json"
 if (-not (Test-Path -LiteralPath $r2HelperPath)) {
     throw "Missing R2 helper: $r2HelperPath"
+}
+if (-not (Test-Path -LiteralPath $profileConfigPath)) {
+    throw "Missing profile config: $profileConfigPath"
 }
 
 . $r2HelperPath
@@ -45,7 +49,12 @@ if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_A
 }
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
-$sourceWorkflow = Join-Path $repoRoot "Animate+Wan2.2换风格对口型.json"
+$profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
+$workflowSourceRel = [string]$profileConfig.profiles."001skills".workflow_source
+if ([string]::IsNullOrWhiteSpace($workflowSourceRel)) {
+    $workflowSourceRel = "workflows\Animate+Wan2.2换风格对口型.json"
+}
+$sourceWorkflow = Join-Path $repoRoot $workflowSourceRel
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_wan22_root_canvas.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_wan22_root_canvas.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_root_canvas_prompt.mjs"
@@ -227,7 +236,7 @@ $manifest = [ordered]@{
         run_dir = "/workspace/wan22-root-canvas-run"
     }
     automation = [ordered]@{
-        profile_config = (Join-Path $repoRoot "config\vast-workflow-profiles.json")
+        profile_config = $profileConfigPath
         run_report = (Join-Path $jobDir "run-report.json")
         timing_summary = (Join-Path $jobDir "timing-summary.json")
     }

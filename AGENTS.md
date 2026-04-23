@@ -91,10 +91,24 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 
 - 输入图片：`美女带背景.png`
 - 输入视频：`光伏2.mp4`
-- 工作流：`Animate+Wan2.2换风格对口型.json`
+- 工作流：`workflows/Animate+Wan2.2换风格对口型.json`
 - 主入口：`scripts/run_001skills_end_to_end.ps1`
 - 共享配置：`config/vast-workflow-profiles.json`
 - 成功/失败经验：`skills/okskills/SKILL.md`、`skills/badskills/SKILL.md`
+
+## Workflow Directory
+
+所有 ComfyUI / RunComfy workflow JSON 源文件统一放在：
+
+- `workflows/`
+
+规则：
+
+- 当前主线 workflow 是 `workflows/Animate+Wan2.2换风格对口型.json`。
+- 当前 profile 里的 `workflow_source` 也必须指向这个源文件。
+- 以后新增 workflow，直接保存到 `workflows/`。
+- 新 workflow 要上 Vast 跑时，必须先确认输入节点、输出文件匹配、依赖节点和模型清单，再新增 profile 或专用 stage 脚本。
+- `output/001skills/<job_name>/workflow_canvas.json` 和 `workflow_runtime.json` 是每次运行自动生成的副本，不要当源文件维护。
 
 ## Local Key Fallback
 

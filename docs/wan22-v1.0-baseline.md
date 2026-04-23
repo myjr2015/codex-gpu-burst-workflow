@@ -5,7 +5,7 @@
 This V1.0 baseline freezes the currently proven Vast cold-start workflow for one talking-photo clip.
 
 Pinned contract:
-- workflow: `Animate+Wan2.2换风格对口型.json`
+- workflow: `workflows/Animate+Wan2.2换风格对口型.json`
 - image input: `美女带背景.png`
 - video input: `光伏2.mp4`
 - runtime profile: `001skills`
@@ -63,6 +63,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 \
 ## Files That Define V1.0
 
 Core files:
+- `workflows/Animate+Wan2.2换风格对口型.json`
 - `config/vast-workflow-profiles.json`
 - `scripts/stage_001skills_job.ps1`
 - `scripts/launch_001skills_vast_job.ps1`
@@ -113,7 +114,7 @@ Not part of this version:
 ## Next Optimization Track
 
 The next round should optimize startup time and waste, without changing the V1.0 baseline contract:
-1. prewarmed Docker image for ComfyUI + shared nodes + Python deps + torch/cu124
-2. smaller cold-start bandwidth footprint
-3. explicit separation between shared runtime layer and workflow-specific assets
+1. prefer known successful Vast machines through the machine registry
+2. keep workflow source files under `workflows/`
+3. reduce repeated model and node download work only after a cache strategy is proven
 4. keep V1.0 as the rollback point if optimization work regresses

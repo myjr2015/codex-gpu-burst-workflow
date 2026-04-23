@@ -65,6 +65,8 @@
 ```text
 config/
   workflows.example.json    # RunComfy workflow/deployment 映射模板
+workflows/
+  Animate+Wan2.2换风格对口型.json  # 当前 Vast 主线 ComfyUI workflow 源文件
 src/
   cli.js                    # 命令入口
   assets.js                 # 上传本地素材到公网 URL
@@ -75,6 +77,9 @@ src/
   video.js                  # ffprobe / ffmpeg 处理
 output/                     # 运行产物
 ```
+
+以后新增 ComfyUI / RunComfy workflow JSON，统一保存到 `workflows/`。
+运行时生成的 `output/**/workflow_canvas.json` 和 `workflow_runtime.json` 只是副本，不要当源文件维护。
 
 ## 开始
 

@@ -19,7 +19,7 @@ Do not reintroduce abandoned Docker / cache-image experiments into this Wan2.2 s
 These failures were observed on the same branch:
 - image: `美女带背景.png`
 - video: `光伏2.mp4`
-- workflow: `Animate+Wan2.2换风格对口型.json`
+- workflow: `workflows/Animate+Wan2.2换风格对口型.json`
 - runtime chain:
   - `scripts/prepare_wan22_root_canvas_prompt.mjs`
   - `scripts/bootstrap_wan22_root_canvas.sh`
@@ -116,7 +116,7 @@ These failures were observed on the same branch:
 
 - Symptom: adding a new workflow causes another copy-paste orchestration branch
   - Root cause: workflow-specific concerns were mixed into the orchestration layer
-  - Action: register a new entry in `config/vast-workflow-profiles.json` and keep the shared runner generic
+  - Action: save the source workflow under `workflows/`, register a new entry in `config/vast-workflow-profiles.json`, and keep the shared runner generic
 
 - Symptom: `vastai create instance --raw` fails locally with a decode error like `'gbk' codec can't decode byte ...`
   - Root cause: the local controller process is decoding Vast CLI output with a non-UTF-8 code page
@@ -295,6 +295,7 @@ Use short polling with `watch_vast_workflow_job.ps1` so progress is visible.
 When the workflow itself changes, do not assume the proven `001skills` output-matching logic still applies.
 
 You must re-prove at least these workflow-specific pieces:
+- source workflow JSON under `workflows/`
 - which stage script prepares its inputs
 - which output prefix or filename pattern identifies the right result
 - whether publish rules still map to the same R2 prefix

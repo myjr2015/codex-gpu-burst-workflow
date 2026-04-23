@@ -16,7 +16,7 @@ Use it when the goal is to reproduce the already validated Wan2.2 talking-photo 
 Use this branch only when all of the following are true:
 - final speaker image is `美女带背景.png`
 - source speech video is `光伏2.mp4`
-- target workflow is `Animate+Wan2.2换风格对口型.json`
+- target workflow is `workflows/Animate+Wan2.2换风格对口型.json`
 - output goal is one direct talking-photo clip, not segmented stitching
 
 Do not use this skill for:
@@ -28,7 +28,7 @@ Do not use this skill for:
 ## Proven Stack
 
 Pinned workflow chain:
-1. `Animate+Wan2.2换风格对口型.json`
+1. `workflows/Animate+Wan2.2换风格对口型.json`
 2. `scripts/prepare_wan22_root_canvas_prompt.mjs`
 3. `scripts/bootstrap_wan22_root_canvas.sh`
 4. `scripts/remote_submit_wan22_root_canvas.sh`
@@ -58,6 +58,7 @@ Current production boundary:
 - only `1.0-cold` and `1.1-machine-registry` belong in this skill
 - abandoned Docker / cache-image experiments do not belong in this production memory
 - new model families or new workflow families must get their own profile and skill
+- `config/vast-workflow-profiles.json` must keep `profiles.001skills.workflow_source` pointed at the current source workflow under `workflows/`
 
 ## Proven Fresh-Host Runs
 
@@ -173,7 +174,7 @@ This writes:
 Keep responsibilities separate:
 
 - workspace / GitHub:
-  - workflow JSON
+  - workflow JSON under `workflows/`
   - conversion scripts
   - bootstrap scripts
   - manifests
@@ -291,6 +292,10 @@ pwsh -File .\scripts\launch_001skills_vast_job.ps1 `
 ```
 
 ## Standard Paths
+
+Workflow source:
+- `workflows/Animate+Wan2.2换风格对口型.json`
+- `config/vast-workflow-profiles.json -> profiles.001skills.workflow_source`
 
 Local staged job:
 - `output/001skills/<job_name>/`
@@ -488,9 +493,10 @@ The next live run `smoke-005` also proved two additional operational details:
 Do not fork this whole orchestration layer just because a new workflow arrives.
 
 For a new workflow branch:
-1. add a new profile entry in `config/vast-workflow-profiles.json`
-2. point it at that workflow's own stage / launch / download / publish scripts
-3. keep `run_vast_workflow_job.ps1` as the shared orchestration layer
+1. save the source workflow JSON under `workflows/`
+2. add a new profile entry in `config/vast-workflow-profiles.json`, including `workflow_source`
+3. point it at that workflow's own stage / launch / download / publish scripts
+4. keep `run_vast_workflow_job.ps1` as the shared orchestration layer
 
 Only workflow-specific contracts belong in per-workflow scripts:
 - input filenames
