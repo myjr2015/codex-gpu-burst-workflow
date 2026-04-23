@@ -1,0 +1,129 @@
+# Local Restore Notes
+
+本文件记录 C 盘恢复系统前后需要保留和恢复的本地配置。
+
+## 已备份到 D 盘的 C 盘文件
+
+备份目录：
+
+```text
+D:\code\DaiMa\happy_dev\codex\c_drive_backup_before_restore
+```
+
+这个目录不提交 Git，已经写入 `.gitignore`。
+
+里面目前包含：
+
+- `codex/auth.json`
+- `codex/config.toml`
+- `codex/installation_id`
+- `codex/.codex-global-state.json`
+- `codex/history.jsonl`
+- `ssh/id_ed25519`
+- `ssh/id_ed25519.pub`
+- `ssh/known_hosts`
+
+## SSH 文件是什么
+
+- `id_ed25519`
+  - SSH 私钥。
+  - 不能泄露、不能发给别人、不能提交 Git。
+  - 用于免密登录你授权过的服务器或 Git 服务。
+
+- `id_ed25519.pub`
+  - SSH 公钥。
+  - 可以放到 GitHub、服务器后台或云平台 SSH key 配置里。
+
+- `known_hosts`
+  - 曾经连接过的远程主机指纹记录。
+  - 不是密码，但保留后能减少重装后 SSH 反复确认主机。
+
+恢复位置：
+
+```text
+C:\Users\myjr2\.ssh\
+```
+
+## D 盘已经保留的关键配置
+
+这些在项目目录或 D 盘，不需要从 C 盘恢复：
+
+- `D:\code\DaiMa\happy_dev\codex\api.txt`
+- `D:\code\DaiMa\happy_dev\codex\.env`
+- `D:\code\DaiMa\happy_dev\codex\.secrets\vastai\vast_api_key`
+- `D:\code\YuYan\python`
+- `D:\code\KuangJia\nodejs`
+- `D:\code\KuangJia\Git`
+
+`api.txt` 和 `.env` 不要提交 Git，不要把内容贴到聊天里。
+
+## 恢复 C 盘后的操作
+
+1. 恢复 Codex 配置：
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex"
+Copy-Item -LiteralPath "D:\code\DaiMa\happy_dev\codex\c_drive_backup_before_restore\codex\*" -Destination "$env:USERPROFILE\.codex" -Force
+```
+
+2. 恢复 SSH key：
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
+Copy-Item -LiteralPath "D:\code\DaiMa\happy_dev\codex\c_drive_backup_before_restore\ssh\*" -Destination "$env:USERPROFILE\.ssh" -Force
+```
+
+3. 重建 Vast CLI key 的兼容路径：
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config"
+New-Item -ItemType Junction `
+  -Path "$env:USERPROFILE\.config\vastai" `
+  -Target "D:\code\DaiMa\happy_dev\codex\.secrets\vastai"
+```
+
+4. 确认 PATH 里有这些目录：
+
+```text
+D:\code\YuYan\python
+D:\code\YuYan\python\Scripts
+D:\code\KuangJia\nodejs
+D:\code\KuangJia\Git\cmd
+```
+
+5. 验证命令：
+
+```powershell
+python --version
+node --version
+git --version
+pwsh --version
+vastai show instances
+```
+
+## 当前主线命令
+
+当前视频生成主线是 `wan_2_2_animate`。
+
+主入口：
+
+```powershell
+pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1 `
+  -JobName demo-001 `
+  -VideoPath .\素材资产\原视频\光伏10s.mp4
+```
+
+如果不传 `-ImagePath`，脚本会自动从：
+
+```text
+D:\code\DaiMa\happy_dev\codex\素材资产\美女图带光伏
+```
+
+选择最新图片，并在运行时暂存为 ComfyUI 固定输入名 `美女带背景.png`。
+
+## 注意
+
+- 不要用旧名 `001skills`。
+- 不要用纯色美女图跑当前 `wan_2_2_animate` 流程。
+- 租 Vast 机器前必须读 `skills/okskills/SKILL.md` 和 `skills/badskills/SKILL.md`。
+- 跑完后必须确认 Vast 实例销毁，避免继续计费。
