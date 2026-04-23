@@ -69,6 +69,11 @@ These failures were observed on the same branch:
   - Evidence seen on a failed host: `570.211.01`
   - Action: prefer `580.*` driver hosts; if Error 804 appears, stop and destroy
 
+- Symptom: `1.2-light` starts but still reinstalls torch/cu124 on a fresh machine
+  - Root cause: the selected host driver only supports CUDA below 12.4, so the prewarmed torch stack is not considered usable
+  - Evidence seen on failed `v12-light-fresh-001`: driver `535.274.02`, `cuda_max_good=12.2`
+  - Action: destroy and search with `cuda_max_good>=12.4`
+
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
   - Action: install `torchsde` in bootstrap, then re-stage before rerun

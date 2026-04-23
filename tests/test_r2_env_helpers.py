@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -29,6 +30,28 @@ class R2EnvHelperTests(unittest.TestCase):
             check=True,
         )
         self.assertEqual(json.loads(completed.stdout.strip()), "4aa19d68af34d61d2fac61c5da4d2c45")
+
+    def test_import_project_dotenv_sets_missing_process_values(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            env_path = Path(temp_dir) / ".env"
+            env_path.write_text("ASSET_S3_ACCESS_KEY_ID=test-key\n", encoding="utf-8")
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:ASSET_S3_ACCESS_KEY_ID -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "Write-Output $env:ASSET_S3_ACCESS_KEY_ID"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(completed.stdout.strip(), "test-key")
 
 
 if __name__ == "__main__":

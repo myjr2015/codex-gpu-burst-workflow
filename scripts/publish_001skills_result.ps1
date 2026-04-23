@@ -26,6 +26,13 @@ if (-not (Test-Path -LiteralPath $r2HelperPath)) {
 }
 
 . $r2HelperPath
+Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+if ([string]::IsNullOrWhiteSpace($R2AccessKeyId) -and $env:ASSET_S3_ACCESS_KEY_ID) {
+    $R2AccessKeyId = $env:ASSET_S3_ACCESS_KEY_ID
+}
+if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_ACCESS_KEY) {
+    $R2SecretAccessKey = $env:ASSET_S3_SECRET_ACCESS_KEY
+}
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
 $uploadScript = Join-Path $repoRoot "scripts\r2_upload.py"

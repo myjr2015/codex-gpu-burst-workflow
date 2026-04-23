@@ -10,7 +10,7 @@ param(
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
+    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [switch]$FreshMachine,
 
@@ -79,6 +79,22 @@ if (-not (Test-Path -LiteralPath $profileConfigPath)) {
 }
 
 . $r2HelperPath
+Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+if ([string]::IsNullOrWhiteSpace($R2Prefix) -and $env:ASSET_S3_PREFIX) {
+    $R2Prefix = $env:ASSET_S3_PREFIX.TrimEnd("/") + "/001skills"
+}
+if ([string]::IsNullOrWhiteSpace($R2Bucket) -and $env:ASSET_S3_BUCKET) {
+    $R2Bucket = $env:ASSET_S3_BUCKET
+}
+if ([string]::IsNullOrWhiteSpace($R2PublicBaseUrl) -and $env:ASSET_S3_PUBLIC_BASE_URL) {
+    $R2PublicBaseUrl = $env:ASSET_S3_PUBLIC_BASE_URL
+}
+if ([string]::IsNullOrWhiteSpace($R2AccessKeyId) -and $env:ASSET_S3_ACCESS_KEY_ID) {
+    $R2AccessKeyId = $env:ASSET_S3_ACCESS_KEY_ID
+}
+if ([string]::IsNullOrWhiteSpace($R2SecretAccessKey) -and $env:ASSET_S3_SECRET_ACCESS_KEY) {
+    $R2SecretAccessKey = $env:ASSET_S3_SECRET_ACCESS_KEY
+}
 $R2AccountId = Resolve-R2AccountId -CloudflareAccountId $R2AccountId -AssetAccountId $env:ASSET_S3_ACCOUNT_ID -Endpoint $env:ASSET_S3_ENDPOINT
 
 $profileConfig = Get-Content -Raw -LiteralPath $profileConfigPath | ConvertFrom-Json
