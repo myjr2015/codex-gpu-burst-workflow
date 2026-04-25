@@ -86,4 +86,4 @@ $instance | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $jobD
 
 Write-Host "instance_id=$($instance.id)"
 Write-Host "public_ip=$($instance.public_ipaddr)"
-Write-Host "jupyter_token=$($instance.jupyter_token)"
+Write-Host "jupyter_token=<redacted>"

@@ -25,24 +25,24 @@
     {
       "machine_id": 13815,
       "host_id": 69403,
-      "offer_id": null,
+      "offer_id": 34387015,
       "gpu_name": "RTX 3090",
       "gpu_ram": 24576,
       "driver_version": "590.48.01",
       "geolocation": "Taiwan, TW",
       "verification": "verified",
       "dph_total": 0.18333333333333335,
-      "job_name": "smoke-006",
-      "instance_id": 35450817,
+      "job_name": "v10-cold-20260425-123814",
+      "instance_id": 35561291,
       "result": "succeeded",
-      "last_success_at": "2026-04-23T09:04:57",
-      "total_until_download_seconds": 1412.0,
-      "instance_started_to_submit_seconds": 665.0,
-      "prompt_execution": "00:11:48",
+      "last_success_at": "2026-04-25T12:59:44",
+      "total_until_download_seconds": 1280.0,
+      "instance_started_to_submit_seconds": 533.0,
+      "prompt_execution": "00:11:38",
       "warmstart_hit_custom_nodes": false,
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
-      "updated_at": "2026-04-23T12:19:17"
+      "updated_at": "2026-04-25T12:59:56"
     },
     {
       "machine_id": 45200,
@@ -111,5 +111,5 @@
       "updated_at": "2026-04-23T22:19:45"
     }
   ],
-  "updated_at": "2026-04-23T22:19:45"
+  "updated_at": "2026-04-25T12:59:56"
 }
