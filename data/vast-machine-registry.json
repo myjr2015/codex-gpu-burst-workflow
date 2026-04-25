@@ -32,17 +32,17 @@
       "geolocation": "Taiwan, TW",
       "verification": "verified",
       "dph_total": 0.18333333333333335,
-      "job_name": "v10-cold-20260425-123814",
-      "instance_id": 35561291,
+      "job_name": "v20-cold-20260425-131924",
+      "instance_id": 35562609,
       "result": "succeeded",
-      "last_success_at": "2026-04-25T12:59:44",
-      "total_until_download_seconds": 1280.0,
-      "instance_started_to_submit_seconds": 533.0,
-      "prompt_execution": "00:11:38",
+      "last_success_at": "2026-04-25T13:40:52",
+      "total_until_download_seconds": 1278.0,
+      "instance_started_to_submit_seconds": 521.0,
+      "prompt_execution": "00:11:57",
       "warmstart_hit_custom_nodes": false,
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
-      "updated_at": "2026-04-25T12:59:56"
+      "updated_at": "2026-04-25T13:41:04"
     },
     {
       "machine_id": 45200,
@@ -111,5 +111,5 @@
       "updated_at": "2026-04-23T22:19:45"
     }
   ],
-  "updated_at": "2026-04-25T12:59:56"
+  "updated_at": "2026-04-25T13:41:04"
 }
