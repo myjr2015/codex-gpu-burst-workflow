@@ -20,6 +20,28 @@ param(
 
     [int]$SegmentSeconds = 10,
 
+    [switch]$UseSpeechAwareSegmentation,
+
+    [string]$TranscriptPath,
+
+    [double]$TargetSegmentSeconds = 10.0,
+
+    [double]$MinSegmentSeconds = 8.0,
+
+    [double]$MaxSegmentSeconds = 12.0,
+
+    [double]$OverlapSeconds = 0.0,
+
+    [double]$PauseThresholdSeconds = 0.35,
+
+    [string]$WhisperModel = "small",
+
+    [string]$WhisperDevice = "auto",
+
+    [string]$WhisperComputeType = "int8",
+
+    [int]$WhisperBeamSize = 5,
+
     [int]$MaxSegments = 0,
 
     [switch]$FreshMachine,
@@ -52,11 +74,14 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path ".").Path
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 $childRunnerPath = Join-Path $repoRoot "scripts\run_wan_2_2_animate_end_to_end.ps1"
+$speechPlannerPath = Join-Path $repoRoot "scripts\plan_speech_aware_segments.py"
+$transcribeScriptPath = Join-Path $repoRoot "scripts\faster-whisper-transcribe.py"
 $uploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $ffmpegPath = Join-Path $repoRoot "node_modules\ffmpeg-static\ffmpeg.exe"
 $ffprobePath = Join-Path $repoRoot "node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe"
+$whisperPythonPath = Join-Path $repoRoot ".venv-faster-whisper\Scripts\python.exe"
 
-foreach ($required in @($r2HelperPath, $childRunnerPath, $uploadScript, $ffmpegPath, $ffprobePath)) {
+foreach ($required in @($r2HelperPath, $childRunnerPath, $speechPlannerPath, $transcribeScriptPath, $uploadScript, $ffmpegPath, $ffprobePath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required path: $required"
     }
@@ -220,6 +245,53 @@ function New-VideoSegment {
     }
 }
 
+function Invoke-JsonPythonScript {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PythonPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ScriptArgs
+    )
+
+    $previousPythonUtf8 = $env:PYTHONUTF8
+    $previousPythonIoEncoding = $env:PYTHONIOENCODING
+    $env:PYTHONUTF8 = "1"
+    $env:PYTHONIOENCODING = "utf-8"
+
+    try {
+        $output = & $PythonPath $ScriptPath @ScriptArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "Python script failed: $ScriptPath"
+        }
+    }
+    finally {
+        if ($null -eq $previousPythonUtf8) {
+            Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONUTF8 = $previousPythonUtf8
+        }
+
+        if ($null -eq $previousPythonIoEncoding) {
+            Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONIOENCODING = $previousPythonIoEncoding
+        }
+    }
+
+    $text = ($output | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "Python script returned empty output: $ScriptPath"
+    }
+
+    $text | ConvertFrom-Json
+}
+
 function Merge-VideoSegments {
     param(
         [Parameter(Mandatory = $true)]
@@ -271,6 +343,8 @@ $reportPath = Join-Path $jobDir "run-report.json"
 $manifestPath = Join-Path $jobDir "manifest.json"
 $mergeListPath = Join-Path $jobDir "concat-inputs.txt"
 $mergedOutputPath = Join-Path $downloadsDir ("wan_2_2_animate_segmented-" + $JobName + ".mp4")
+$transcriptOutPath = Join-Path $jobDir "transcript.json"
+$segmentPlanPath = Join-Path $jobDir "segment-plan.json"
 
 New-Item -ItemType Directory -Force -Path $segmentsDir | Out-Null
 New-Item -ItemType Directory -Force -Path $downloadsDir | Out-Null
@@ -291,8 +365,96 @@ $report = [ordered]@{
 }
 Write-JsonFile -Path $reportPath -Data $report
 
+$speechAwarePlan = $null
+
+if ($UseSpeechAwareSegmentation) {
+    if (-not (Test-Path -LiteralPath $whisperPythonPath)) {
+        throw "Speech-aware segmentation requires faster-whisper python environment: $whisperPythonPath"
+    }
+
+    Invoke-Step -Name "transcribe_source" -Report ([ref]$report) -ReportPath $reportPath -Action {
+        if (-not [string]::IsNullOrWhiteSpace($TranscriptPath)) {
+            Copy-Item -LiteralPath (Resolve-Path -LiteralPath $TranscriptPath).Path -Destination $transcriptOutPath -Force
+            return @("transcript_source=$TranscriptPath")
+        }
+
+        $transcript = Invoke-JsonPythonScript `
+            -PythonPath $whisperPythonPath `
+            -ScriptPath $transcribeScriptPath `
+            -ScriptArgs @(
+                "--audio-path", $resolvedVideoPath,
+                "--language", "zh",
+                "--model", $WhisperModel,
+                "--device", $WhisperDevice,
+                "--compute-type", $WhisperComputeType,
+                "--beam-size", $WhisperBeamSize.ToString()
+            )
+
+        Write-JsonFile -Path $transcriptOutPath -Data $transcript
+        @(
+            "transcript_path=$transcriptOutPath",
+            "transcript_segments=$(@($transcript.segments).Count)"
+        )
+    } | Out-Null
+
+    Invoke-Step -Name "plan_segments" -Report ([ref]$report) -ReportPath $reportPath -Action {
+        $plan = Invoke-JsonPythonScript `
+            -PythonPath $whisperPythonPath `
+            -ScriptPath $speechPlannerPath `
+            -ScriptArgs @(
+                "--transcript-path", $transcriptOutPath,
+                "--output-path", $segmentPlanPath,
+                "--target-seconds", $TargetSegmentSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+                "--min-seconds", $MinSegmentSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+                "--max-seconds", $MaxSegmentSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+                "--overlap-seconds", $OverlapSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+                "--pause-threshold-seconds", $PauseThresholdSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+            )
+
+        Write-JsonFile -Path $segmentPlanPath -Data $plan
+        @(
+            "segment_plan_path=$segmentPlanPath",
+            "planned_segments=$(@($plan.segments).Count)"
+        )
+    } | Out-Null
+
+    $speechAwarePlan = Get-Content -Raw -LiteralPath $segmentPlanPath | ConvertFrom-Json
+}
+
 $segmentRecords = Invoke-Step -Name "split_segments" -Report ([ref]$report) -ReportPath $reportPath -Action {
     $records = @()
+
+    if ($speechAwarePlan) {
+        $plannedSegments = @($speechAwarePlan.segments)
+        if ($MaxSegments -gt 0) {
+            $plannedSegments = @($plannedSegments | Select-Object -First $MaxSegments)
+        }
+
+        foreach ($plannedSegment in $plannedSegments) {
+            $segmentNumber = [int]$plannedSegment.index
+            $startSeconds = [double]$plannedSegment.start_seconds
+            $endSeconds = [double]$plannedSegment.end_seconds
+            $durationSeconds = [math]::Max(0.0, $endSeconds - $startSeconds)
+            if ($durationSeconds -le 0) {
+                continue
+            }
+
+            $segmentPath = Join-Path $segmentsDir ("segment-{0:d2}.mp4" -f $segmentNumber)
+            New-VideoSegment -InputPath $resolvedVideoPath -StartSeconds $startSeconds -DurationSeconds $durationSeconds -OutputPath $segmentPath
+            $records += [ordered]@{
+                index = $segmentNumber
+                start_seconds = [math]::Round($startSeconds, 3)
+                end_seconds = [math]::Round($endSeconds, 3)
+                duration_seconds = [math]::Round($durationSeconds, 3)
+                segment_path = $segmentPath
+                text = [string]$plannedSegment.text
+                child_job_name = ("{0}-s{1:d2}" -f $JobName, $segmentNumber)
+            }
+        }
+
+        return $records
+    }
+
     for ($index = 0; $index -lt $segmentCount; $index += 1) {
         $segmentNumber = $index + 1
         $startSeconds = $index * $SegmentSeconds
@@ -307,6 +469,7 @@ $segmentRecords = Invoke-Step -Name "split_segments" -Report ([ref]$report) -Rep
         $records += [ordered]@{
             index = $segmentNumber
             start_seconds = [math]::Round($startSeconds, 3)
+            end_seconds = [math]::Round(($startSeconds + $durationSeconds), 3)
             duration_seconds = [math]::Round($durationSeconds, 3)
             segment_path = $segmentPath
             child_job_name = ("{0}-s{1:d2}" -f $JobName, $segmentNumber)
@@ -326,6 +489,7 @@ $manifest = [ordered]@{
         video_duration_seconds = [math]::Round($videoDurationSeconds, 3)
         segment_seconds = $SegmentSeconds
         segment_count = @($segmentRecords).Count
+        segmentation_mode = $(if ($UseSpeechAwareSegmentation) { "speech_aware" } else { "fixed" })
     }
     segments = @($segmentRecords)
     local = [ordered]@{
@@ -335,6 +499,8 @@ $manifest = [ordered]@{
         merge_list = $mergeListPath
         merged_output = $mergedOutputPath
         run_report = $reportPath
+        transcript_path = $(if ($UseSpeechAwareSegmentation) { $transcriptOutPath } else { $null })
+        segment_plan_path = $(if ($UseSpeechAwareSegmentation) { $segmentPlanPath } else { $null })
     }
 }
 Write-JsonFile -Path $manifestPath -Data $manifest
