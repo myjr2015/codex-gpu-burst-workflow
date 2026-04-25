@@ -151,6 +151,24 @@ key
 - PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
 - Node 入口通过 `src/config.js` 自动做 fallback。
 
+## GitHub 推送兜底
+
+普通 `git push` 在 Windows 上可能会调用 Git Credential Manager 弹出 GitHub 登录窗口。
+Git 本身不会自动读取本项目的 `api.txt`。
+
+如果需要用本地 `api.txt` / `.env` 里的 GitHub token 非交互推送，使用：
+
+```powershell
+pwsh -File .\scripts\git_push_with_project_token.ps1
+```
+
+规则：
+
+- 不要把 GitHub token 写进命令行参数。
+- 不要把 GitHub token 打印到聊天或日志。
+- helper 只通过临时 `GIT_ASKPASS` 和进程环境变量传 token，结束后清理临时文件。
+- 如果普通 `git push` 弹登录或卡住，先停止卡住的 Git 进程，再用 helper 推送。
+
 ## 运行版本
 
 默认运行入口仍然是：

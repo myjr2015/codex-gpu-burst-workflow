@@ -177,6 +177,21 @@ These failures were observed on the same branch:
     - never print key values; report only site names
     - keep `api.txt` in two-line repeated format: site name, then key
 
+- Symptom: `git push` pops a GitHub login window or hangs at Git Credential Manager even though `api.txt` has a GitHub token
+  - Root cause: Git's HTTPS credential flow does not automatically read this project's `api.txt`
+  - Action:
+    - do not print the token
+    - stop the stuck Git process if needed
+    - use `pwsh -File .\scripts\git_push_with_project_token.ps1`
+    - the helper loads `.env` / `api.txt`, passes the token through a temporary `GIT_ASKPASS`, then cleans it up
+
+- Symptom: standalone Vast helper commands such as `watch_vast_workflow_job.ps1` fail with `403: This action requires login`
+  - Root cause: the helper was run outside the main wrapper process, so `VAST_API_KEY` from `.env` / `api.txt` was not loaded into that process
+  - Action:
+    - each standalone Vast PowerShell helper should import `scripts/r2_env_helpers.ps1`
+    - call `Import-ProjectDotEnv` before invoking `vastai`
+    - never paste the Vast key into command arguments
+
 - Symptom: cleanup step fails immediately with `A parameter cannot be found that matches parameter name 'JobName'`
   - Root cause: `scripts/destroy_vast_instance.ps1` accepts only `-InstanceId`, but the operator guessed it behaved like the job wrappers
   - Action: call it only as `pwsh -File .\scripts\destroy_vast_instance.ps1 -InstanceId <id>`; resolve the id from `vast-instance.json` before cleanup

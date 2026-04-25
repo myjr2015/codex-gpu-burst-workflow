@@ -17,6 +17,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$repoRoot = (Resolve-Path ".").Path
+$r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
+if (Test-Path -LiteralPath $r2HelperPath) {
+    . $r2HelperPath
+    Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+}
+
 function Get-ProfileDefinition {
     param(
         [Parameter(Mandatory = $true)]
@@ -93,13 +100,16 @@ function Get-StageEventsFromLog {
     )
 
     $events = @()
+    $lineIndex = 0
     foreach ($line in $Lines) {
+        $lineIndex += 1
         if ($line -match '^\[stage\]\s+(?<ts>\S+)\s+(?<name>\S+)\s+(?<status>start|end|skip)$') {
             $events += [pscustomobject]@{
                 source = "stage_marker"
                 stage = $matches.name
                 status = $matches.status
                 timestamp = $matches.ts
+                sequence = $lineIndex
                 line = $line
             }
             continue
@@ -111,6 +121,7 @@ function Get-StageEventsFromLog {
                 stage = "onstart.lifecycle"
                 status = "start"
                 timestamp = $matches.ts
+                sequence = $lineIndex
                 line = $line
             }
             continue
@@ -122,6 +133,7 @@ function Get-StageEventsFromLog {
                 stage = "onstart.lifecycle"
                 status = "end"
                 timestamp = $matches.ts
+                sequence = $lineIndex
                 line = $line
             }
             continue
@@ -133,6 +145,7 @@ function Get-StageEventsFromLog {
                 stage = "remote.lifecycle"
                 status = "start"
                 timestamp = $matches.ts
+                sequence = $lineIndex
                 line = $line
             }
             continue
@@ -144,6 +157,7 @@ function Get-StageEventsFromLog {
                 stage = "remote.lifecycle"
                 status = "end"
                 timestamp = $matches.ts
+                sequence = $lineIndex
                 line = $line
             }
             continue
@@ -163,7 +177,7 @@ function Build-StageSummary {
     $summary = @()
     $warnings = @()
 
-    foreach ($event in $Events | Sort-Object timestamp) {
+    foreach ($event in $Events | Sort-Object timestamp, sequence) {
         $stageName = [string]$event.stage
         $eventTime = Parse-IsoTimestamp $event.timestamp
 
