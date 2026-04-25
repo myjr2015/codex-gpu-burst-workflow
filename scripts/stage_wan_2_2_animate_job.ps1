@@ -61,6 +61,7 @@ $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_root_canvas_prompt.m
 $generateOnstartScript = Join-Path $repoRoot "scripts\generate_wan_2_2_animate_onstart.mjs"
 $warmstartInspectorScript = Join-Path $repoRoot "scripts\inspect_wan22_warmstart.py"
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
+$ffprobePath = Join-Path $repoRoot "node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe"
 $bundleSourceDir = Join-Path $repoRoot "output\vast-wan22-root-strict-3090b\node-bundles"
 $customNodeCacheRoot = Join-Path $repoRoot ".cache\wan_2_2_animate\custom_nodes"
 $requiredBundledZips = @(
@@ -136,6 +137,9 @@ foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, 
         throw "Missing required file: $required"
     }
 }
+if (-not (Test-Path -LiteralPath $ffprobePath)) {
+    throw "Missing ffprobe: $ffprobePath"
+}
 if (-not (Test-Path -LiteralPath $bundleSourceDir)) {
     throw "Missing node bundle directory: $bundleSourceDir"
 }
@@ -149,6 +153,14 @@ foreach ($bundleName in $requiredBundledZips) {
 
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
+$videoDurationRaw = & $ffprobePath -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $resolvedVideo
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($videoDurationRaw)) {
+    throw "Failed to read video duration with ffprobe: $resolvedVideo"
+}
+$videoDurationSeconds = [double]$videoDurationRaw
+$videoSecondsRounded = [math]::Max(1, [int][math]::Round($videoDurationSeconds))
+$videoFrameRate = 16
+$frameLoadCap = ($videoSecondsRounded * $videoFrameRate) + 1
 
 $jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
 $inputDir = Join-Path $jobDir "input"
@@ -191,6 +203,7 @@ New-RepoBundleZip -RepoUrl "https://github.com/city96/ComfyUI-GGUF.git" -RepoNam
     --output $runtimeOut `
     --image-name "美女带背景.png" `
     --video-name "光伏2.mp4" `
+    --frame-load-cap $frameLoadCap `
     --output-prefix ("wan_2_2_animate-" + $JobName)
 
 if ($LASTEXITCODE -ne 0) {
@@ -206,6 +219,10 @@ $manifest = [ordered]@{
         canvas_source = $sourceWorkflow
         canvas_name = [System.IO.Path]::GetFileName($sourceWorkflow)
         prepare_script = $prepareScript
+        source_video_duration_seconds = [math]::Round($videoDurationSeconds, 3)
+        source_video_seconds_rounded = $videoSecondsRounded
+        force_rate = $videoFrameRate
+        frame_load_cap = $frameLoadCap
         bootstrap_template = $bootstrapScript
         remote_submit_template = $remoteSubmitScript
         warmstart_inspector_template = $warmstartInspectorScript
@@ -273,4 +290,6 @@ if ($UploadToR2) {
 
 Write-Host "job staged: $jobDir"
 Write-Host "runtime: $runtimeOut"
+Write-Host "video_duration_seconds=$([math]::Round($videoDurationSeconds, 3))"
+Write-Host "frame_load_cap=$frameLoadCap"
 Write-Host "r2 output prefix: $R2Prefix/$JobName/output"

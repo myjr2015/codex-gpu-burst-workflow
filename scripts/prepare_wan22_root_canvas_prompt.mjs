@@ -23,7 +23,7 @@ function parseArgs(argv) {
   return options;
 }
 
-function patchPrompt(prompt, { imageName, videoName, outputPrefix }) {
+function patchPrompt(prompt, { imageName, videoName, outputPrefix, frameLoadCap }) {
   const prepared = JSON.parse(JSON.stringify(prompt));
 
   function replaceReferences(sourceNodeId, replacement) {
@@ -59,6 +59,9 @@ function patchPrompt(prompt, { imageName, videoName, outputPrefix }) {
 
     if (classType === "VHS_LoadVideo") {
       inputs.video = videoName;
+      if (Number.isInteger(frameLoadCap) && frameLoadCap > 0) {
+        inputs.frame_load_cap = frameLoadCap;
+      }
     }
 
     if (classType === "VHS_VideoCombine") {
@@ -101,6 +104,7 @@ async function main() {
     imageName: options["image-name"],
     videoName: options["video-name"],
     outputPrefix: options["output-prefix"] || "wan22-root-canvas",
+    frameLoadCap: options["frame-load-cap"] ? Number.parseInt(options["frame-load-cap"], 10) : undefined,
   });
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

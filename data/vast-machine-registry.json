@@ -25,24 +25,24 @@
     {
       "machine_id": 13815,
       "host_id": 69403,
-      "offer_id": 34387015,
+      "offer_id": 34387018,
       "gpu_name": "RTX 3090",
       "gpu_ram": 24576,
       "driver_version": "590.48.01",
       "geolocation": "Taiwan, TW",
       "verification": "verified",
       "dph_total": 0.18333333333333335,
-      "job_name": "v20-cold-20260425-131924",
-      "instance_id": 35562609,
+      "job_name": "v20-cold-samehost-fixed-20260425-135651",
+      "instance_id": 35563864,
       "result": "succeeded",
-      "last_success_at": "2026-04-25T13:40:52",
-      "total_until_download_seconds": 1278.0,
+      "last_success_at": "2026-04-25T14:42:37",
+      "total_until_download_seconds": 2739.0,
       "instance_started_to_submit_seconds": 521.0,
-      "prompt_execution": "00:11:57",
+      "prompt_execution": "00:36:09",
       "warmstart_hit_custom_nodes": false,
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
-      "updated_at": "2026-04-25T13:41:04"
+      "updated_at": "2026-04-25T14:42:50"
     },
     {
       "machine_id": 45200,
@@ -111,5 +111,5 @@
       "updated_at": "2026-04-23T22:19:45"
     }
   ],
-  "updated_at": "2026-04-25T13:41:04"
+  "updated_at": "2026-04-25T14:42:50"
 }
