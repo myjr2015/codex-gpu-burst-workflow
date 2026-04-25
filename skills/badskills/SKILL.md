@@ -192,6 +192,13 @@ These failures were observed on the same branch:
     - call `Import-ProjectDotEnv` before invoking `vastai`
     - never paste the Vast key into command arguments
 
+- Symptom: a manual pre-check says machine-registry `miss`, but the actual launched run immediately selects a previously successful machine
+  - Root cause: Vast offer availability changed between the manual check and the real launch; the earlier result became stale
+  - Action:
+    - treat the selection output printed by the actual `run_wan_2_2_animate_end_to_end.ps1` launch as authoritative
+    - do not present a final `1.0` / `1.1` judgment to the operator based only on an earlier standalone selector run
+    - if the real launch flips from pre-check `miss` to launch-time `hit`, correct the operator immediately and switch reasoning to the launch-time result
+
 - Symptom: cleanup step fails immediately with `A parameter cannot be found that matches parameter name 'JobName'`
   - Root cause: `scripts/destroy_vast_instance.ps1` accepts only `-InstanceId`, but the operator guessed it behaved like the job wrappers
   - Action: call it only as `pwsh -File .\scripts\destroy_vast_instance.ps1 -InstanceId <id>`; resolve the id from `vast-instance.json` before cleanup
