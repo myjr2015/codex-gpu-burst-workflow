@@ -22,6 +22,22 @@
       "machine_registry_path": "data/vast-machine-registry.json",
       "offer_selector_script": "scripts/select_wan_2_2_animate_vast_offer.ps1",
       "machine_registry_update_script": "scripts/update_vast_machine_registry.ps1"
+    },
+    "wan_2_2_animate_segmented": {
+      "skill": "wan_2_2_animate_segmented",
+      "job_root": "output/wan_2_2_animate_segmented",
+      "workflow_source": "workflows/Animate+Wan2.2换风格对口型.json",
+      "default_image_asset_dir": "素材资产/美女图带光伏",
+      "runner_script": "scripts/run_wan_2_2_animate_segmented_v1.ps1",
+      "default_segment_seconds": 10,
+      "default_label": "wan_2_2_animate-segmented-job",
+      "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",
+      "default_disk_gb": 180,
+      "default_search_query": "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
+      "default_r2_prefix": "runcomfy-inputs/wan_2_2_animate_segmented",
+      "default_r2_bucket": "runcomfy",
+      "default_r2_public_base_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev",
+      "machine_registry_path": "data/vast-machine-registry.json"
     }
   }
 }

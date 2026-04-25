@@ -134,6 +134,25 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 共享配置：`config/vast-workflow-profiles.json`
 - 成功/失败经验：`skills/okskills/SKILL.md`、`skills/badskills/SKILL.md`
 
+## 工作流分支命名
+
+版本号和工作流分支分开管理，不要混用。
+
+规则：
+
+- `1.0-cold`、`1.1-machine-registry` 这类名字，只表示运行策略。
+- `wan_2_2_animate`、`wan_2_2_animate_segmented` 这类名字，只表示工作流分支。
+- 新的长时长方案不要叫“1.0 时长版”，要开独立 profile。
+
+当前约定：
+
+- `wan_2_2_animate`
+  - 单段直出主线
+- `wan_2_2_animate_segmented`
+  - 分段主线
+  - `v1`：两个或多个 `10s` 片段独立生成，再用 `ffmpeg` 拼接
+  - `v2`：在 `v1` 基础上补尾帧 / `continue_motion`
+
 ## 工作流目录
 
 所有 ComfyUI / RunComfy workflow JSON 源文件统一放在：
