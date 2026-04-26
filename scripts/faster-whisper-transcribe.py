@@ -6,6 +6,7 @@ from faster_whisper import WhisperModel
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--audio-path", required=True)
+    parser.add_argument("--output-path")
     parser.add_argument("--language", default="zh")
     parser.add_argument("--model", default="small")
     parser.add_argument("--device", default="auto")
@@ -36,16 +37,21 @@ def main():
     normalized_segments = [normalize_segment(segment) for segment in segments]
     text = "".join(segment["text"] for segment in normalized_segments).strip()
 
+    payload = {
+        "text": text,
+        "segments": normalized_segments,
+        "language": getattr(info, "language", None),
+        "languageProbability": getattr(info, "language_probability", None),
+    }
+
+    rendered = json.dumps(payload, ensure_ascii=False)
+
+    if args.output_path:
+        with open(args.output_path, "w", encoding="utf-8") as handle:
+            handle.write(rendered + "\n")
+
     print(
-        json.dumps(
-            {
-                "text": text,
-                "segments": normalized_segments,
-                "language": getattr(info, "language", None),
-                "languageProbability": getattr(info, "language_probability", None),
-            },
-            ensure_ascii=False,
-        )
+        rendered
     )
 
 

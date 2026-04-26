@@ -76,12 +76,13 @@ $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 $childRunnerPath = Join-Path $repoRoot "scripts\run_wan_2_2_animate_end_to_end.ps1"
 $speechPlannerPath = Join-Path $repoRoot "scripts\plan_speech_aware_segments.py"
 $transcribeScriptPath = Join-Path $repoRoot "scripts\faster-whisper-transcribe.py"
+$selectorScriptPath = Join-Path $repoRoot "scripts\select_wan_2_2_animate_vast_offer.ps1"
 $uploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 $ffmpegPath = Join-Path $repoRoot "node_modules\ffmpeg-static\ffmpeg.exe"
 $ffprobePath = Join-Path $repoRoot "node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe"
 $whisperPythonPath = Join-Path $repoRoot ".venv-faster-whisper\Scripts\python.exe"
 
-foreach ($required in @($r2HelperPath, $childRunnerPath, $speechPlannerPath, $transcribeScriptPath, $uploadScript, $ffmpegPath, $ffprobePath)) {
+foreach ($required in @($r2HelperPath, $childRunnerPath, $speechPlannerPath, $transcribeScriptPath, $selectorScriptPath, $uploadScript, $ffmpegPath, $ffprobePath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required path: $required"
     }
@@ -259,8 +260,10 @@ function Invoke-JsonPythonScript {
 
     $previousPythonUtf8 = $env:PYTHONUTF8
     $previousPythonIoEncoding = $env:PYTHONIOENCODING
+    $previousHfSymlinkWarning = $env:HF_HUB_DISABLE_SYMLINKS_WARNING
     $env:PYTHONUTF8 = "1"
     $env:PYTHONIOENCODING = "utf-8"
+    $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
 
     try {
         $output = & $PythonPath $ScriptPath @ScriptArgs
@@ -282,14 +285,77 @@ function Invoke-JsonPythonScript {
         else {
             $env:PYTHONIOENCODING = $previousPythonIoEncoding
         }
+
+        if ($null -eq $previousHfSymlinkWarning) {
+            Remove-Item Env:HF_HUB_DISABLE_SYMLINKS_WARNING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:HF_HUB_DISABLE_SYMLINKS_WARNING = $previousHfSymlinkWarning
+        }
     }
 
-    $text = ($output | Out-String).Trim()
+    $text = (@($output | ForEach-Object { "$_" }) -join "`n").Trim()
     if ([string]::IsNullOrWhiteSpace($text)) {
         throw "Python script returned empty output: $ScriptPath"
     }
 
-    $text | ConvertFrom-Json
+    $jsonStart = $text.IndexOf("{")
+    $jsonEnd = $text.LastIndexOf("}")
+    if ($jsonStart -lt 0 -or $jsonEnd -lt $jsonStart) {
+        throw "Python script did not return recognizable JSON: $ScriptPath"
+    }
+
+    $jsonText = $text.Substring($jsonStart, ($jsonEnd - $jsonStart + 1))
+    $jsonText | ConvertFrom-Json
+}
+
+function Invoke-PythonScript {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PythonPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ScriptArgs
+    )
+
+    $previousPythonUtf8 = $env:PYTHONUTF8
+    $previousPythonIoEncoding = $env:PYTHONIOENCODING
+    $previousHfSymlinkWarning = $env:HF_HUB_DISABLE_SYMLINKS_WARNING
+    $env:PYTHONUTF8 = "1"
+    $env:PYTHONIOENCODING = "utf-8"
+    $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
+
+    try {
+        & $PythonPath $ScriptPath @ScriptArgs | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Python script failed: $ScriptPath"
+        }
+    }
+    finally {
+        if ($null -eq $previousPythonUtf8) {
+            Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONUTF8 = $previousPythonUtf8
+        }
+
+        if ($null -eq $previousPythonIoEncoding) {
+            Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONIOENCODING = $previousPythonIoEncoding
+        }
+
+        if ($null -eq $previousHfSymlinkWarning) {
+            Remove-Item Env:HF_HUB_DISABLE_SYMLINKS_WARNING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:HF_HUB_DISABLE_SYMLINKS_WARNING = $previousHfSymlinkWarning
+        }
+    }
 }
 
 function Merge-VideoSegments {
@@ -330,6 +396,62 @@ function Encode-R2Key {
     (($Key -split "/") | ForEach-Object { [uri]::EscapeDataString($_) }) -join "/"
 }
 
+function Resolve-OfferMetadata {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$OfferId
+    )
+
+    $env:PYTHONIOENCODING = "utf-8"
+    try {
+        $offers = @(& vastai search offers "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 rented=False" --storage 180 --raw | ConvertFrom-Json)
+    }
+    finally {
+        Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+    }
+
+    $offer = $offers | Where-Object { "$($_.id)" -eq "$OfferId" } | Select-Object -First 1
+    if (-not $offer) {
+        return $null
+    }
+
+    [pscustomobject]@{
+        offer_id = [string]$offer.id
+        machine_id = [string]$offer.machine_id
+        host_id = [string]$offer.host_id
+    }
+}
+
+function Resolve-CurrentOfferForMachine {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$MachineId,
+
+        [int]$Storage = 180
+    )
+
+    $query = "machine_id=$MachineId rented=False"
+    $env:PYTHONIOENCODING = "utf-8"
+    try {
+        $offers = @(& vastai search offers $query --storage $Storage --raw | ConvertFrom-Json)
+    }
+    finally {
+        Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+    }
+
+    $offer = $offers | Sort-Object dph_total | Select-Object -First 1
+    if (-not $offer) {
+        return $null
+    }
+
+    [pscustomobject]@{
+        offer_id = [string]$offer.id
+        machine_id = [string]$offer.machine_id
+        host_id = [string]$offer.host_id
+        dph_total = $offer.dph_total
+    }
+}
+
 $resolvedVideoPath = (Resolve-Path -LiteralPath $VideoPath).Path
 if ([string]::IsNullOrWhiteSpace($ImagePath)) {
     $ImagePath = Resolve-DefaultImage -AssetDir (Join-Path $repoRoot $ImageAssetDir)
@@ -365,6 +487,11 @@ $report = [ordered]@{
 }
 Write-JsonFile -Path $reportPath -Data $report
 
+$pinnedMachine = $null
+if (-not [string]::IsNullOrWhiteSpace($OfferId)) {
+    $pinnedMachine = Resolve-OfferMetadata -OfferId $OfferId
+}
+
 $speechAwarePlan = $null
 
 if ($UseSpeechAwareSegmentation) {
@@ -378,11 +505,12 @@ if ($UseSpeechAwareSegmentation) {
             return @("transcript_source=$TranscriptPath")
         }
 
-        $transcript = Invoke-JsonPythonScript `
+        Invoke-PythonScript `
             -PythonPath $whisperPythonPath `
             -ScriptPath $transcribeScriptPath `
             -ScriptArgs @(
                 "--audio-path", $resolvedVideoPath,
+                "--output-path", $transcriptOutPath,
                 "--language", "zh",
                 "--model", $WhisperModel,
                 "--device", $WhisperDevice,
@@ -390,7 +518,7 @@ if ($UseSpeechAwareSegmentation) {
                 "--beam-size", $WhisperBeamSize.ToString()
             )
 
-        Write-JsonFile -Path $transcriptOutPath -Data $transcript
+        $transcript = Get-Content -Raw -LiteralPath $transcriptOutPath | ConvertFrom-Json
         @(
             "transcript_path=$transcriptOutPath",
             "transcript_segments=$(@($transcript.segments).Count)"
@@ -398,7 +526,7 @@ if ($UseSpeechAwareSegmentation) {
     } | Out-Null
 
     Invoke-Step -Name "plan_segments" -Report ([ref]$report) -ReportPath $reportPath -Action {
-        $plan = Invoke-JsonPythonScript `
+        Invoke-PythonScript `
             -PythonPath $whisperPythonPath `
             -ScriptPath $speechPlannerPath `
             -ScriptArgs @(
@@ -411,7 +539,7 @@ if ($UseSpeechAwareSegmentation) {
                 "--pause-threshold-seconds", $PauseThresholdSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture)
             )
 
-        Write-JsonFile -Path $segmentPlanPath -Data $plan
+        $plan = Get-Content -Raw -LiteralPath $segmentPlanPath | ConvertFrom-Json
         @(
             "segment_plan_path=$segmentPlanPath",
             "planned_segments=$(@($plan.segments).Count)"
@@ -527,7 +655,24 @@ if (-not $SkipSegmentRuns) {
                 $segmentArgs += "-FreshMachine"
             }
             if (-not [string]::IsNullOrWhiteSpace($OfferId)) {
-                $segmentArgs += @("-OfferId", $OfferId)
+                $segmentOfferId = $OfferId
+                if ($segment.index -gt 1 -and $pinnedMachine -and $pinnedMachine.machine_id) {
+                    $currentOffer = Resolve-CurrentOfferForMachine -MachineId $pinnedMachine.machine_id
+                    if ($currentOffer -and $currentOffer.offer_id) {
+                        $segmentOfferId = $currentOffer.offer_id
+                    }
+                    else {
+                        $report.warnings += "Pinned machine $($pinnedMachine.machine_id) had no currently rentable offer for segment $($segment.index); falling back to normal selector."
+                        Write-JsonFile -Path $reportPath -Data $report
+                        $segmentOfferId = ""
+                    }
+                }
+                if (-not [string]::IsNullOrWhiteSpace($segmentOfferId)) {
+                    $segmentArgs += @("-OfferId", $segmentOfferId)
+                }
+                else {
+                    $segmentArgs += @("-RegistryPath", $RegistryPath)
+                }
             }
             else {
                 $segmentArgs += @("-RegistryPath", $RegistryPath)

@@ -49,6 +49,9 @@ async function main() {
   const bundleNames = (await fs.readdir(localBundleDir))
     .filter((name) => name.toLowerCase().endsWith(".zip"))
     .sort((left, right) => left.localeCompare(right));
+  const additionalInputNames = Array.isArray(manifest?.local?.additional_input_names)
+    ? manifest.local.additional_input_names.filter(Boolean)
+    : [];
 
   const files = {
     workflowRuntime: `${prefix}/workflow_runtime.json`,
@@ -62,6 +65,9 @@ async function main() {
   const url = (key) => `${publicBase}/${encodePath(key)}`;
   const bundleFetchLines = bundleNames
     .map((name) => `fetch "${url(`${prefix}/node-bundles/${name}`)}" "$BUNDLE_DIR/${name}"`)
+    .join("\n");
+  const extraInputFetchLines = additionalInputNames
+    .map((name) => `fetch "${url(`${prefix}/input/${name}`)}" "$COMFY_ROOT/input/${name}"`)
     .join("\n");
 
   const script = `#!/usr/bin/env bash
@@ -91,6 +97,7 @@ fetch "${url(files.remoteSubmit)}" "$RUN_DIR/remote_submit_wan22_root_canvas.sh"
 fetch "${url(files.warmstartInspector)}" "$RUN_DIR/inspect_wan22_warmstart.py"
 fetch "${url(files.inputVideo)}" "$COMFY_ROOT/input/光伏2.mp4"
 fetch "${url(files.inputImage)}" "$COMFY_ROOT/input/美女带背景.png"
+${extraInputFetchLines}
 ${bundleFetchLines}
 
 chmod +x "$RUN_DIR/bootstrap_wan22_root_canvas.sh" "$RUN_DIR/remote_submit_wan22_root_canvas.sh"

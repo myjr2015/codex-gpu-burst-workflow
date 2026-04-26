@@ -113,25 +113,25 @@
     {
       "machine_id": 24191,
       "host_id": 135723,
-      "offer_id": 19025018,
+      "offer_id": 19025020,
       "gpu_name": "RTX 3090",
       "gpu_ram": 24576,
       "driver_version": "590.48.01",
       "geolocation": "Czechia, CZ",
       "verification": "verified",
       "dph_total": 0.16866666666666666,
-      "job_name": "segmented-v1-live-20s-fixed-20260425-180932-s02",
-      "instance_id": 35572852,
+      "job_name": "segmented-v2-live-20s-fix-20260426-0350-s02",
+      "instance_id": 35593578,
       "result": "succeeded",
-      "last_success_at": "2026-04-25T19:10:17",
-      "total_until_download_seconds": 1917.0,
-      "instance_started_to_submit_seconds": 1173.0,
-      "prompt_execution": "00:11:39",
-      "warmstart_hit_custom_nodes": false,
+      "last_success_at": "2026-04-26T04:32:37",
+      "total_until_download_seconds": 1497.0,
+      "instance_started_to_submit_seconds": 768.0,
+      "prompt_execution": "00:11:47",
+      "warmstart_hit_custom_nodes": true,
       "warmstart_hit_models": false,
-      "warmstart_hit_torch": false,
-      "updated_at": "2026-04-25T19:10:25"
+      "warmstart_hit_torch": true,
+      "updated_at": "2026-04-26T04:32:45"
     }
   ],
-  "updated_at": "2026-04-25T19:10:25"
+  "updated_at": "2026-04-26T04:32:45"
 }

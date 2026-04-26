@@ -23,7 +23,81 @@ function parseArgs(argv) {
   return options;
 }
 
-function patchPrompt(prompt, { imageName, videoName, outputPrefix, frameLoadCap }) {
+function splitList(value) {
+  if (!value) {
+    return [];
+  }
+  return String(value)
+    .split("|")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function getNextNodeId(prepared) {
+  const numericIds = Object.keys(prepared)
+    .map((key) => Number.parseInt(key, 10))
+    .filter((value) => Number.isInteger(value));
+  return (numericIds.length ? Math.max(...numericIds) : 0) + 1;
+}
+
+function createContinuationBatch(prepared, imageNames) {
+  if (!imageNames.length) {
+    return null;
+  }
+
+  let nextNodeId = getNextNodeId(prepared);
+  let currentRef = null;
+
+  for (const imageName of imageNames) {
+    const loadId = String(nextNodeId);
+    nextNodeId += 1;
+    prepared[loadId] = {
+      inputs: {
+        image: imageName,
+        upload: "image",
+      },
+      class_type: "LoadImage",
+      _meta: {
+        title: "LoadImage",
+      },
+    };
+
+    const loadRef = [loadId, 0];
+    if (!currentRef) {
+      currentRef = loadRef;
+      continue;
+    }
+
+    const batchId = String(nextNodeId);
+    nextNodeId += 1;
+    prepared[batchId] = {
+      inputs: {
+        image1: currentRef,
+        image2: loadRef,
+      },
+      class_type: "ImageBatch",
+      _meta: {
+        title: "ImageBatch",
+      },
+    };
+    currentRef = [batchId, 0];
+  }
+
+  return currentRef;
+}
+
+function patchPrompt(
+  prompt,
+  {
+    imageName,
+    videoName,
+    outputPrefix,
+    frameLoadCap,
+    continueMotionImages,
+    continueMotionMaxFrames,
+    videoFrameOffset,
+  },
+) {
   const prepared = JSON.parse(JSON.stringify(prompt));
 
   function replaceReferences(sourceNodeId, replacement) {
@@ -75,6 +149,12 @@ function patchPrompt(prompt, { imageName, videoName, outputPrefix, frameLoadCap 
     if (classType === "PathchSageAttentionKJ") {
       inputs.sage_attention = "disabled";
     }
+
+    if (classType === "WanAnimateToVideo") {
+      if (Number.isInteger(videoFrameOffset) && videoFrameOffset >= 0) {
+        inputs.video_frame_offset = videoFrameOffset;
+      }
+    }
   }
 
   for (const [nodeId, node] of Object.entries(prepared)) {
@@ -84,6 +164,22 @@ function patchPrompt(prompt, { imageName, videoName, outputPrefix, frameLoadCap 
     if (node.class_type === "TorchCompileModelWanVideoV2" && Array.isArray(node.inputs.model)) {
       replaceReferences(nodeId, node.inputs.model);
       delete prepared[nodeId];
+    }
+  }
+
+  const continuationRef = createContinuationBatch(prepared, continueMotionImages);
+  if (continuationRef) {
+    for (const node of Object.values(prepared)) {
+      if (!node || typeof node !== "object" || !node.inputs || typeof node.inputs !== "object") {
+        continue;
+      }
+      if (node.class_type !== "WanAnimateToVideo") {
+        continue;
+      }
+      node.inputs.continue_motion = continuationRef;
+      if (Number.isInteger(continueMotionMaxFrames) && continueMotionMaxFrames > 0) {
+        node.inputs.continue_motion_max_frames = continueMotionMaxFrames;
+      }
     }
   }
 
@@ -105,6 +201,13 @@ async function main() {
     videoName: options["video-name"],
     outputPrefix: options["output-prefix"] || "wan22-root-canvas",
     frameLoadCap: options["frame-load-cap"] ? Number.parseInt(options["frame-load-cap"], 10) : undefined,
+    continueMotionImages: splitList(options["continue-motion-images"]),
+    continueMotionMaxFrames: options["continue-motion-max-frames"]
+      ? Number.parseInt(options["continue-motion-max-frames"], 10)
+      : undefined,
+    videoFrameOffset: options["video-frame-offset"]
+      ? Number.parseInt(options["video-frame-offset"], 10)
+      : undefined,
   });
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

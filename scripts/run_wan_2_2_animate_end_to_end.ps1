@@ -55,7 +55,15 @@ param(
 
     [int]$DownloadIntervalSeconds = 30,
 
-    [int]$DownloadMaxChecks = 240
+    [int]$DownloadMaxChecks = 240,
+
+    [string[]]$ContinuationFramePaths = @(),
+
+    [string]$ContinuationFrameList = "",
+
+    [int]$ContinueMotionMaxFrames = 0,
+
+    [int]$VideoFrameOffset = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -186,6 +194,27 @@ if (-not $SkipStage) {
     }
     if (-not [string]::IsNullOrWhiteSpace($R2SecretAccessKey)) {
         $stageArgs += @("-R2SecretAccessKey", $R2SecretAccessKey)
+    }
+    $resolvedContinuationFramePaths = @()
+    if (-not [string]::IsNullOrWhiteSpace($ContinuationFrameList)) {
+        foreach ($continuationFramePath in $ContinuationFrameList.Split("|", [System.StringSplitOptions]::RemoveEmptyEntries)) {
+            $trimmedPath = $continuationFramePath.Trim()
+            if ([string]::IsNullOrWhiteSpace($trimmedPath)) {
+                continue
+            }
+            $resolvedContinuationFramePaths += (Resolve-Path -LiteralPath $trimmedPath).Path
+        }
+    }
+    foreach ($continuationFramePath in $ContinuationFramePaths) {
+        if ([string]::IsNullOrWhiteSpace($continuationFramePath)) {
+            continue
+        }
+        $resolvedContinuationFramePaths += (Resolve-Path -LiteralPath $continuationFramePath).Path
+    }
+    if ($resolvedContinuationFramePaths.Count -gt 0) {
+        $stageArgs += @("-ContinuationFrameList", ($resolvedContinuationFramePaths -join "|"))
+        $stageArgs += @("-ContinueMotionMaxFrames", $ContinueMotionMaxFrames.ToString())
+        $stageArgs += @("-VideoFrameOffset", $VideoFrameOffset.ToString())
     }
     $stageArgs += "-UploadToR2"
 }

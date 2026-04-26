@@ -20,7 +20,15 @@ param(
 
     [string]$R2SecretAccessKey = $(if ($env:R2_SECRET_ACCESS_KEY) { $env:R2_SECRET_ACCESS_KEY } elseif ($env:ASSET_S3_SECRET_ACCESS_KEY) { $env:ASSET_S3_SECRET_ACCESS_KEY } else { "" }),
 
-    [switch]$UploadToR2
+    [switch]$UploadToR2,
+
+    [string[]]$ContinuationFramePaths = @(),
+
+    [string]$ContinuationFrameList = "",
+
+    [int]$ContinueMotionMaxFrames = 0,
+
+    [int]$VideoFrameOffset = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -153,6 +161,22 @@ foreach ($bundleName in $requiredBundledZips) {
 
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
+$resolvedContinuationFrames = @()
+$continuationFrameCandidates = @()
+if (-not [string]::IsNullOrWhiteSpace($ContinuationFrameList)) {
+    $continuationFrameCandidates += @(
+        $ContinuationFrameList.Split("|", [System.StringSplitOptions]::RemoveEmptyEntries) |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+}
+$continuationFrameCandidates += @($ContinuationFramePaths)
+foreach ($continuationFramePath in $continuationFrameCandidates) {
+    if ([string]::IsNullOrWhiteSpace($continuationFramePath)) {
+        continue
+    }
+    $resolvedContinuationFrames += (Resolve-Path -LiteralPath $continuationFramePath).Path
+}
 $videoDurationRaw = & $ffprobePath -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $resolvedVideo
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($videoDurationRaw)) {
     throw "Failed to read video duration with ffprobe: $resolvedVideo"
@@ -187,6 +211,24 @@ $onstartOut = Join-Path $jobDir "onstart_wan_2_2_animate.sh"
 
 Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
 Copy-Item -LiteralPath $resolvedVideo -Destination $stagedVideo -Force
+
+$stagedContinuationInputs = @()
+for ($index = 0; $index -lt $resolvedContinuationFrames.Count; $index += 1) {
+    $sourcePath = $resolvedContinuationFrames[$index]
+    $extension = [System.IO.Path]::GetExtension($sourcePath)
+    if ([string]::IsNullOrWhiteSpace($extension)) {
+        $extension = ".png"
+    }
+    $stagedName = "continue_motion_{0:d2}{1}" -f ($index + 1), $extension.ToLowerInvariant()
+    $stagedPath = Join-Path $inputDir $stagedName
+    Copy-Item -LiteralPath $sourcePath -Destination $stagedPath -Force
+    $stagedContinuationInputs += $stagedName
+}
+
+if ($resolvedContinuationFrames.Count -gt 0 -and $ContinueMotionMaxFrames -le 0) {
+    $ContinueMotionMaxFrames = $resolvedContinuationFrames.Count
+}
+
 Copy-Item -LiteralPath $sourceWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
 Copy-Item -LiteralPath $remoteSubmitScript -Destination $remoteSubmitOut -Force
@@ -198,13 +240,34 @@ Get-ChildItem -LiteralPath $bundleSourceDir -File | ForEach-Object {
 }
 New-RepoBundleZip -RepoUrl "https://github.com/city96/ComfyUI-GGUF.git" -RepoName "ComfyUI-GGUF" -DestinationZip (Join-Path $bundleDir "ComfyUI-GGUF.zip")
 
-& node $prepareScript `
-    --input $canvasOut `
-    --output $runtimeOut `
-    --image-name "美女带背景.png" `
-    --video-name "光伏2.mp4" `
-    --frame-load-cap $frameLoadCap `
-    --output-prefix ("wan_2_2_animate-" + $JobName)
+$prepareArgs = @(
+    $prepareScript
+    "--input"
+    $canvasOut
+    "--output"
+    $runtimeOut
+    "--image-name"
+    "美女带背景.png"
+    "--video-name"
+    "光伏2.mp4"
+    "--frame-load-cap"
+    "$frameLoadCap"
+    "--output-prefix"
+    ("wan_2_2_animate-" + $JobName)
+)
+
+if ($stagedContinuationInputs.Count -gt 0) {
+    $prepareArgs += @(
+        "--continue-motion-images"
+        ($stagedContinuationInputs -join "|")
+        "--continue-motion-max-frames"
+        "$ContinueMotionMaxFrames"
+        "--video-frame-offset"
+        "$VideoFrameOffset"
+    )
+}
+
+& node @prepareArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to prepare workflow runtime json."
@@ -223,6 +286,10 @@ $manifest = [ordered]@{
         source_video_seconds_rounded = $videoSecondsRounded
         force_rate = $videoFrameRate
         frame_load_cap = $frameLoadCap
+        continuation_input_names = @($stagedContinuationInputs)
+        continuation_frame_count = $stagedContinuationInputs.Count
+        continue_motion_max_frames = $ContinueMotionMaxFrames
+        video_frame_offset = $VideoFrameOffset
         bootstrap_template = $bootstrapScript
         remote_submit_template = $remoteSubmitScript
         warmstart_inspector_template = $warmstartInspectorScript
@@ -239,6 +306,7 @@ $manifest = [ordered]@{
         warmstart_inspector = $warmstartInspectorOut
         onstart = $onstartOut
         node_bundles = $bundleDir
+        additional_input_names = @($stagedContinuationInputs)
     }
     r2 = [ordered]@{
         bucket = $R2Bucket
@@ -250,6 +318,7 @@ $manifest = [ordered]@{
     remote = [ordered]@{
         comfy_input_image = "/workspace/ComfyUI/input/美女带背景.png"
         comfy_input_video = "/workspace/ComfyUI/input/光伏2.mp4"
+        comfy_additional_inputs = @($stagedContinuationInputs | ForEach-Object { "/workspace/ComfyUI/input/$_" })
         run_dir = "/workspace/wan22-root-canvas-run"
     }
     automation = [ordered]@{
