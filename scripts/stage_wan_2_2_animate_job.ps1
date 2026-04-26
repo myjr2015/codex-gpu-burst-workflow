@@ -78,6 +78,52 @@ $requiredBundledZips = @(
     "ComfyUI-WanAnimatePreprocess.zip"
 )
 
+function Test-NodeBundleDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    foreach ($bundleName in $requiredBundledZips) {
+        if (-not (Test-Path -LiteralPath (Join-Path $Path $bundleName))) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Resolve-NodeBundleSourceDir {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PreferredPath
+    )
+
+    if (Test-NodeBundleDirectory -Path $PreferredPath) {
+        return $PreferredPath
+    }
+
+    $jobRoot = Join-Path $repoRoot "output\wan_2_2_animate"
+    if (Test-Path -LiteralPath $jobRoot) {
+        $candidate = Get-ChildItem -LiteralPath $jobRoot -Directory |
+            ForEach-Object { Join-Path $_.FullName "node-bundles" } |
+            Where-Object { Test-NodeBundleDirectory -Path $_ } |
+            Sort-Object { (Get-Item -LiteralPath $_).LastWriteTimeUtc } -Descending |
+            Select-Object -First 1
+
+        if ($candidate) {
+            Write-Host "node_bundle_source=$candidate"
+            return [string]$candidate
+        }
+    }
+
+    throw "Missing node bundle directory: $PreferredPath"
+}
+
 function Update-GitRepoCache {
     param(
         [Parameter(Mandatory = $true)]
@@ -148,9 +194,7 @@ foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, 
 if (-not (Test-Path -LiteralPath $ffprobePath)) {
     throw "Missing ffprobe: $ffprobePath"
 }
-if (-not (Test-Path -LiteralPath $bundleSourceDir)) {
-    throw "Missing node bundle directory: $bundleSourceDir"
-}
+$bundleSourceDir = Resolve-NodeBundleSourceDir -PreferredPath $bundleSourceDir
 
 foreach ($bundleName in $requiredBundledZips) {
     $bundlePath = Join-Path $bundleSourceDir $bundleName

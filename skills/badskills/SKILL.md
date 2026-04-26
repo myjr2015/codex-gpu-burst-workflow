@@ -150,6 +150,10 @@ These failures were observed on the same branch:
     6. `summarize_timings`
     7. `publish`
 
+- Symptom: stage fails before any Vast instance is created with `Missing node bundle directory: output\vast-wan22-root-strict-3090b\node-bundles`
+  - Root cause: the legacy default bundle source directory was removed or cleaned, while historical job directories still contained valid bundled zips
+  - Action: keep the stage fallback that scans recent `output\wan_2_2_animate\*\node-bundles` directories for the required zip set; do not misclassify this as a Vast machine failure
+
 - Symptom: two independent `stage_wan_2_2_animate_job.ps1` runs fail with Git errors such as `Cannot fast-forward to multiple branches`
   - Root cause: both stage processes update the shared local custom-node cache under `.cache/wan_2_2_animate/custom_nodes` at the same time
   - Evidence from `v10-stability-b` initial stage attempt:
