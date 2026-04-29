@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-29",
+  "git_releases": [
+    {
+      "tag": "v1.1.0",
+      "status": "released",
+      "summary": "Wan2.2 Vast workflow machine-registry production path"
+    },
+    {
+      "tag": "v1.0.0",
+      "status": "released",
+      "summary": "Wan2.2 Vast workflow cold-start baseline"
+    }
+  ],
+  "runtime_strategies": [
+    {
+      "id": "1.0-cold",
+      "status": "supported",
+      "description": "Use the base Vast Comfy image and do not treat known machines as cache."
+    },
+    {
+      "id": "1.1-machine-registry",
+      "status": "production",
+      "description": "Prefer previously successful machines and enable WarmStart only when one is selected."
+    }
+  ],
+  "workflow_branches": [
+    {
+      "id": "wan_2_2_animate",
+      "status": "production",
+      "source_workflow": "workflows/Animate+Wan2.2换风格对口型.json",
+      "default_entry": "scripts/run_wan_2_2_animate_end_to_end.ps1",
+      "supported_runtime_strategies": [
+        "1.0-cold",
+        "1.1-machine-registry"
+      ],
+      "notes": "Single-segment direct output path. This is the current stable production branch."
+    },
+    {
+      "id": "wan_2_2_animate_segmented",
+      "status": "candidate",
+      "source_workflow": "workflows/Animate+Wan2.2换风格对口型.json",
+      "default_entry": "scripts/run_wan_2_2_animate_segmented_v1.ps1",
+      "supported_runtime_strategies": [
+        "1.0-cold",
+        "1.1-machine-registry"
+      ],
+      "notes": "Segmented generation path. Promotion requires a verified run and profile update."
+    }
+  ],
+  "implementation_variants": [
+    {
+      "id": "segmented-v1",
+      "workflow_branch": "wan_2_2_animate_segmented",
+      "status": "candidate",
+      "entry": "scripts/run_wan_2_2_animate_segmented_v1.ps1",
+      "description": "Split video into 10s segments, generate independently, then stitch with ffmpeg."
+    },
+    {
+      "id": "segmented-v2",
+      "workflow_branch": "wan_2_2_animate_segmented",
+      "status": "experimental",
+      "entry": "scripts/run_wan_2_2_animate_segmented_v2.ps1",
+      "description": "Adds tail-frame / continue-motion support on top of segmented v1."
+    },
+    {
+      "id": "segmented-v3-single-instance",
+      "workflow_branch": "wan_2_2_animate_segmented",
+      "status": "local_experiment",
+      "entry": "scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1",
+      "description": "Single-instance segmented experiment. It is not a production version until tracked, verified, and wired into the profile."
+    }
+  ]
+}

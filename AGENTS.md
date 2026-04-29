@@ -153,6 +153,23 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - `v1`：两个或多个 `10s` 片段独立生成，再用 `ffmpeg` 拼接
   - `v2`：在 `v1` 基础上补尾帧 / `continue_motion`
 
+## 版本管理规则
+
+版本管理分四条轴，回答和文档中必须说清楚是哪一种：
+
+- Git release：`v1.0.0`、`v1.1.0`，只表示仓库 tag。
+- 运行策略：`1.0-cold`、`1.1-machine-registry`，只表示 Vast 启动和选机策略。
+- 工作流分支：`wan_2_2_animate`、`wan_2_2_animate_segmented`，只表示业务 workflow。
+- 脚本实现：`segmented v1/v2/v3`，只表示同一工作流分支下的实现迭代。
+
+规则：
+
+- 版本矩阵以 `config/version-manifest.json` 为准。
+- 版本规则以 `docs/版本管理规范.md` 为准。
+- `版本.md` 只记录 Git release / tag 级别变化和 `Unreleased`。
+- 实验脚本不能叫生产版；只有写入 profile、完成验证、更新 skill 后，才能晋升为默认入口。
+- `output/` 不能承担源码或测试 fixture 职责；需要测试样例时放到 `tests/fixtures/`。
+
 ## 工作流目录
 
 所有 ComfyUI / RunComfy workflow JSON 源文件统一放在：
@@ -187,7 +204,7 @@ key
 - 不要提交 `api.txt`，它必须保持在 `.gitignore`。
 - 新增平台 key 时，先写入 `api.txt`，再按需同步到 `.env`。
 - PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
-- Node 入口通过 `src/config.js` 自动做 fallback。
+- 早期 RunComfy / Node CLI 入口已移除；当前生产密钥 fallback 以 PowerShell helper 为准。
 
 ## GitHub 推送兜底
 

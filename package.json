@@ -1,38 +1,14 @@
 {
-  "name": "douyin-video-rewriter",
+  "name": "wan22-vast-workflow",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Minimal pipeline for rewriting short-form videos and dispatching jobs to RunComfy workflows.",
+  "description": "Production Wan2.2 Vast/ComfyUI orchestration utilities.",
   "scripts": {
-    "inspect": "node src/cli.js inspect",
-    "prepare-driving-video": "node src/cli.js prepare-driving-video",
-    "prepare-background": "node src/cli.js prepare-background",
-    "transcribe": "node src/cli.js transcribe",
-    "rewrite": "node src/cli.js rewrite",
-    "build-jobs": "node src/cli.js build-jobs",
-    "submit": "node src/cli.js submit",
-    "poll": "node src/cli.js poll",
-    "watch-jobs": "node src/cli.js watch",
-    "list-deployments": "node src/cli.js list-deployments",
-    "create-deployment": "node src/cli.js create-deployment",
-    "update-deployment": "node src/cli.js update-deployment",
-    "estimate": "node src/cli.js estimate",
-    "pipeline": "node src/cli.js pipeline",
-    "upload-assets": "node src/cli.js upload-assets",
-    "runcomfy:export-api": "node scripts/export-runcomfy-workflow-api.mjs",
-    "runcomfy:fetch-deployment": "node src/cli.js fetch-deployment",
-    "runcomfy:assist": "node scripts/runcomfy-assist.mjs"
+    "check:node": "node --check scripts/convert_comfy_canvas_to_api.mjs && node --check scripts/prepare_wan22_root_canvas_prompt.mjs && node --check scripts/generate_wan_2_2_animate_onstart.mjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.925.0",
-    "@aws-sdk/lib-storage": "^3.925.0",
-    "@aws-sdk/s3-request-presigner": "^3.925.0",
-    "dotenv": "^16.5.0",
     "ffmpeg-static": "^5.2.0",
-    "ffprobe-static": "^3.1.0",
-    "openai": "^4.104.0",
-    "playwright": "^1.59.1",
-    "zod": "^3.25.13"
+    "ffprobe-static": "^3.1.0"
   }
 }
