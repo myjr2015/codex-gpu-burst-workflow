@@ -46,7 +46,7 @@
         "1.0-cold",
         "1.1-machine-registry"
       ],
-      "notes": "Segmented generation path. v3 single-instance is the default candidate after verified 30s and 60s Vast runs."
+      "notes": "Segmented generation path. v3 single-instance remains the default candidate after verified 30s and 60s Vast runs; v4 anchor-overlap has one 30s live validation after manual rescue and still needs a clean paid rerun before becoming default."
     }
   ],
   "implementation_variants": [
@@ -111,6 +111,38 @@
           "merged_duration_seconds": 58.899,
           "local_result_path": "output/wan_2_2_animate_segmented/segv3-60s-20260429-225542/downloads/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4",
           "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-60s-20260429-225542/output/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4"
+        }
+      ]
+    },
+    {
+      "id": "segmented-v4-anchor-overlap",
+      "workflow_branch": "wan_2_2_animate_segmented",
+      "status": "experimental",
+      "entry": "scripts/run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1",
+      "description": "Single-instance segmented implementation that anchors every 10s segment on the original reference image, cuts later segments with an overlap head, and merges downloaded outputs locally with ffmpeg xfade/acrossfade. It avoids v3 continue_motion tail-frame identity carryover.",
+      "validation_runs": [
+        {
+          "job_name": "segv4-anchor-30s-20260430-010327",
+          "validated_at": "2026-04-30T01:57:39",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35845084,
+          "machine_id": 56486,
+          "host_id": 74292,
+          "selection_mode": "preferred_machine",
+          "warm_start": true,
+          "warmstart_hit_custom_nodes": false,
+          "warmstart_hit_models": false,
+          "warmstart_hit_torch": false,
+          "segment_count": 3,
+          "segment_seconds": 10,
+          "overlap_seconds": 1.0,
+          "merge_mode": "crossfade",
+          "audio_crossfade": true,
+          "merged_duration_seconds": 29.5,
+          "clean_entry_run": false,
+          "notes": "Initial remote submission executed only temp preview node 299 because v4 removed the required continue_motion_max_frames input. The live instance was rescued by resubmitting patched prompts that kept continue_motion_max_frames=5, removed non-save VHS preview outputs, and executed save_output node 341. The script was then patched and PrepareOnly verified.",
+          "local_result_path": "output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/downloads/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/output/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4"
         }
       ]
     }

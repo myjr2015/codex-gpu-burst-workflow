@@ -130,6 +130,17 @@ These failures were observed on the same branch:
     - check `/history/<prompt_id>` and the real output node first
     - if history fails, patch non-output preview nodes to avoid prefix collision or set `no_preview=true`
 
+- Symptom: segmented v4 prompt finishes in seconds and history only contains node `299` with `type=temp`, while real node `341` output is missing
+  - Root cause: `continue_motion_max_frames` was removed from `WanAnimateToVideo`; ComfyUI validation then excluded the true `save_output` path and only executed the temp preview branch
+  - Evidence from `segv4-anchor-30s-20260430-010327`:
+    - first prompt `7afac181-8552-40ba-85a8-7e98a2b30a9b` executed in about 11 seconds
+    - history `outputs_to_execute` was only `["299"]`
+    - output file was `type=temp`, not `type=output`
+  - Action:
+    - keep `continue_motion_max_frames=5` even when not using `continue_motion`
+    - remove non-save `VHS_VideoCombine` preview outputs from v4 runtime workflow so only `save_output=true` node `341` remains
+    - do a `PrepareOnly` check before the next paid v4 run: every segment should have no `continue_motion`, should keep `continue_motion_max_frames=5`, and should have exactly one `VHS_VideoCombine` output node
+
 - Symptom: adding a new workflow causes another copy-paste orchestration branch
   - Root cause: workflow-specific concerns were mixed into the orchestration layer
   - Action: save the source workflow under `workflows/`, register a new entry in `config/vast-workflow-profiles.json`, and keep the shared runner generic

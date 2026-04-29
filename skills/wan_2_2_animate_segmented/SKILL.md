@@ -15,6 +15,12 @@ description: Use when running or modifying the Wan2.2 segmented talking-photo pi
 pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 ```
 
+当前实验入口：
+
+```powershell
+pwsh -File .\scripts\run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1
+```
+
 ## 固定输入
 
 - 源图目录：`素材资产/美女图带光伏/`
@@ -39,6 +45,65 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
   - `continue_motion_05.png`
 - 每段完成后从 ComfyUI `/history` 读取真实输出名并下载。
 - 本地用 ffmpeg concat 合并为一个 MP4。
+
+## v4 原图锚定 + 重叠合并方案
+
+`segmented v4 anchor-overlap` 仍复用 v3 的单实例 Vast 生命周期：
+
+- `stage`
+- `upload_stage`
+- `select_offer`
+- `launch`
+- `port_mapping`
+- `bootstrap`
+- `inference`
+- `download`
+- `merge_segments`
+- `fetch_logs`
+- `summarize_timings`
+- `publish`
+- `destroy`
+- `update_registry`
+
+关键差异：
+
+- 每个片段都使用原始 `美女带背景.png` 作为 reference image 起跑。
+- 第 2 段及之后不再使用上一段输出尾帧，也不注入 `continue_motion`。
+- `WanAnimateToVideo.continue_motion_max_frames` 仍必须保留，当前固定为 `5`；不要删除这个必填输入。
+- 运行时 workflow 只保留 `save_output=true` 的 `VHS_VideoCombine`，删除非保存用 preview combine，避免 ComfyUI 只执行 temp 预览节点。
+- 本地切段支持 `-OverlapSeconds`，默认 `1.0`。
+- 第 2 段及之后从 `nominal_start - overlap` 开始切，因此片段头部包含与上一段的重叠区。
+- 下载所有片段后，本地优先用 ffmpeg `xfade` 合并视频重叠区；如果每个片段都有音频，同时用 `acrossfade` 合并音频。
+- 合并输出必须显式写成 `yuv420p`，避免 `xfade` 默认产出 `yuv444p` 后影响浏览器播放兼容性。
+- v4 当前仍是实验入口：已有一次 30s 付费实跑成功，但这次包含手动 API 补救；不要替换 v3 默认入口，除非再完成一次干净全流程验证。
+
+适合优先验证的问题：
+
+- 身份稳定性是否优于 v3 的尾帧续接。
+- 片段边界在 `1.0s` overlap 下是否可见。
+- `xfade/acrossfade` 后总时长是否接近源视频目标时长。
+
+30s v4 补救验证：
+
+- job：`segv4-anchor-30s-20260430-010327`
+- 运行策略：`1.1-machine-registry`
+- instance：`35845084`
+- host：`74292`
+- machine：`56486`
+- 地区：`Nevada, US`
+- WarmStart：`true`
+- 实际缓存：`custom_nodes` 未命中、`models` 未命中、`torch` 未命中
+- 结果：3 段全部通过手动补交后的 `save_output` 节点 `341` 生成真实 `audio.mp4`
+- 合并：`xfade/acrossfade`，`effective_overlap_seconds=1.0`
+- 合并产物时长：`29.5s`
+- 本地结果：`output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/downloads/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4`
+- R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/output/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4`
+
+这次不算干净全流程验证，因为最初上传的 v4 workflow 删掉了必填的 `continue_motion_max_frames`，导致 ComfyUI 只执行了 temp 预览节点 `299`。修复后的脚本已用 `PrepareOnly` 验证：
+
+- job：`segv4-prepare-fixed-30s-20260430-0200`
+- 每段 `WanAnimateToVideo`：`continue_motion` 不存在，`continue_motion_max_frames=5`
+- 每段 `VHS_VideoCombine`：只剩 `save_output=true` 的节点 `341`
 
 ## 已验证运行
 
@@ -113,6 +178,12 @@ Error opening output file /opt/workspace-internal/ComfyUI/temp/..._00001.mp4.
 - `segment_01`：`0/4` 到 `4/4`
 - `segment_02`：确认带 `continue_motion`
 - 后续段：确认带 `continue_motion`
+
+v4 运行时，推理阶段按段汇报但不要说带 `continue_motion`：
+
+- `segment_01`：原图锚定。
+- `segment_02` 及之后：原图锚定，并说明本地输入片段带 overlap 头部。
+- `merge_segments`：说明使用 `xfade/acrossfade` 还是退回 `concat`。
 
 ## 不要重复踩坑
 
