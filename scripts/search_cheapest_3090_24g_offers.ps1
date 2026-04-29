@@ -5,6 +5,8 @@ param(
 
     [switch]$ExcludeCN,
 
+    [switch]$ExcludeRiskyGeos,
+
     [double]$MinCuda = 0,
 
     [int]$MinDirectPorts = 0,
@@ -28,8 +30,8 @@ $queryParts = @(
     "rented=False"
 )
 
-if ($ExcludeCN) {
-    $queryParts += "geolocation notin [CN]"
+if ($ExcludeCN -or $ExcludeRiskyGeos) {
+    $queryParts += "geolocation notin [CN,TR]"
 }
 
 if ($MinCuda -gt 0) {

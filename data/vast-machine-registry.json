@@ -120,17 +120,17 @@
       "geolocation": "Czechia, CZ",
       "verification": "verified",
       "dph_total": 0.16866666666666666,
-      "job_name": "segmented-v2-live-20s-fix-20260426-0350-s02",
-      "instance_id": 35593578,
+      "job_name": "segmented-v2-live-30s-assets-20260426-s01",
+      "instance_id": 35616644,
       "result": "succeeded",
-      "last_success_at": "2026-04-26T04:32:37",
-      "total_until_download_seconds": 1497.0,
-      "instance_started_to_submit_seconds": 768.0,
-      "prompt_execution": "00:11:47",
-      "warmstart_hit_custom_nodes": true,
+      "last_success_at": "2026-04-26T16:17:51",
+      "total_until_download_seconds": 1353.0,
+      "instance_started_to_submit_seconds": 610.0,
+      "prompt_execution": "00:11:54",
+      "warmstart_hit_custom_nodes": false,
       "warmstart_hit_models": false,
-      "warmstart_hit_torch": true,
-      "updated_at": "2026-04-26T04:32:45"
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-26T16:17:59"
     },
     {
       "machine_id": 49903,
@@ -153,7 +153,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-26T15:16:14"
+    },
+    {
+      "machine_id": 56486,
+      "host_id": 74292,
+      "offer_id": 35552173,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "580.126.09",
+      "geolocation": "Nevada, US",
+      "verification": "verified",
+      "dph_total": 0.20333333333333337,
+      "job_name": "cold10d-20260429-195034",
+      "instance_id": 35827511,
+      "result": "succeeded",
+      "last_success_at": "2026-04-29T20:28:53",
+      "total_until_download_seconds": 1300.0,
+      "instance_started_to_submit_seconds": 570.0,
+      "prompt_execution": "00:11:28",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-29T20:29:05"
     }
   ],
-  "updated_at": "2026-04-26T15:16:14"
+  "updated_at": "2026-04-29T20:29:05"
 }

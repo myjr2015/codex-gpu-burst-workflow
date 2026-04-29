@@ -114,23 +114,23 @@ Core conclusion:
 ## Machine Selection Rule
 
 Default Vast search rule for this branch:
-- exclude mainland China hosts: `geolocation notin [CN]`
+- exclude mainland China and Turkey hosts: `geolocation notin [CN,TR]`
 
 Reason:
 - the current cold-start path downloads from Docker Hub, PyTorch, and Hugging Face
-- China-region hosts can be slower or require extra network workarounds
+- China-region and Turkey hosts can be slower or require extra network workarounds
 - that adds retry waste and breaks the assumption that a fresh machine should bootstrap unattended
 
 Preferred order when searching:
 1. `RTX 3090 24GB`
 2. `verified=true`
-3. `geolocation notin [CN]`
+3. `geolocation notin [CN,TR]`
 4. `driver_version` in the proven-safe range, preferably `580.*` or `590.*`
 5. enough disk for the configured job
 6. then sort by `dph_total`
 
-If the absolute cheapest offer is in `CN`, do not automatically choose it for `wan_2_2_animate`.
-Choose the cheapest non-`CN` offer that satisfies the runtime assumptions.
+If the absolute cheapest offer is in `CN` or `TR`, do not automatically choose it for `wan_2_2_animate`.
+Choose the cheapest non-`CN` and non-`TR` offer that satisfies the runtime assumptions.
 
 ## Machine Registry Rule
 
@@ -152,7 +152,7 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 ```
 
 Current default behavior:
-1. search non-`CN` `RTX 3090 24GB` offers
+1. search non-`CN` and non-`TR` `RTX 3090 24GB` offers
 2. match available offers against `data/vast-machine-registry.json`
 3. if a machine already has a successful run record:
    - choose that machine
@@ -389,7 +389,7 @@ If `-ImagePath` is omitted, the wrapper selects the newest image from `素材资
 Recommended Vast search pattern before selecting `<vast_offer_id>`:
 
 ```powershell
-vastai search offers 'gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]' --storage 180 -o 'dph_total'
+vastai search offers 'gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]' --storage 180 -o 'dph_total'
 ```
 
 Resume an already running job without restaging or relaunching:

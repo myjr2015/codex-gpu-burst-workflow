@@ -62,6 +62,7 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 - 如果当前可租机器命中机器库里的成功机器，优先租它。
 - 只有命中老机器时才启用 `WarmStart`。
 - 如果没有命中老机器，按 `1.0` 冷启动处理。
+- 默认选机必须排除 `CN` 和 `TR`：`geolocation notin [CN,TR]`。
 - `hit` 说中文叫“命中”。
 - `miss` 说中文叫“未命中”，意思是没有找到可复用缓存，不是文件丢失。
 

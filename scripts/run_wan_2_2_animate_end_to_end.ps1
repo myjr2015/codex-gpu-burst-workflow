@@ -12,7 +12,7 @@ param(
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
+    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
 
     [switch]$FreshMachine,
 

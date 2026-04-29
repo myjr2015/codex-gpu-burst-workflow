@@ -55,8 +55,8 @@ These failures were observed on the same branch:
   - Action: destroy immediately and move hosts; this is not a workflow bug
 
 - Symptom: the cheapest host looks attractive on paper, but cold start is slow or unstable because external registries and model sources are hard to reach
-  - Root cause: host geolocation is mainland China, while this branch depends on unattended pulls from Docker Hub, PyTorch, and Hugging Face
-  - Action: for `wan_2_2_animate`, exclude `CN` when searching Vast offers unless the runtime has been explicitly rebuilt for China-network constraints
+  - Root cause: host geolocation is mainland China or Turkey, while this branch depends on unattended pulls from Docker Hub, PyTorch, Hugging Face, and R2
+  - Action: for `wan_2_2_animate`, exclude `CN` and `TR` when searching Vast offers unless the runtime has been explicitly rebuilt for those network constraints
 
 - Symptom: ComfyUI exits with `cudaGetDeviceCount Error 804`
   - Root cause: host driver and container CUDA stack are incompatible
@@ -247,7 +247,7 @@ Do not destroy immediately when:
 - Vast local volumes are not a general cross-machine solution; they are tied to one physical machine
 - if you want faster retries across the same machine, volumes help
 - if you want faster recovery across different machines, volumes alone do not solve it
-- for this branch, the cheapest `CN` host is not automatically the cheapest real choice once retry waste and network friction are counted
+- for this branch, the cheapest `CN` or `TR` host is not automatically the cheapest real choice once retry waste and network friction are counted
 
 ## Log Patterns That Are Slow But Healthy
 
