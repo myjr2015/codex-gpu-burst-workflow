@@ -1,6 +1,6 @@
 # 项目运行规则
 
-本项目的长期记忆分三层：
+本项目的长期记忆分四层：
 
 1. `AGENTS.md`
    - 项目级默认规则。
@@ -14,6 +14,10 @@
 3. `skills/badskills/SKILL.md`
    - 失败经验和禁止重复踩的坑。
    - 跑 Vast、调 ComfyUI、处理冷启动问题前必须加载。
+
+4. `skills/wan_2_2_animate_segmented/SKILL.md`
+   - 分段生成经验。
+   - 跑 `wan_2_2_animate_segmented` / 30s 分段续接流程前必须加载。
 
 ## 中文优先规则
 
@@ -39,6 +43,7 @@
 
 - `skills/okskills/SKILL.md`
 - `skills/badskills/SKILL.md`
+- 如果跑分段流程，再读取 `skills/wan_2_2_animate_segmented/SKILL.md`
 
 然后明确说明本次走哪个版本：
 
@@ -153,6 +158,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 分段主线
   - `v1`：两个或多个 `10s` 片段独立生成，再用 `ffmpeg` 拼接
   - `v2`：在 `v1` 基础上补尾帧 / `continue_motion`
+  - `v3_single_instance`：已验证候选入口；同一台 Vast 实例内依次跑 3 个 `10s` 片段，段 2/3 使用上一段最后 5 帧作为 `continue_motion`，再本地合并为约 `30s` 文件
 
 ## 版本管理规则
 

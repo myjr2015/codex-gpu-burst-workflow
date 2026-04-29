@@ -28,7 +28,7 @@
       "job_root": "output/wan_2_2_animate_segmented",
       "workflow_source": "workflows/Animate+Wan2.2换风格对口型.json",
       "default_image_asset_dir": "素材资产/美女图带光伏",
-      "runner_script": "scripts/run_wan_2_2_animate_segmented_v1.ps1",
+      "runner_script": "scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1",
       "default_segment_seconds": 10,
       "default_label": "wan_2_2_animate-segmented-job",
       "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",

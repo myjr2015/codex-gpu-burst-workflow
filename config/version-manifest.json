@@ -41,12 +41,12 @@
       "id": "wan_2_2_animate_segmented",
       "status": "candidate",
       "source_workflow": "workflows/Animate+Wan2.2换风格对口型.json",
-      "default_entry": "scripts/run_wan_2_2_animate_segmented_v1.ps1",
+      "default_entry": "scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1",
       "supported_runtime_strategies": [
         "1.0-cold",
         "1.1-machine-registry"
       ],
-      "notes": "Segmented generation path. Promotion requires a verified run and profile update."
+      "notes": "Segmented generation path. v3 single-instance is the default candidate after a verified 30s Vast run."
     }
   ],
   "implementation_variants": [
@@ -67,9 +67,30 @@
     {
       "id": "segmented-v3-single-instance",
       "workflow_branch": "wan_2_2_animate_segmented",
-      "status": "local_experiment",
+      "status": "candidate",
       "entry": "scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1",
-      "description": "Single-instance segmented experiment. It is not a production version until tracked, verified, and wired into the profile."
+      "description": "Single-instance segmented implementation. Splits 30s source video into 3x10s segments, carries 5 tail frames forward with continue_motion, downloads all segment outputs, and ffmpeg-concats the merged result.",
+      "verified_runs": [
+        {
+          "job_name": "segv3-fixed-30s-20260429-213538",
+          "verified_at": "2026-04-29T22:24:33",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35832602,
+          "machine_id": 24191,
+          "host_id": 135723,
+          "selection_mode": "preferred_machine",
+          "warm_start": true,
+          "warmstart_hit_custom_nodes": false,
+          "warmstart_hit_models": false,
+          "warmstart_hit_torch": false,
+          "segment_count": 3,
+          "segment_seconds": 10,
+          "continue_motion_frames": 5,
+          "merged_duration_seconds": 29.461,
+          "local_result_path": "output/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/downloads/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/output/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4"
+        }
+      ]
     }
   ]
 }

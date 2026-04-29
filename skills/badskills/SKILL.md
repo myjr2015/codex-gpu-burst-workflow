@@ -119,6 +119,17 @@ These failures were observed on the same branch:
   - Root cause: PowerShell treats an explicitly passed empty string-array parameter as a missing value
   - Action: only pass `-StageArgs`, `-LaunchArgs`, or `-PublishArgs` when the array actually contains values
 
+- Symptom: segmented v3 logs show `File ... temp ... already exists` and `Error opening output file ... temp ...`
+  - Root cause: non-output `VHS_VideoCombine` preview files can reuse the same prefix while the real output node still writes under `output`
+  - Evidence from `segv3-fixed-30s-20260429-213538`:
+    - all three segments showed this temp warning
+    - all three segment histories still ended with `execution_success`
+    - real `*_00001-audio.mp4` outputs were downloaded and merged
+  - Action:
+    - do not destroy solely because of this temp warning
+    - check `/history/<prompt_id>` and the real output node first
+    - if history fails, patch non-output preview nodes to avoid prefix collision or set `no_preview=true`
+
 - Symptom: adding a new workflow causes another copy-paste orchestration branch
   - Root cause: workflow-specific concerns were mixed into the orchestration layer
   - Action: save the source workflow under `workflows/`, register a new entry in `config/vast-workflow-profiles.json`, and keep the shared runner generic
