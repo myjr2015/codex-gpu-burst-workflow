@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-04-29",
+  "updated_at": "2026-04-30",
   "git_releases": [
     {
       "tag": "v1.1.0",
@@ -46,7 +46,7 @@
         "1.0-cold",
         "1.1-machine-registry"
       ],
-      "notes": "Segmented generation path. v3 single-instance is the default candidate after a verified 30s Vast run."
+      "notes": "Segmented generation path. v3 single-instance is the default candidate after verified 30s and 60s Vast runs."
     }
   ],
   "implementation_variants": [
@@ -69,7 +69,7 @@
       "workflow_branch": "wan_2_2_animate_segmented",
       "status": "candidate",
       "entry": "scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1",
-      "description": "Single-instance segmented implementation. Splits 30s source video into 3x10s segments, carries 5 tail frames forward with continue_motion, downloads all segment outputs, and ffmpeg-concats the merged result.",
+      "description": "Single-instance segmented implementation. Splits source video into 10s segments, carries 5 tail frames forward with continue_motion, downloads all segment outputs, and ffmpeg-concats the merged result.",
       "verified_runs": [
         {
           "job_name": "segv3-fixed-30s-20260429-213538",
@@ -89,6 +89,28 @@
           "merged_duration_seconds": 29.461,
           "local_result_path": "output/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/downloads/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4",
           "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/output/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4"
+        },
+        {
+          "job_name": "segv3-60s-20260429-225542",
+          "verified_at": "2026-04-30T00:16:48",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35837663,
+          "machine_id": 49903,
+          "host_id": 203531,
+          "selection_mode": "preferred_machine",
+          "warm_start": true,
+          "warmstart_hit_custom_nodes": false,
+          "warmstart_hit_models": false,
+          "warmstart_hit_torch": false,
+          "segment_count": 6,
+          "segment_seconds": 10,
+          "continue_motion_frames": 5,
+          "bootstrap_duration_seconds": 535.651,
+          "inference_duration_seconds": 4215.318,
+          "total_until_download_seconds": 4864.384,
+          "merged_duration_seconds": 58.899,
+          "local_result_path": "output/wan_2_2_animate_segmented/segv3-60s-20260429-225542/downloads/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-60s-20260429-225542/output/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4"
         }
       ]
     }

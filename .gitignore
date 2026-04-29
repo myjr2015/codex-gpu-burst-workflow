@@ -12,6 +12,7 @@ c_drive_backup_before_restore/
 .venv-faster-whisper/
 tmp/
 .tmp/
+scripts/_test/
 __pycache__/
 *.pyc
 config/workflows.local.json

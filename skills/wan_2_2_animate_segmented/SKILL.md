@@ -1,6 +1,6 @@
 ---
 name: wan_2_2_animate_segmented
-description: Use when running or modifying the Wan2.2 segmented talking-photo pipeline, especially the verified v3 single-instance 30s flow with 10s segments and continue_motion tail frames.
+description: Use when running or modifying the Wan2.2 segmented talking-photo pipeline, especially the verified v3 single-instance 30s/60s flow with 10s segments and continue_motion tail frames.
 ---
 
 # wan_2_2_animate_segmented
@@ -20,6 +20,7 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 - 源图目录：`素材资产/美女图带光伏/`
 - 默认源图：`素材资产/美女图带光伏/美女带背景.png`
 - 30s 源视频：`素材资产/原视频/光伏30s.mp4`
+- 60s 源视频：`素材资产/原视频/光伏60s.mp4`
 - workflow 源文件：`workflows/Animate+Wan2.2换风格对口型.json`
 - profile：`wan_2_2_animate_segmented`
 
@@ -27,10 +28,10 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 
 `segmented v3 single-instance` 的设计：
 
-- 本地先把 30s 视频切成 3 个 `10s` 片段。
-- 同一个 Vast 实例内依次提交 `workflow_segment_01.json`、`workflow_segment_02.json`、`workflow_segment_03.json`。
+- 本地先把源视频切成多个 `10s` 片段，例如 30s 为 3 段，60s 为 6 段。
+- 同一个 Vast 实例内依次提交 `workflow_segment_01.json`、`workflow_segment_02.json`、后续递增段。
 - 第 1 段不带 `continue_motion`。
-- 第 2/3 段使用上一段输出最后 5 帧，写成：
+- 第 2 段及之后使用上一段输出最后 5 帧，写成：
   - `continue_motion_01.png`
   - `continue_motion_02.png`
   - `continue_motion_03.png`
@@ -41,7 +42,7 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 
 ## 已验证运行
 
-验证任务：
+30s 验证任务：
 
 - job：`segv3-fixed-30s-20260429-213538`
 - 运行策略：`1.1-machine-registry`
@@ -56,6 +57,23 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 - 本地结果：`output/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/downloads/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4`
 - R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-fixed-30s-20260429-213538/output/wan_2_2_animate_segmented-segv3-fixed-30s-20260429-213538.mp4`
 
+60s 验证任务：
+
+- job：`segv3-60s-20260429-225542`
+- 运行策略：`1.1-machine-registry`
+- instance：`35837663`
+- host：`203531`
+- machine：`49903`
+- 地区：`Bulgaria, BG`
+- WarmStart：`true`
+- 实际缓存：`custom_nodes` 未命中、`models` 未命中、`torch` 未命中
+- 结果：6 段全部 `execution_success`
+- 合并产物时长：`58.899s`
+- bootstrap 耗时：`535.651s`
+- inference 耗时：`4215.318s`
+- 本地结果：`output/wan_2_2_animate_segmented/segv3-60s-20260429-225542/downloads/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4`
+- R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv3-60s-20260429-225542/output/wan_2_2_animate_segmented-segv3-60s-20260429-225542.mp4`
+
 ## 正常但容易误判的日志
 
 V3 运行中可能出现：
@@ -65,7 +83,7 @@ File '/opt/workspace-internal/ComfyUI/temp/..._00001.mp4' already exists. Exitin
 Error opening output file /opt/workspace-internal/ComfyUI/temp/..._00001.mp4.
 ```
 
-这次验证中三段都出现过类似 temp 预览文件提示，但最终 `/history` 仍为 `execution_success`，真实 output 文件存在。
+30s 与 60s 验证中都出现过类似 temp 预览文件提示，但最终 `/history` 仍为 `execution_success`，真实 output 文件存在。
 
 处理规则：
 
@@ -94,7 +112,7 @@ Error opening output file /opt/workspace-internal/ComfyUI/temp/..._00001.mp4.
 
 - `segment_01`：`0/4` 到 `4/4`
 - `segment_02`：确认带 `continue_motion`
-- `segment_03`：确认带 `continue_motion`
+- 后续段：确认带 `continue_motion`
 
 ## 不要重复踩坑
 
