@@ -15,11 +15,13 @@ description: Use when running or modifying the Wan2.2 segmented talking-photo pi
 pwsh -File .\scripts\run_wan_2_2_animate_segmented_v3_single_instance.ps1
 ```
 
-当前实验入口：
+当前保留的失败实验入口：
 
 ```powershell
 pwsh -File .\scripts\run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1
 ```
+
+`segmented v4 anchor-overlap` 已做过 30s 逐帧视觉验收，结论是失败；不要把它用于 30s/60s 付费生产验证，除非任务目标是专门复盘 v4。
 
 ## 固定输入
 
@@ -75,13 +77,13 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1
 - 第 2 段及之后从 `nominal_start - overlap` 开始切，因此片段头部包含与上一段的重叠区。
 - 下载所有片段后，本地优先用 ffmpeg `xfade` 合并视频重叠区；如果每个片段都有音频，同时用 `acrossfade` 合并音频。
 - 合并输出必须显式写成 `yuv420p`，避免 `xfade` 默认产出 `yuv444p` 后影响浏览器播放兼容性。
-- v4 当前仍是实验入口：已有一次 30s 付费实跑成功，但这次包含手动 API 补救；不要替换 v3 默认入口，除非再完成一次干净全流程验证。
+- v4 当前是失败实验入口：已有一次 30s 付费实跑生成真实输出，但这次包含手动 API 补救，且后续逐帧视觉验收失败；不要替换 v3 默认入口，也不要继续跑 60s。
 
-适合优先验证的问题：
+已验证失败的问题：
 
-- 身份稳定性是否优于 v3 的尾帧续接。
-- 片段边界在 `1.0s` overlap 下是否可见。
-- `xfade/acrossfade` 后总时长是否接近源视频目标时长。
+- 第 2 段和第 3 段各自从原图重新起跑，人物比例、椅子位置、毛衣外套形态、动作节奏和画面构图都会重新采样。
+- `s02/s03` 原始片段已经不连续，所以 `xfade/acrossfade` 只能混合两个不同镜头，不能修复语义断裂。
+- 增加 overlap 不能解决根因；该方案缺少跨段运动/姿态状态传递。
 
 30s v4 补救验证：
 
@@ -93,9 +95,14 @@ pwsh -File .\scripts\run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1
 - 地区：`Nevada, US`
 - WarmStart：`true`
 - 实际缓存：`custom_nodes` 未命中、`models` 未命中、`torch` 未命中
-- 结果：3 段全部通过手动补交后的 `save_output` 节点 `341` 生成真实 `audio.mp4`
+- 结果：3 段全部通过手动补交后的 `save_output` 节点 `341` 生成真实 `audio.mp4`，但视觉验收失败
 - 合并：`xfade/acrossfade`，`effective_overlap_seconds=1.0`
 - 合并产物时长：`29.5s`
+- 逐帧结论：后半段不可用，`s02/s03` 原片段已经出现人物、构图和动作重置，合并不是根因
+- 逐帧图：
+  - `output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/second-half-frames-240-end.jpg`
+  - `output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/s02-all-frames.jpg`
+  - `output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/s03-all-frames.jpg`
 - 本地结果：`output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/downloads/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4`
 - R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/output/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4`
 
@@ -184,6 +191,8 @@ v4 运行时，推理阶段按段汇报但不要说带 `continue_motion`：
 - `segment_01`：原图锚定。
 - `segment_02` 及之后：原图锚定，并说明本地输入片段带 overlap 头部。
 - `merge_segments`：说明使用 `xfade/acrossfade` 还是退回 `concat`。
+
+注意：以上只适用于复盘 v4，不代表 v4 可以继续作为生产候选。当前 30s/60s 长视频优先回到 v3 单实例尾帧续接，或另开 v5 方案解决“续接状态 + 身份锚定”同时存在的问题。
 
 ## 不要重复踩坑
 

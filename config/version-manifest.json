@@ -46,7 +46,7 @@
         "1.0-cold",
         "1.1-machine-registry"
       ],
-      "notes": "Segmented generation path. v3 single-instance remains the default candidate after verified 30s and 60s Vast runs; v4 anchor-overlap has one 30s live validation after manual rescue and still needs a clean paid rerun before becoming default."
+      "notes": "Segmented generation path. v3 single-instance remains the default candidate after verified 30s and 60s Vast runs. v4 anchor-overlap produced real 30s output after manual rescue but failed visual frame review because later segments re-generated different composition and identity; do not use v4 for 30s/60s production."
     }
   ],
   "implementation_variants": [
@@ -117,9 +117,9 @@
     {
       "id": "segmented-v4-anchor-overlap",
       "workflow_branch": "wan_2_2_animate_segmented",
-      "status": "experimental",
+      "status": "failed",
       "entry": "scripts/run_wan_2_2_animate_segmented_v4_anchor_overlap.ps1",
-      "description": "Single-instance segmented implementation that anchors every 10s segment on the original reference image, cuts later segments with an overlap head, and merges downloaded outputs locally with ffmpeg xfade/acrossfade. It avoids v3 continue_motion tail-frame identity carryover.",
+      "description": "Failed visual experiment. Anchors every 10s segment on the original reference image, cuts later segments with an overlap head, and merges downloaded outputs locally with ffmpeg xfade/acrossfade. It avoided v3 continue_motion identity carryover but broke cross-segment continuity because each segment re-generated a different composition.",
       "validation_runs": [
         {
           "job_name": "segv4-anchor-30s-20260430-010327",
@@ -140,7 +140,13 @@
           "audio_crossfade": true,
           "merged_duration_seconds": 29.5,
           "clean_entry_run": false,
-          "notes": "Initial remote submission executed only temp preview node 299 because v4 removed the required continue_motion_max_frames input. The live instance was rescued by resubmitting patched prompts that kept continue_motion_max_frames=5, removed non-save VHS preview outputs, and executed save_output node 341. The script was then patched and PrepareOnly verified.",
+          "visual_acceptance": "failed",
+          "frame_review_paths": [
+            "output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/second-half-frames-240-end.jpg",
+            "output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/s02-all-frames.jpg",
+            "output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/frame_review/s03-all-frames.jpg"
+          ],
+          "notes": "Initial remote submission executed only temp preview node 299 because v4 removed the required continue_motion_max_frames input. The live instance was rescued by resubmitting patched prompts that kept continue_motion_max_frames=5, removed non-save VHS preview outputs, and executed save_output node 341. The script was then patched and PrepareOnly verified. Later frame review showed the back half is unusable: s02 and s03 already re-generate the person, pose, chair, and framing differently before merge, so xfade/acrossfade cannot repair continuity.",
           "local_result_path": "output/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/downloads/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4",
           "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan_2_2_animate_segmented/segv4-anchor-30s-20260430-010327/output/wan_2_2_animate_segmented-segv4-anchor-30s-20260430-010327.mp4"
         }

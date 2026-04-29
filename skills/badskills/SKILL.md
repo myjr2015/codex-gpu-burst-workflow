@@ -141,6 +141,17 @@ These failures were observed on the same branch:
     - remove non-save `VHS_VideoCombine` preview outputs from v4 runtime workflow so only `save_output=true` node `341` remains
     - do a `PrepareOnly` check before the next paid v4 run: every segment should have no `continue_motion`, should keep `continue_motion_max_frames=5`, and should have exactly one `VHS_VideoCombine` output node
 
+- Symptom: segmented v4 produces a real merged 30s file, but the back half is visually unusable after frame-by-frame review
+  - Root cause: every 10s segment is independently re-anchored from the original image without carrying motion/pose state, so segment 2 and segment 3 re-generate different person scale, pose, chair/framing, coat shape, and gesture timing
+  - Evidence from `segv4-anchor-30s-20260430-010327`:
+    - `second-half-frames-240-end.jpg` shows obvious discontinuity after the first 10s
+    - `s02-all-frames.jpg` and `s03-all-frames.jpg` show the raw generated segments are already different before merge
+    - `xfade/acrossfade` only blends two different generated shots; it does not solve semantic continuity
+  - Action:
+    - do not promote v4 or use it for 60s production
+    - do not spend another paid run just increasing overlap
+    - return to v3 for continuity tests, or create a v5 design that carries motion/pose state while also reintroducing a stable identity reference
+
 - Symptom: adding a new workflow causes another copy-paste orchestration branch
   - Root cause: workflow-specific concerns were mixed into the orchestration layer
   - Action: save the source workflow under `workflows/`, register a new entry in `config/vast-workflow-profiles.json`, and keep the shared runner generic
