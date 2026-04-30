@@ -63,15 +63,20 @@ $createArgs = @(
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
+$extraEnvItems = @()
 foreach ($extraEnv in (Get-Wan22AnimateLaunchExtraEnv -WarmStart:$WarmStart)) {
-    $createArgs += @("-ExtraEnv", $extraEnv)
+    $extraEnvItems += $extraEnv
 }
 if (-not $DisableHfSpeedTest) {
-    $createArgs += @("-ExtraEnv", "HF_SPEEDTEST=1")
-    $createArgs += @("-ExtraEnv", ("HF_MIN_MIB_PER_SEC={0}" -f $HfMinMiBps))
-    $createArgs += @("-ExtraEnv", ("HF_MAX_ESTIMATED_DOWNLOAD_MINUTES={0}" -f $HfMaxEstimatedDownloadMinutes))
-    $createArgs += @("-ExtraEnv", ("HF_SPEEDTEST_SAMPLE_MIB={0}" -f $HfSpeedTestSampleMiB))
-    $createArgs += @("-ExtraEnv", ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds))
+    $extraEnvItems += "HF_SPEEDTEST=1"
+    $extraEnvItems += ("HF_MIN_MIB_PER_SEC={0}" -f $HfMinMiBps)
+    $extraEnvItems += ("HF_MAX_ESTIMATED_DOWNLOAD_MINUTES={0}" -f $HfMaxEstimatedDownloadMinutes)
+    $extraEnvItems += ("HF_SPEEDTEST_SAMPLE_MIB={0}" -f $HfSpeedTestSampleMiB)
+    $extraEnvItems += ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds)
+}
+if ($extraEnvItems.Count -gt 0) {
+    $createArgs += "-ExtraEnv"
+    $createArgs += $extraEnvItems
 }
 if ($MountArgs.Count -gt 0) {
     $createArgs += @("-MountArgs", $MountArgs)
