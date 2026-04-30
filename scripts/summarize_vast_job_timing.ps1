@@ -67,6 +67,7 @@ function Get-JobPaths {
         ManifestPath = Join-Path $jobDir $ProfileDefinition.manifest_file
         InstancePath = Join-Path $jobDir $ProfileDefinition.instance_file
         RunReportPath = Join-Path $jobDir "run-report.json"
+        HistoryApiPath = Join-Path $jobDir "history.api.json"
         DefaultOutputPath = Join-Path $jobDir "timing-summary.json"
     }
 }
@@ -167,11 +168,61 @@ function Get-StageEventsFromLog {
     $events
 }
 
-function Build-StageSummary {
+function Get-PromptExecutionFromHistory {
     param(
         [Parameter(Mandatory = $true)]
-        $Events
+        [string]$HistoryApiPath
     )
+
+    if (-not (Test-Path -LiteralPath $HistoryApiPath)) {
+        return $null
+    }
+
+    $history = Get-Content -Raw $HistoryApiPath | ConvertFrom-Json
+    foreach ($entryProperty in $history.PSObject.Properties) {
+        $startMs = $null
+        $endMs = $null
+        $entry = $entryProperty.Value
+        if (-not $entry.status -or -not $entry.status.messages) {
+            continue
+        }
+
+        foreach ($message in $entry.status.messages) {
+            if ($message.Count -lt 2 -or -not $message[1].timestamp) {
+                continue
+            }
+
+            $timestamp = [int64]$message[1].timestamp
+            if ($message[0] -eq "execution_start") {
+                $startMs = $timestamp
+            }
+            elseif ($message[0] -eq "execution_success") {
+                $endMs = $timestamp
+            }
+        }
+
+        if ($startMs -and $endMs -and $endMs -ge $startMs) {
+            $seconds = [math]::Round(($endMs - $startMs) / 1000, 3)
+            return [pscustomobject]@{
+                prompt_id = $entryProperty.Name
+                seconds = $seconds
+                duration = ([timespan]::FromSeconds($seconds)).ToString("c")
+                source = "history_api"
+            }
+        }
+    }
+
+    $null
+}
+
+function Build-StageSummary {
+    param(
+        $Events = @()
+    )
+
+    if ($null -eq $Events) {
+        $Events = @()
+    }
 
     $openStages = @{}
     $summary = @()
@@ -288,13 +339,25 @@ $lines = @()
 if (-not [string]::IsNullOrWhiteSpace($logText)) {
     $lines = @($logText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
-$events = Get-StageEventsFromLog -Lines $lines
+$events = @(Get-StageEventsFromLog -Lines $lines)
 $stageSummary = Build-StageSummary -Events $events
 
 $promptExecution = $null
+$promptExecutionSeconds = $null
+$promptExecutionSource = $null
 foreach ($line in $lines) {
     if ($line -match '^Prompt executed in\s+(?<duration>\S+)$') {
         $promptExecution = $matches.duration
+        $promptExecutionSource = "log"
+    }
+}
+
+if ($null -eq $promptExecution) {
+    $historyTiming = Get-PromptExecutionFromHistory -HistoryApiPath $paths.HistoryApiPath
+    if ($historyTiming) {
+        $promptExecution = $historyTiming.duration
+        $promptExecutionSeconds = $historyTiming.seconds
+        $promptExecutionSource = $historyTiming.source
     }
 }
 
@@ -338,6 +401,8 @@ $result = [ordered]@{
     instance_id = $instanceId
     markers_found = $events.Count
     prompt_execution = $promptExecution
+    prompt_execution_seconds = $promptExecutionSeconds
+    prompt_execution_source = $promptExecutionSource
     lifecycle = $lifeCycle
     stages = @($stageSummary.Stages)
     warnings = @($stageSummary.Warnings)

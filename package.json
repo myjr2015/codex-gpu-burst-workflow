@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Production Wan2.2 Vast/ComfyUI orchestration utilities.",
   "scripts": {
-    "check:node": "node --check scripts/convert_comfy_canvas_to_api.mjs && node --check scripts/prepare_wan22_root_canvas_prompt.mjs && node --check scripts/generate_wan_2_2_animate_onstart.mjs"
+    "check:node": "node --check scripts/convert_comfy_canvas_to_api.mjs && node --check scripts/prepare_wan22_root_canvas_prompt.mjs && node --check scripts/prepare_wan22_kj_30s_prompt.mjs && node --check scripts/validate_wan22_kj_30s_runtime.mjs && node --check scripts/generate_wan_2_2_animate_onstart.mjs && node --check scripts/generate_wan22_kj_30s_onstart.mjs"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0",

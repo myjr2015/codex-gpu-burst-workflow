@@ -65,6 +65,30 @@ function buildWidgetIndex(node) {
     return indexByInputName;
   }
 
+  if (node.type === "WanVideoSampler" && Array.isArray(node.widgets_values)) {
+    const fixedIndexes = {
+      steps: 0,
+      cfg: 1,
+      shift: 2,
+      seed: 3,
+      force_offload: 5,
+      scheduler: 6,
+      riflex_freq_index: 7,
+      denoise_strength: 8,
+      batched_cfg: 9,
+      rope_function: 10,
+      start_step: 11,
+      end_step: 12,
+      add_noise_to_samples: 13,
+    };
+    for (const input of widgetInputs) {
+      if (Object.hasOwn(fixedIndexes, input.name)) {
+        indexByInputName.set(input.name, fixedIndexes[input.name]);
+      }
+    }
+    return indexByInputName;
+  }
+
   let widgetIndex = 0;
   for (const input of widgetInputs) {
     indexByInputName.set(input.name, widgetIndex);

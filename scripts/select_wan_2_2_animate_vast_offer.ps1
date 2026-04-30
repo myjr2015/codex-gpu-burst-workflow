@@ -5,6 +5,10 @@ param(
 
     [int]$Storage = 180,
 
+    [double]$MaxDphTotal = 0,
+
+    [int]$MinDriverMajor = 0,
+
     [switch]$ExcludeKnownMachines
 )
 
@@ -37,6 +41,12 @@ try {
     )
     if ($ExcludeKnownMachines) {
         $selectorArgs += "--exclude-known"
+    }
+    if ($MaxDphTotal -gt 0) {
+        $selectorArgs += @("--max-dph-total", $MaxDphTotal.ToString([System.Globalization.CultureInfo]::InvariantCulture))
+    }
+    if ($MinDriverMajor -gt 0) {
+        $selectorArgs += @("--min-driver-major", "$MinDriverMajor")
     }
 
     $decisionJson = & D:\code\YuYan\python\python.exe @selectorArgs

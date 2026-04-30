@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +9,10 @@ from typing import Any
 
 DEFAULT_REGISTRY = {
     "machines": [],
+    "blacklist": {
+        "machines": [],
+        "hosts": [],
+    },
     "updated_at": None,
 }
 
@@ -38,6 +43,9 @@ def load_registry(path: Path) -> dict[str, Any]:
         return dict(DEFAULT_REGISTRY)
     data = json.loads(path.read_text(encoding="utf-8"))
     data.setdefault("machines", [])
+    data.setdefault("blacklist", {})
+    data["blacklist"].setdefault("machines", [])
+    data["blacklist"].setdefault("hosts", [])
     data.setdefault("updated_at", None)
     return data
 
@@ -67,9 +75,84 @@ def _successful_machine_ids(registry: dict[str, Any]) -> set[int]:
     return result
 
 
-def choose_offer(offers: list[dict[str, Any]], registry: dict[str, Any], exclude_known: bool = False) -> dict[str, Any]:
+def _blacklisted_ids(registry: dict[str, Any], key: str, id_key: str) -> set[int]:
+    result: set[int] = set()
+    blacklist = registry.get("blacklist", {})
+    for record in blacklist.get(key, []):
+        if isinstance(record, dict):
+            value = record.get(id_key)
+        else:
+            value = record
+        if value is None:
+            continue
+        try:
+            result.add(int(value))
+        except (TypeError, ValueError):
+            continue
+    return result
+
+
+def _filter_blacklisted_offers(offers: list[dict[str, Any]], registry: dict[str, Any]) -> list[dict[str, Any]]:
+    machine_ids = _blacklisted_ids(registry, "machines", "machine_id")
+    host_ids = _blacklisted_ids(registry, "hosts", "host_id")
+    return [
+        offer
+        for offer in offers
+        if int(offer.get("machine_id") or -1) not in machine_ids
+        and int(offer.get("host_id") or -1) not in host_ids
+    ]
+
+
+def _filter_by_max_dph_total(offers: list[dict[str, Any]], max_dph_total: float | None) -> list[dict[str, Any]]:
+    if max_dph_total is None or max_dph_total <= 0:
+        return offers
+    return [
+        offer
+        for offer in offers
+        if _to_float(offer.get("dph_total"), float("inf")) <= max_dph_total
+    ]
+
+
+def _driver_major(value: Any) -> int | None:
+    if value is None:
+        return None
+    match = re.match(r"^\s*(\d+)", str(value))
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def _filter_by_min_driver_major(offers: list[dict[str, Any]], min_driver_major: int | None) -> list[dict[str, Any]]:
+    if min_driver_major is None or min_driver_major <= 0:
+        return offers
+    return [
+        offer
+        for offer in offers
+        if (_driver_major(offer.get("driver_version")) or 0) >= min_driver_major
+    ]
+
+
+def choose_offer(
+    offers: list[dict[str, Any]],
+    registry: dict[str, Any],
+    exclude_known: bool = False,
+    max_dph_total: float | None = None,
+    min_driver_major: int | None = None,
+) -> dict[str, Any]:
     if not offers:
         raise ValueError("No Vast offers available for selection.")
+
+    offers = _filter_blacklisted_offers(offers, registry)
+    if not offers:
+        raise ValueError("No Vast offers remain after excluding blacklisted machines and hosts.")
+
+    offers = _filter_by_max_dph_total(offers, max_dph_total)
+    if not offers:
+        raise ValueError(f"No Vast offers remain after applying max dph_total {max_dph_total}.")
+
+    offers = _filter_by_min_driver_major(offers, min_driver_major)
+    if not offers:
+        raise ValueError(f"No Vast offers remain after applying min driver major {min_driver_major}.")
 
     if exclude_known:
         known_ids = _successful_machine_ids(registry)
@@ -254,6 +337,8 @@ def main() -> int:
     choose_parser.add_argument("--registry-path", required=True)
     choose_parser.add_argument("--offers-path", required=True)
     choose_parser.add_argument("--exclude-known", action="store_true")
+    choose_parser.add_argument("--max-dph-total", type=float)
+    choose_parser.add_argument("--min-driver-major", type=int)
 
     update_parser = subparsers.add_parser("record-run")
     update_parser.add_argument("--registry-path", required=True)
@@ -268,7 +353,13 @@ def main() -> int:
     if args.command == "choose-offer":
         registry = load_registry(Path(args.registry_path))
         offers = _read_json(Path(args.offers_path))
-        decision = choose_offer(offers=offers, registry=registry, exclude_known=args.exclude_known)
+        decision = choose_offer(
+            offers=offers,
+            registry=registry,
+            exclude_known=args.exclude_known,
+            max_dph_total=args.max_dph_total,
+            min_driver_major=args.min_driver_major,
+        )
         print(json.dumps(decision, ensure_ascii=False))
         return 0
 

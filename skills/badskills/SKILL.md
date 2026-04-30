@@ -240,6 +240,29 @@ These failures were observed on the same branch:
   - Root cause: `scripts/destroy_vast_instance.ps1` accepts only `-InstanceId`, but the operator guessed it behaved like the job wrappers
   - Action: call it only as `pwsh -File .\scripts\destroy_vast_instance.ps1 -InstanceId <id>`; resolve the id from `vast-instance.json` before cleanup
 
+- Symptom: KJ 30s workflow fails on RTX 3090 with `type fp8e4nv not supported in this architecture` from TorchInductor/Triton
+  - Root cause: the source KJ workflow included `WanVideoTorchCompileSettings` node `137`, and `WanVideoModelLoader` still referenced `compile_args`; fp8 + inductor compile is not safe on this RTX 3090 path
+  - Action:
+    - remove node `137` in `scripts/prepare_wan22_kj_30s_prompt.mjs`
+    - delete `node 140.inputs.compile_args`
+    - keep `base_precision="fp16"` and `attention_mode="sdpa"`
+    - do not retry by reinstalling torch nightly unless this branch is deliberately redesigned
+
+- Symptom: KJ 30s paid run succeeds, but final run report says failed at `summarize_timings`
+  - Root cause: `vastai logs` on Windows can hit local GBK encoding errors when remote logs contain non-GBK characters, leaving no real stage markers for the timing parser
+  - Action:
+    - force `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8` around `vastai logs`
+    - let timing summary fall back to `history.api.json` for prompt execution time
+    - check `manifest.json.result`, `history.api.json`, and the downloaded file before calling the generation failed
+
+- Symptom: KJ 30s keeps choosing an expensive previously successful machine with no useful cache
+  - Root cause: machine registry preference can overrule cost unless the selector has an explicit price gate and blacklist
+  - Action:
+    - keep `MaxDphTotal=0.215` for `wan22_kj_30s`
+    - keep `MinDriverMajor=580`
+    - blacklist `machine_id=47075` and `host_id=74292`
+    - remember that `warm_start=True` is only a machine-selection mode; it does not prove custom nodes, models, or torch cache hit
+
 ## Fast Triage Order
 
 1. `vastai show instance --raw`

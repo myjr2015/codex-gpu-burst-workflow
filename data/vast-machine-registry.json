@@ -1,4 +1,23 @@
 {
+  "blacklist": {
+    "machines": [
+      {
+        "machine_id": 47075,
+        "host_id": 74292,
+        "reason": "KJ 30s 2.0 repeated paid failures on 2026-04-30, no effective warm cache, dph_total about 0.213333 USD/h.",
+        "added_at": "2026-04-30T08:37:02",
+        "scope": "all_profiles"
+      }
+    ],
+    "hosts": [
+      {
+        "host_id": 74292,
+        "reason": "Avoid re-renting the same expensive Nevada host after repeated KJ 30s failures and ineffective warm cache.",
+        "added_at": "2026-04-30T08:37:02",
+        "scope": "all_profiles"
+      }
+    ]
+  },
   "machines": [
     {
       "machine_id": 56268,
@@ -175,7 +194,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-30T01:57:39"
+    },
+    {
+      "machine_id": 54625,
+      "host_id": 344939,
+      "offer_id": 35423249,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "580.126.09",
+      "geolocation": "California, US",
+      "verification": "verified",
+      "dph_total": 0.19999999999999998,
+      "job_name": "kj30s-2p0-20260430-0850",
+      "instance_id": 35869672,
+      "result": "succeeded",
+      "last_success_at": "2026-04-30T11:06:58",
+      "total_until_download_seconds": 8493.0,
+      "instance_started_to_submit_seconds": null,
+      "prompt_execution": "01:26:55.2640000",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-30T11:22:27"
     }
   ],
-  "updated_at": "2026-04-30T01:57:39"
+  "updated_at": "2026-04-30T11:22:27"
 }

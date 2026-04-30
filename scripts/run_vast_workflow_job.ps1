@@ -311,11 +311,31 @@ try {
         Write-RunReport -Path $paths.RunReportPath -Report $report
 
         $logPath = Join-Path $paths.JobDir ("vast-{0}.log" -f $instance.id)
-        $logOutput = & vastai logs $instance.id --tail $LogTail 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Complete-StepRecord -Step $logStep -Status "failed" -OutputTail @($logOutput | ForEach-Object { "$_" })
-            $report.steps[$stepIndex] = $logStep
-            throw "Log fetch step failed."
+        $previousPythonUtf8 = $env:PYTHONUTF8
+        $previousPythonIoEncoding = $env:PYTHONIOENCODING
+        $env:PYTHONUTF8 = "1"
+        $env:PYTHONIOENCODING = "utf-8"
+        try {
+            $logOutput = & vastai logs $instance.id --tail $LogTail 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Complete-StepRecord -Step $logStep -Status "failed" -OutputTail @($logOutput | ForEach-Object { "$_" })
+                $report.steps[$stepIndex] = $logStep
+                throw "Log fetch step failed."
+            }
+        }
+        finally {
+            if ($null -eq $previousPythonUtf8) {
+                Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+            }
+            else {
+                $env:PYTHONUTF8 = $previousPythonUtf8
+            }
+            if ($null -eq $previousPythonIoEncoding) {
+                Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+            }
+            else {
+                $env:PYTHONIOENCODING = $previousPythonIoEncoding
+            }
         }
         ($logOutput | Out-String) | Set-Content -LiteralPath $logPath -Encoding UTF8
         Complete-StepRecord -Step $logStep -Status "succeeded" -OutputTail @("saved_log=$logPath")
@@ -392,6 +412,8 @@ try {
     if (-not $SkipMachineRegistryUpdate -and (Test-Path -LiteralPath $resolvedRegistryUpdateScript) -and (Test-Path -LiteralPath $paths.TimingSummaryPath) -and ($report.status -ne "failed")) {
         $step = New-StepRecord -Name "update_machine_registry" -ScriptPath $resolvedRegistryUpdateScript -ScriptArgs @(
             "-JobName", $JobName,
+            "-Profile", $Profile,
+            "-ProfileConfigPath", $profileInfo.ConfigPath,
             "-RegistryPath", $MachineRegistryPath
         )
         $report.steps += $step
@@ -400,6 +422,8 @@ try {
 
         $result = Invoke-PwshScriptStep -ScriptPath $resolvedRegistryUpdateScript -ScriptArgs @(
             "-JobName", $JobName,
+            "-Profile", $Profile,
+            "-ProfileConfigPath", $profileInfo.ConfigPath,
             "-RegistryPath", $MachineRegistryPath
         )
         if ($result.ExitCode -ne 0) {
@@ -420,6 +444,30 @@ catch {
     throw
 }
 finally {
+    if ($report.status -eq "failed" -and $DestroyInstance) {
+        try {
+            $instanceForCleanup = Get-InstanceMetadata -InstancePath $paths.InstancePath
+            if ($instanceForCleanup -and $instanceForCleanup.id) {
+                $cleanupStep = New-StepRecord -Name "destroy_on_failure" -ScriptPath $resolvedDestroyScript -ScriptArgs @("-InstanceId", "$($instanceForCleanup.id)")
+                $report.steps += $cleanupStep
+                $cleanupIndex = $report.steps.Count - 1
+                Write-RunReport -Path $paths.RunReportPath -Report $report
+
+                $cleanupResult = Invoke-PwshScriptStep -ScriptPath $resolvedDestroyScript -ScriptArgs @("-InstanceId", "$($instanceForCleanup.id)")
+                if ($cleanupResult.ExitCode -eq 0) {
+                    Complete-StepRecord -Step $cleanupStep -Status "succeeded" -OutputTail $cleanupResult.Output
+                }
+                else {
+                    Complete-StepRecord -Step $cleanupStep -Status "failed" -OutputTail $cleanupResult.Output
+                    $report.warnings += "Destroy on failure failed for instance $($instanceForCleanup.id)."
+                }
+                $report.steps[$cleanupIndex] = $cleanupStep
+            }
+        }
+        catch {
+            $report.warnings += "Destroy on failure raised: $($_.Exception.Message)"
+        }
+    }
     $report.ended_at = (Get-Date).ToString("s")
     Write-RunReport -Path $paths.RunReportPath -Report $report
 }

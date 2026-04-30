@@ -1,0 +1,118 @@
+---
+name: wan22_kj_30s
+description: Use when running the 2.0 KJ single-shot 30s Wan2.2 Animate workflow with one fixed transparent/pure-color IP image, one 30s reference action video, and prompt-redrawn background.
+---
+
+# wan22_kj_30s
+
+## Scope
+
+Use this skill only for the KJ 30s branch:
+
+- workflow: `workflows/书墨-30s长视频-wan2-2AnimateKJ版_v2版-参考动作、表情.json`
+- entry: `scripts/run_wan22_kj_30s_end_to_end.ps1`
+- profile: `wan22_kj_30s`
+- default IP image: `素材资产/美女图无背景纯色/纯色站着.png`
+- default reference video: `素材资产/原视频/光伏30s.mp4`
+- staged image name: `ip_image.png`
+- staged video name: `reference_30s.mp4`
+
+This is not the old `wan_2_2_animate` production branch and not the segmented v3/v4 branch.
+
+## Current Status
+
+Candidate validated run:
+
+- job: `kj30s-2p0-20260430-0850`
+- Vast instance: `35869672`
+- machine: `54625`
+- host: `344939`
+- GPU: `RTX 3090`
+- driver: `580.126.09`
+- location: `California, US`
+- dph_total: `$0.20/h`
+- output: `29.8125s`, `720x720`, `16fps`, with audio
+- local result: `output/wan22_kj_30s/kj30s-2p0-20260430-0850/downloads/wan22_kj_30s-kj30s-2p0-20260430-0850_00001-audio.mp4`
+- public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s/kj30s-2p0-20260430-0850/output/wan22_kj_30s-kj30s-2p0-20260430-0850_00001-audio.mp4`
+
+Quick frame review passed for continuity:
+
+- `output/wan22_kj_30s/kj30s-2p0-20260430-0850/frame_review/contact-2s.jpg`
+- `output/wan22_kj_30s/kj30s-2p0-20260430-0850/frame_review/keyframes.jpg`
+
+## Runtime Rules
+
+Before any paid run, also read:
+
+- `skills/okskills/SKILL.md`
+- `skills/badskills/SKILL.md`
+
+Default command:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_end_to_end.ps1 `
+  -JobName <job_name> `
+  -RuntimeVersion 1.1-machine-registry `
+  -CancelUnavail
+```
+
+Use `PrepareOnly` before paid changes:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_end_to_end.ps1 `
+  -JobName prepareonly-kj30s-<date>-<n> `
+  -PrepareOnly
+```
+
+## Machine Selection
+
+Required defaults:
+
+- exclude `CN` and `TR`
+- `MaxDphTotal=0.215`
+- `MinDriverMajor=580`
+- `DiskGb=240`
+- only enable `WarmStart` when the selector chooses a known successful machine
+
+Blacklisted:
+
+- `machine_id=47075`
+- `host_id=74292`
+
+Reason: repeated KJ 30s paid failures, no useful warm cache, and higher effective price.
+
+## Critical Runtime Patches
+
+The KJ workflow must be converted before running on Vast.
+
+Required runtime changes:
+
+- remove node `137` (`WanVideoTorchCompileSettings`)
+- remove `WanVideoModelLoader.inputs.compile_args`
+- set node `140`:
+  - `base_precision="fp16"`
+  - `attention_mode="sdpa"`
+- keep only output node `156` with `save_output=true`
+- remove helper/preview nodes: `143,148,157,158,159,165,166,170,174,180,183`
+- patch `WanVideoSampler` node `168` explicitly:
+  - `steps=6`
+  - `cfg=1`
+  - `shift=3`
+  - `force_offload=true`
+  - `scheduler="dpm++_sde"`
+  - `batched_cfg=false`
+  - `rope_function="comfy"`
+
+Do not restore torch compile for RTX 3090. It caused fp8/TorchInductor errors.
+
+## Cost Profile
+
+Validated cold start on `machine_id=54625`:
+
+- total until local download: `8493s`
+- prompt execution from ComfyUI history: `5215.264s`
+- approximate paid instance time: about `2h21m`
+- approximate instance cost at `$0.20/h`: `$0.47`
+
+This branch is much slower than segmented v3. Treat it as quality candidate, not cost-optimized production.
+

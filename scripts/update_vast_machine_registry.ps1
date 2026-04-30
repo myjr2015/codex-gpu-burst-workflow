@@ -2,6 +2,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$JobName,
 
+    [string]$Profile = "wan_2_2_animate",
+
+    [string]$ProfileConfigPath = ".\config\vast-workflow-profiles.json",
+
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
     [string]$LocalCodexHome = "$env:USERPROFILE\.codex"
@@ -10,7 +14,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path ".").Path
-$jobDir = Join-Path $repoRoot ("output\wan_2_2_animate\" + $JobName)
+$resolvedProfileConfig = (Resolve-Path -LiteralPath $ProfileConfigPath).Path
+$profileConfig = Get-Content -Raw $resolvedProfileConfig | ConvertFrom-Json -AsHashtable
+if (-not $profileConfig.profiles.ContainsKey($Profile)) {
+    throw "Unknown profile '$Profile' in $resolvedProfileConfig"
+}
+$profileDef = $profileConfig.profiles[$Profile]
+$jobDir = Join-Path (Join-Path $repoRoot $profileDef.job_root) $JobName
 $registryResolved = Join-Path $repoRoot $RegistryPath
 $scriptPath = Join-Path $repoRoot "scripts\vast_machine_registry.py"
 $instancePath = Join-Path $jobDir "vast-instance.json"
