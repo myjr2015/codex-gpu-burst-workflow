@@ -75,8 +75,7 @@ if (-not $DisableHfSpeedTest) {
     $extraEnvItems += ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds)
 }
 if ($extraEnvItems.Count -gt 0) {
-    $createArgs += "-ExtraEnv"
-    $createArgs += $extraEnvItems
+    $createArgs += @("-ExtraEnv", ($extraEnvItems -join ","))
 }
 if ($MountArgs.Count -gt 0) {
     $createArgs += @("-MountArgs", $MountArgs)
