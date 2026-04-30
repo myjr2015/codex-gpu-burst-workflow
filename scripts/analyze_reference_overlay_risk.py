@@ -154,6 +154,41 @@ def bbox_to_norm(bbox, width, height):
     ]
 
 
+def classify_cleanup_candidate(component):
+    label = component["label"]
+    near_body = bool(component["near_body_roi"])
+    x1, y1, x2, y2 = component["bbox_norm"]
+    width = x2 - x1
+    height = y2 - y1
+    area_ratio = component["area_ratio"]
+    is_large = area_ratio >= 0.006 or width >= 0.22 or height >= 0.16
+
+    if near_body and is_large:
+        safety_level = "needs_review"
+        action = "conservative_desaturate_or_manual_review"
+    elif near_body:
+        safety_level = "conservative"
+        action = "desaturate_blur"
+    elif label == "red":
+        safety_level = "auto"
+        action = "desaturate_blur"
+    elif label in ("yellow", "magenta"):
+        safety_level = "auto"
+        action = "local_blur_or_fill"
+    else:
+        safety_level = "auto"
+        action = "local_blur_if_ui_like"
+
+    return {
+        "label": label,
+        "bbox_norm": component["bbox_norm"],
+        "area_ratio": area_ratio,
+        "near_body_roi": near_body,
+        "safety_level": safety_level,
+        "suggested_action": action,
+    }
+
+
 def analyze_frame(frame_path, time_seconds):
     image = load_analysis_image(frame_path)
     width, height = image.size
@@ -267,6 +302,24 @@ def analyze_frame(frame_path, time_seconds):
     else:
         level = "none"
 
+    cleanup_candidates = []
+    for component in top_components:
+        if component["area_ratio"] < 0.00028:
+            continue
+        cleanup_candidates.append(classify_cleanup_candidate(component))
+
+    if white_bottom_ratio >= 0.009:
+        cleanup_candidates.append(
+            {
+                "label": "white_subtitle",
+                "bbox_norm": [0.12, 0.72, 0.88, 0.98],
+                "area_ratio": round(white_bottom_ratio, 6),
+                "near_body_roi": True,
+                "safety_level": "conservative",
+                "suggested_action": "bottom_subtitle_masked_blur_or_fill",
+            }
+        )
+
     return {
         "frame": frame_path.name,
         "time_seconds": round(time_seconds, 3),
@@ -281,6 +334,7 @@ def analyze_frame(frame_path, time_seconds):
             "white_bottom_ratio": round(white_bottom_ratio, 6),
         },
         "components": top_components,
+        "cleanup_candidates": cleanup_candidates,
     }
 
 
@@ -348,6 +402,77 @@ def color_for_label(label):
         "cyan": (30, 210, 230),
         "magenta": (230, 50, 230),
     }.get(label, (255, 255, 255))
+
+
+def candidate_key(candidate):
+    x1, y1, x2, y2 = candidate["bbox_norm"]
+    cx = (x1 + x2) / 2
+    cy = (y1 + y2) / 2
+    return f"{candidate['label']}:{int(cx * 10):02d}:{int(cy * 10):02d}"
+
+
+def build_cleanup_plan(windows, frame_records, max_boxes_per_window=12):
+    plans = []
+    for window in windows:
+        candidates_by_key = {}
+        for record in frame_records:
+            if record["time_seconds"] < window["start_seconds"] or record["time_seconds"] > window["end_seconds"]:
+                continue
+            for candidate in record.get("cleanup_candidates", []):
+                key = candidate_key(candidate)
+                existing = candidates_by_key.get(key)
+                if existing is None or candidate["area_ratio"] > existing["area_ratio"]:
+                    candidates_by_key[key] = candidate
+
+        mask_boxes = sorted(
+            candidates_by_key.values(),
+            key=lambda item: (
+                item["safety_level"] == "needs_review",
+                item["safety_level"] == "conservative",
+                item["area_ratio"],
+            ),
+            reverse=True,
+        )[:max_boxes_per_window]
+
+        safety_order = {"auto": 0, "conservative": 1, "needs_review": 2}
+        safety_level = "auto"
+        if mask_boxes:
+            safety_level = max(mask_boxes, key=lambda item: safety_order.get(item["safety_level"], 0))[
+                "safety_level"
+            ]
+        if "overlay_near_body_area" in window["reasons"] and safety_level == "auto":
+            safety_level = "conservative"
+
+        if safety_level == "needs_review":
+            action = "review_before_aggressive_cleanup"
+        elif any(item["label"] == "white_subtitle" for item in mask_boxes):
+            action = "bottom_subtitle_masked_cleanup"
+        elif any(item["suggested_action"] == "local_blur_or_fill" for item in mask_boxes):
+            action = "local_blur_or_fill"
+        elif mask_boxes:
+            action = "desaturate_blur"
+        else:
+            action = "review_only"
+
+        plans.append(
+            {
+                "start_seconds": window["start_seconds"],
+                "end_seconds": window["end_seconds"],
+                "segment_index": window["segment_index"],
+                "segment_start_index": window.get("segment_start_index", window["segment_index"]),
+                "segment_end_index": window.get("segment_end_index", window["segment_index"]),
+                "segment_local_start_seconds": window["segment_local_start_seconds"],
+                "segment_local_end_seconds": window["segment_local_end_seconds"],
+                "level": window["level"],
+                "max_score": window["max_score"],
+                "reasons": window["reasons"],
+                "suggested_action": action,
+                "safety_level": safety_level,
+                "mask_boxes_norm": mask_boxes,
+                "needs_review": safety_level == "needs_review",
+            }
+        )
+    return plans
 
 
 def make_contact_sheet(frame_records, frames_dir, output_path, max_frames):
@@ -549,6 +674,7 @@ def main():
         "high_threshold": args.high_threshold,
         "frames_sampled": len(frame_records),
         "windows": windows,
+        "cleanup_plan": build_cleanup_plan(windows, frame_records),
         "frames": frame_records,
     }
 

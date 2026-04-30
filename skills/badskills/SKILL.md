@@ -287,7 +287,9 @@ These failures were observed on the same branch:
   - Action:
     - treat this as reference-video preprocessing debt, not a prompt, merge, or Vast machine issue
     - before paid reruns, run `scripts/analyze_reference_overlay_risk.py` on the source/reference video and inspect its contact sheet
+    - do not treat `scripts/clean_reference_overlay_windows.py` output as passed just because it produced `cleaned_reference.mp4`; the 2026-05-01 `光伏60s.mp4` conservative_v9 run still failed because near-body text remained or became gray blocks and risk-after stayed high
     - clean high-risk reference regions that touch the body, hands, face, key props, or contain bright red/yellow UI tokens; use masking, cropping, blurring, or inpainting depending on how close the overlay is to the body
+    - if the before/after sheet still shows readable banners/subtitles, large gray patches, or any face/hand/body damage, stop before Vast stage/inference and escalate to OCR/SAM/GroundingDINO masks or real inpainting
     - after generation, run `scripts/analyze_generated_artifact_risk.py` and inspect the flagged windows; if the defect is only a small isolated red dot, prefer final-video local repair; if the defect changes hands/face/body structure, clean the reference window and rerun only the affected 30s segment
     - after cleaning, re-split into 30s segments and rerun with the same IP image, seed, and fixed background prompt
     - inspect the cleaned reference around each original problem window before renting another full inference pass

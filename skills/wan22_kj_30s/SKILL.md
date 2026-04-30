@@ -56,6 +56,18 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
   -MaxSegments 2
 ```
 
+B2 validation result:
+
+- job: `kj60-b2-bgmask-20260501-0100`
+- instance kept alive after validation: `35889784`
+- machine: `31054`
+- host: `93447`
+- GPU/location: `RTX 4090`, `Sweden, SE`
+- output: `59.648s`, `720x720`, `16fps`, with audio
+- visual acceptance: `pass` after quick review of keyframes, `26-30s`, `28-33s` seam, `48-52s`, and automatic risk closeups
+- local result: `output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/downloads/wan22_kj_30s_segmented-kj60-b2-bgmask-20260501-0100.mp4`
+- note: this B2 pass does not mean reference-video cleaning 2.1 passed; keep the reference-cleaning gate separate.
+
 ## Current Status
 
 Candidate validated run:
@@ -182,7 +194,8 @@ Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
 - `2.0 B2`: current fixed-scene background anchor validation path. Keep the pure IP image as person reference and connect one repeated background anchor image plus IP alpha mask into `WanVideoAnimateEmbeds`.
-- `2.1`: implement a general reference-video pollution preprocessor before paid inference. Start from rule-based overlay detection and mask generation, then evaluate video-level inpainting such as ProPainter / E2FGVI for subtitles, banners, stickers, and location bubbles that persist across frames.
+- `2.1`: local rule-based preprocessor exists, but the 2026-05-01 `光伏60s.mp4` conservative_v9 validation failed. It can generate `cleanup_plan`, `cleaned_reference.mp4`, `cleaning-report.json`, and before/after sheets, but it must not be treated as a passed cleaner when near-body text/labels remain or turn into gray blocks. If risk-after is still high or the before/after sheet shows residual UI, stop before stage/inference.
+- `2.1` next step: use more precise OCR/SAM/GroundingDINO masks or video/image inpainting such as ProPainter / E2FGVI / LaMa for subtitles, banners, stickers, and location bubbles that persist across frames.
 - `2.2`: evaluate lighter local repair such as LaMa / MAT, Crop & Stitch, SAM / GroundingDINO / OCR masks, or color-token cleanup for red pins, checkmarks, and small sticker residue.
 - Roadmap details live in `docs/KJ参考视频清理方案TODO.md`.
 

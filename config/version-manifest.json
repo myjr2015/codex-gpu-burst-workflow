@@ -137,7 +137,52 @@
         "mask": "LoadImageMask alpha from ip_image.png -> InvertMask -> GrowMask",
         "wan_video_animate_embeds_node": "171"
       },
+      "reference_overlay_cleaning": {
+        "status": "local_rule_preprocessor_failed",
+        "analyzer": "scripts/analyze_reference_overlay_risk.py",
+        "cleaner": "scripts/clean_reference_overlay_windows.py",
+        "gate": "Run analyzer before and after cleaning, inspect before/after contact sheet, and do not enter Vast stage/inference unless both human review and risk-after pass.",
+        "latest_local_validation": {
+          "validated_at": "2026-05-01T05:18:00+08:00",
+          "source_video": "素材资产/原视频/光伏60s.mp4",
+          "output_video": "output/reference_cleaning/kj60-2p1-20260501/conservative_v9/cleaned_reference.mp4",
+          "before_after_sheet": "output/reference_cleaning/kj60-2p1-20260501/conservative_v9/cleaning/before-after-contact-sheet.jpg",
+          "risk_after_report": "output/reference_cleaning/kj60-2p1-20260501/conservative_v9/risk-after/overlay-risk-report.json",
+          "risk_after_window": "0.0s-59.8s",
+          "risk_after_max_score": 8.065,
+          "visual_acceptance": "failed",
+          "notes": "The local rule cleaner removed or muted some safe upper overlays and small tokens, but near-body speech bubbles, mid-body text, and bottom subtitles remained visible or became gray blocks. This is not a valid reference for paid KJ inference."
+        }
+      },
       "validated_runs": [
+        {
+          "job_name": "kj60-b2-bgmask-20260501-0100",
+          "validated_at": "2026-05-01T01:00:00+08:00",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35889784,
+          "machine_id": 31054,
+          "host_id": 93447,
+          "gpu": "RTX 4090",
+          "geolocation": "Sweden, SE",
+          "segment_count": 2,
+          "segment_seconds": 30,
+          "b2_background_conditioning": true,
+          "merge_mode": "concat_copy_manual",
+          "merged_duration_seconds": 59.648,
+          "output_resolution": "720x720",
+          "output_fps": 16,
+          "has_audio": true,
+          "visual_acceptance": "passed_quick_manual_review",
+          "notes": "B2 background-anchor validation reused the same pure seated IP image, same generated bg_image.png, same prompt/negative/seed, and IP-alpha-derived mask for both 30s segments. Quick review of keyframes, 26-30s, 28-33s seam, 48-52s, and automatic risk closeups found no double head, duplicate person, or obvious hand-structure collapse. This pass does not override the separate 2.1 reference-cleaning gate.",
+          "frame_review_paths": [
+            "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/keyframes_5s_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/window_26_30s_4fps_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/window_28_33s_4fps_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/window_48_52s_4fps_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/risk_closeups_sheet.jpg"
+          ],
+          "local_result_path": "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/downloads/wan22_kj_30s_segmented-kj60-b2-bgmask-20260501-0100.mp4"
+        },
         {
           "job_name": "kj30s-seg60-4090-nl-20260430-133517",
           "validated_at": "2026-04-30T16:03:11",
