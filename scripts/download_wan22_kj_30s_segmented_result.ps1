@@ -252,6 +252,54 @@ function Find-OutputCandidateByPrefix {
         Select-Object -First 1
 }
 
+function Test-RemoteSegmentEnded {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Logs,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SegmentId
+    )
+
+    $escaped = [regex]::Escape($SegmentId)
+    $patterns = @(
+        "remote\.segment_$escaped\s+end",
+        "\[remote-kj30s-segmented\]\s+segment_$escaped\s+end"
+    )
+
+    foreach ($line in $Logs) {
+        foreach ($pattern in $patterns) {
+            if ($line -match $pattern) {
+                return $true
+            }
+        }
+    }
+
+    $false
+}
+
+function New-PredictedOutputCandidate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SegmentId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix
+    )
+
+    [pscustomobject]@{
+        PromptId = "history_unavailable_segment_$SegmentId"
+        NodeId = "156"
+        Timestamp = 0
+        Filename = "${Prefix}_00001-audio.mp4"
+        Type = "output"
+        Subfolder = ""
+        Format = "video/h264-mp4"
+        FrameRate = 16.0
+        FullPath = ""
+    }
+}
+
 function Get-VideoDurationSeconds {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -318,6 +366,18 @@ for ($check = 1; $check -le $MaxChecks; $check += 1) {
             $candidate = Find-OutputCandidateByPrefix -History $history -Prefix ([string]$segment.output_prefix)
             if ($candidate) {
                 $segmentCandidates[[string]$segment.id] = $candidate
+            }
+        }
+        if ($segmentCandidates.Count -lt $segments.Count -and -not [string]::IsNullOrWhiteSpace($instanceId)) {
+            $logs = Get-VastLogTailSafe -InstanceId $instanceId -Tail 20000
+            foreach ($segment in $segments) {
+                $segmentId = [string]$segment.id
+                if ($segmentCandidates.ContainsKey($segmentId)) {
+                    continue
+                }
+                if (Test-RemoteSegmentEnded -Logs $logs -SegmentId $segmentId) {
+                    $segmentCandidates[$segmentId] = New-PredictedOutputCandidate -SegmentId $segmentId -Prefix ([string]$segment.output_prefix)
+                }
             }
         }
         if ($segmentCandidates.Count -ge $segments.Count) {

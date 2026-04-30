@@ -128,7 +128,36 @@
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
       "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. Initial target is 60s as two 30s segments on a reused RTX 4090-class machine.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
-      "segment_seconds": 30
+      "segment_seconds": 30,
+      "validated_runs": [
+        {
+          "job_name": "kj30s-seg60-4090-nl-20260430-133517",
+          "validated_at": "2026-04-30T16:03:11",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35881500,
+          "machine_id": 54495,
+          "host_id": 213498,
+          "gpu": "RTX 4090",
+          "driver_version": "590.48.01",
+          "geolocation": "Netherlands",
+          "dph_total": 0.37333333333333335,
+          "segment_count": 2,
+          "segment_seconds": 30,
+          "merge_mode": "concat_copy",
+          "merged_duration_seconds": 59.648,
+          "visual_acceptance": "accepted_after_s02fix",
+          "notes": "Initial two-segment output technically merged but failed visual review because segment 2 hallucinated a standing duplicate/background person. The live instance was kept, only segment 2 was rerun with a new seed and stronger single-seated-person prompt/negative prompt, then s01 + s02fix were merged and frame reviewed.",
+          "frame_review_paths": [
+            "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-keyframes-5s.jpg",
+            "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-second-half-1s.jpg",
+            "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-45s.jpg",
+            "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-50s.jpg",
+            "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-55s.jpg"
+          ],
+          "local_result_path": "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/downloads/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/output/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4"
+        }
+      ]
     },
     {
       "id": "segmented-v1",

@@ -69,6 +69,43 @@ RTX 4090 comparison run:
 - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s/kj30s-4090-greece-20260430-121150/output/wan22_kj_30s-kj30s-4090-greece-20260430-121150_00001-audio.mp4`
 - quick frame review: `output/wan22_kj_30s/kj30s-4090-greece-20260430-121150/frame_review/keyframes-3s.jpg`
 
+60s segmented RTX 4090 run:
+
+- job: `kj30s-seg60-4090-nl-20260430-133517`
+- Vast instance: `35881500` (destroyed after accepted output was published)
+- machine: `54495`
+- host: `213498`
+- GPU: `RTX 4090`
+- driver: `590.48.01`
+- location: `Netherlands`
+- dph_total: `$0.37333333333333335/h`
+- HF speedtest: `40.22 MiB/s`, estimated cold model download `13.8 min`
+- actual model downloads: about `16m50s`
+- first output attempt:
+  - segment 1: `29.8125s`, `720x720`, `16fps`
+  - segment 2: `29.8125s`, `720x720`, `16fps`
+  - merged duration: `59.648s`
+  - visual acceptance: failed, because the back half showed a large standing duplicate/background person
+- accepted `s02fix` attempt:
+  - reused the same live instance and cached models
+  - reran only segment 2 with a new seed and stronger single-seated-person prompt/negative prompt
+  - merged `s01 + s02fix` with local `ffmpeg concat_copy`
+  - output: `59.648s`, `720x720`, `16fps`, with audio
+  - local result: `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/downloads/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4`
+  - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/output/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4`
+  - frame review:
+    - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-keyframes-5s.jpg`
+    - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-second-half-1s.jpg`
+    - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-45s.jpg`
+    - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-50s.jpg`
+    - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-55s.jpg`
+
+Important lesson:
+
+- The 30s KJ workflow can hallucinate a second standing person when the fixed IP image is a full-body standing figure but the reference action video is seated.
+- The first fix to try is not a merge change. Rerun the affected segment on the same live instance with a new seed, positive prompt emphasizing `single seated woman / one person only / no background people`, and negative prompt banning `second person / duplicate body / standing woman / person behind / ghost / double exposure`.
+- Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
+
 ## Runtime Rules
 
 Before any paid run, also read:
