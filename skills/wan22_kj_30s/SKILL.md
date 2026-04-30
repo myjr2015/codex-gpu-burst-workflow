@@ -40,6 +40,25 @@ Quick frame review passed for continuity:
 - `output/wan22_kj_30s/kj30s-2p0-20260430-0850/frame_review/contact-2s.jpg`
 - `output/wan22_kj_30s/kj30s-2p0-20260430-0850/frame_review/keyframes.jpg`
 
+RTX 4090 comparison run:
+
+- job: `kj30s-4090-greece-20260430-121150`
+- Vast instance: `35877643`
+- machine: `50910`
+- host: `283684`
+- GPU: `RTX 4090`
+- driver: `580.126.09`
+- location: `Greece, GR`
+- dph_total: `$0.3155555555555556/h`
+- HF speedtest: `89.04 MiB/s`, estimated cold model download `6.2 min`
+- actual model downloads: `474s`
+- prompt execution: `00:36:13`
+- total until local download: `2995s`
+- output: `29.8125s`, `720x720`, `16fps`, with audio
+- local result: `output/wan22_kj_30s/kj30s-4090-greece-20260430-121150/downloads/wan22_kj_30s-kj30s-4090-greece-20260430-121150_00001-audio.mp4`
+- public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s/kj30s-4090-greece-20260430-121150/output/wan22_kj_30s-kj30s-4090-greece-20260430-121150_00001-audio.mp4`
+- quick frame review: `output/wan22_kj_30s/kj30s-4090-greece-20260430-121150/frame_review/keyframes-3s.jpg`
+
 ## Runtime Rules
 
 Before any paid run, also read:
@@ -174,4 +193,12 @@ Validated cold start on `machine_id=54625`:
 - approximate paid instance time: about `2h21m`
 - approximate instance cost at `$0.20/h`: `$0.47`
 
-This branch is much slower than segmented v3. Treat it as quality candidate, not cost-optimized production.
+Validated RTX 4090 cold start on `machine_id=50910`:
+
+- total until local download: `2995s`
+- prompt execution from ComfyUI history: `00:36:13`
+- actual model download stage: `474s`
+- approximate paid instance time: about `50 min`
+- approximate instance cost at `$0.3155555555555556/h`: `$0.263`
+
+The 4090 run was faster than the 3090 baseline mainly in both model download and prompt execution, but it is still a high-cost quality candidate rather than a cost-optimized production path.

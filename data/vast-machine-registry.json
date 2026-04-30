@@ -216,7 +216,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-30T11:22:27"
+    },
+    {
+      "machine_id": 50910,
+      "host_id": 283684,
+      "offer_id": 28695564,
+      "gpu_name": "RTX 4090",
+      "gpu_ram": 24564,
+      "driver_version": "580.126.09",
+      "geolocation": "Greece, GR",
+      "verification": "verified",
+      "dph_total": 0.3155555555555556,
+      "job_name": "kj30s-4090-greece-20260430-121150",
+      "instance_id": 35877643,
+      "result": "succeeded",
+      "last_success_at": "2026-04-30T13:01:47",
+      "total_until_download_seconds": 2995.0,
+      "instance_started_to_submit_seconds": 783.0,
+      "prompt_execution": "00:36:13",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-04-30T13:01:59"
     }
   ],
-  "updated_at": "2026-04-30T11:22:27"
+  "updated_at": "2026-04-30T13:01:59"
 }
