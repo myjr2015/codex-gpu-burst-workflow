@@ -126,7 +126,7 @@
       "workflow_branch": "wan22_kj_30s_segmented",
       "status": "experimental",
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
-      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. Initial target is 60s as two 30s segments on a reused RTX 4090-class machine.",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
       "segment_seconds": 30,
       "validated_runs": [
@@ -179,6 +179,30 @@
           ],
           "local_result_path": "output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/downloads/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4",
           "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/output/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4"
+        },
+        {
+          "job_name": "kj60-cleanref-v7-2seg-20260430-2145",
+          "validated_at": "2026-04-30T22:30:00",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35889784,
+          "machine_id": 31054,
+          "host_id": 93447,
+          "gpu": "RTX 4090",
+          "geolocation": "Sweden, SE",
+          "dph_total": 0.351111,
+          "segment_count": 2,
+          "segment_seconds": 30,
+          "merge_mode": "concat_copy_manual",
+          "merged_duration_seconds": 59.648,
+          "visual_acceptance": "improved_but_artifact_found",
+          "notes": "The run reused the previously accepted first 30s segment and reran only segment 2 after cleaning the 49.3s-52.0s hand-anchor overlay window in the 60s reference. The prior hand/multi-hand drift around final 49.5s-50.5s improved, but detailed review found a short-lived red point around final 29.6s near the right leg/chair area. Corresponding reference frames around 26s-30s contain red UI tokens such as checkmarks and a location bubble. Conclusion: overlay contamination is probabilistic and can manifest as extra hands, hand drift, red dots, or sticker residue; acceptances require both preflight reference-overlay review and postflight generated-artifact review.",
+          "frame_review_paths": [
+            "output/wan22_kj_30s_segmented/kj60-cleanref-v7-2seg-20260430-2145/frame_review/red_dot_26_30/generated-26-30-0p5s.jpg",
+            "output/wan22_kj_30s_segmented/kj60-cleanref-v7-2seg-20260430-2145/frame_review/red_dot_26_30/reference-26-30-0p5s.jpg",
+            "output/wan22_kj_30s_segmented/kj60-cleanref-v7-2seg-20260430-2145/frame_review/generated_artifact_auto/generated-artifact-contact-sheet.jpg"
+          ],
+          "local_result_path": "output/wan22_kj_30s_segmented/kj60-cleanref-v7-2seg-20260430-2145/downloads/wan22_kj_30s_segmented-kj60-cleanref-v7-2seg-20260430-2145.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj60-cleanref-v7-2seg-20260430-2145/output/wan22_kj_30s_segmented-kj60-cleanref-v7-2seg-20260430-2145.mp4"
         }
       ]
     },

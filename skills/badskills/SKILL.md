@@ -273,17 +273,24 @@ These failures were observed on the same branch:
     - if no tested offer passes, destroy those instances and continue with the next candidate batch
     - do not run full bootstrap or inference before the HF gate passes
 
-- Symptom: KJ 30s segmented output has hand drift, extra hands, or unexpected hand gestures around a time where the reference video has large sticker text, subtitles, location banners, or other overlay text
-  - Root cause: the overlay text may not be redrawn into the final video, but it still contaminates the reference motion / pose / expression conditioning; the model then guesses the occluded hand/body motion and can hallucinate extra hands or gestures
+- Symptom: KJ 30s segmented output has hand drift, extra hands, unexpected hand gestures, a short-lived red dot, sticker residue, or local limb/body distortion around a time where the reference video has large sticker text, subtitles, red checkmarks, location pins, banners, or other overlay UI
+  - Root cause: the overlay may not be redrawn into the final video, but it still contaminates the reference motion / pose / expression conditioning; the model then guesses the occluded hand/body motion or leaks small visual tokens from the reference
+  - Important: this failure is probabilistic. The same reference overlay may pass in one segment/run and leak in another; fixed seed improves repeatability of one run, but it does not prove the source is safe for future long-video segmentation.
   - Evidence from `kj60-bgprompt-anchor-4090-20260430-194236`:
     - final `49.5s-50.5s` frames did not reproduce the large text banner
     - corresponding `reference_segment_02.mp4` `19.5s-20.5s` frames contained large sticker/location text over the lower body and hand area
     - generated output showed hand-motion drift in the same interval even though the prompt and background were stable
+  - Evidence from `kj60-cleanref-v7-2seg-20260430-2145`:
+    - after cleaning the hand-risk banner window, the hand/multi-hand issue was improved
+    - final `26s-30s` review still found a short-lived red point near the leg/chair area around `29.6s`
+    - corresponding reference frames contain red UI elements such as a checkmark and location bubble, which can leak as tiny artifacts even when body motion is acceptable
   - Action:
     - treat this as reference-video preprocessing debt, not a prompt, merge, or Vast machine issue
-    - before paid reruns, clean the source/reference video by masking, cropping, blurring, or inpainting large overlay text regions that touch the body, hands, face, or key props
+    - before paid reruns, run `scripts/analyze_reference_overlay_risk.py` on the source/reference video and inspect its contact sheet
+    - clean high-risk reference regions that touch the body, hands, face, key props, or contain bright red/yellow UI tokens; use masking, cropping, blurring, or inpainting depending on how close the overlay is to the body
+    - after generation, run `scripts/analyze_generated_artifact_risk.py` and inspect the flagged windows; if the defect is only a small isolated red dot, prefer final-video local repair; if the defect changes hands/face/body structure, clean the reference window and rerun only the affected 30s segment
     - after cleaning, re-split into 30s segments and rerun with the same IP image, seed, and fixed background prompt
-    - inspect the cleaned reference around the original problem window before renting another full inference pass
+    - inspect the cleaned reference around each original problem window before renting another full inference pass
 
 ## Fast Triage Order
 

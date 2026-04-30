@@ -115,11 +115,27 @@ RTX 4090 comparison run:
 - diagnosis:
   - final generated frames did not keep the large sticker text from the reference
   - the corresponding reference-video window was segment 2 `19.5s-20.5s`, where large sticker/location text covered the lower body and hand area
-  - this overlay likely polluted the pose/action condition and made the model invent hand motion
+  - this overlay likely polluted the pose/action condition and made the model invent hand motion / extra hand states
 - local review evidence:
   - final frames: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/problem_49p5_50p5_0p1s/contact-sheet-49p5-50p5.jpg`
   - reference frames: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/reference_s02_19p5_20p5_0p1s/contact-sheet-ref-s02-19p5-20p5.jpg`
   - merged output: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/downloads/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4`
+
+60s cleaned-reference rerun:
+
+- job: `kj60-cleanref-v7-2seg-20260430-2145`
+- GPU: `RTX 4090`
+- setup:
+  - reused accepted `s01` from `kj60-bgprompt-anchor-4090-20260430-194236`
+  - cleaned only the high-risk hand-anchor window in the second 30s reference segment
+  - reran `s02`, then merged old `s01` + new `s02`
+- result:
+  - hand / multi-hand issue around final `49.5s-50.5s` improved
+  - later review found a short-lived red point around final `29.6s`, near the right leg/chair side
+- diagnosis:
+  - reference `26s-30s` contains red UI elements such as checkmarks and location bubbles
+  - KJ conditioning can leak those non-human tokens as small artifacts even if it does not reproduce the full sticker
+  - this behavior is probabilistic: the first 30s may pass even when the same class of overlay exists, while another run/segment leaks it
 
 Important lesson:
 
@@ -127,7 +143,12 @@ Important lesson:
 - The first fix is to use a posture-matched IP image selected from the reference video / inferred prompt. For the current seated photovoltaic reference videos, use `纯色坐着.png`; for other source videos, do not hard-code seated props or chairs.
 - Fixed seed only makes a run reproducible. It does not guarantee semantic continuity across independent 30s segments.
 - For 60s/90s/120s segmented tests, keep the same IP image, same seed, same inferred prompt, and same negative prompt across all segments; concrete props and scene details should come from the video-to-prompt step, not from generic hard-coded rules.
-- Large sticker text, subtitles, location banners, and other overlays in the reference video can contaminate KJ pose/action conditioning even when the final image does not redraw the text. If overlays touch the body, hands, face, or key props, clean the reference video first, then split into 30s segments.
+- Large sticker text, subtitles, location banners, red checkmarks, location pins, and other overlays in the reference video can contaminate KJ pose/action conditioning even when the final image does not redraw the text. If overlays touch the body, hands, face, or key props, clean the reference video first, then split into 30s segments.
+- This class of failure must be handled as a two-gate quality process:
+  - preflight: run `scripts/analyze_reference_overlay_risk.py` and inspect high-risk overlay windows before paid inference
+  - postflight: run `scripts/analyze_generated_artifact_risk.py` and inspect flagged windows after merge
+  - if the final defect is only a small isolated red point or sticker speck, prefer local final-video repair
+  - if hands, face, body shape, or chair/contact structure are wrong, clean the matching reference window and rerun only that 30s segment
 - Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
 
 ## Runtime Rules
