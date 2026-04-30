@@ -104,9 +104,9 @@ RTX 4090 comparison run:
 Important lesson:
 
 - The 30s KJ workflow can hallucinate a second standing person when the fixed IP image is a full-body standing figure but the reference action video is seated.
-- The first fix is to use the posture-matched IP image. For seated reference videos, use `纯色坐着.png`; do not use `纯色站着.png`.
+- The first fix is to use a posture-matched IP image selected from the reference video / inferred prompt. For the current seated photovoltaic reference videos, use `纯色坐着.png`; for other source videos, do not hard-code seated props or chairs.
 - Fixed seed only makes a run reproducible. It does not guarantee semantic continuity across independent 30s segments.
-- For 60s/90s/120s segmented tests, use the same seated IP image, same seed, same prompt, and same negative prompt across all segments; then frame-review every segment boundary before calling the result accepted.
+- For 60s/90s/120s segmented tests, keep the same IP image, same seed, same inferred prompt, and same negative prompt across all segments; concrete props and scene details should come from the video-to-prompt step, not from generic hard-coded rules.
 - Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
 
 ## Runtime Rules

@@ -6,9 +6,9 @@ param(
 
     [string]$VideoPath = ".\素材资产\原视频\光伏60s.mp4",
 
-    [string]$Prompt = "固定同一个女性IP，在现代户外光伏发电场景中自然口播介绍产品。画面中只有一个女性主体，全程坐在同一把椅子上，椅子形态和人物比例保持一致，保持参考视频中的动作、表情、口型节奏和坐姿身体姿态。背景根据提示词重绘为真实光伏板场景，背景里不要人物，镜头固定，人物边缘干净，身份和五官稳定。 single seated woman, one person only, same chair, no background people.",
+    [string]$Prompt = "固定同一个女性IP，在现代户外光伏发电场景中自然口播介绍产品。画面中只有一个女性主体，保持参考视频中的动作、表情、口型节奏、身体姿态和关键道具关系；背景和道具根据视频反推提示词重绘，不额外强加视频里没有的物体。镜头稳定，人物边缘干净，身份和五官稳定。 one person only, same character, prompt-guided scene and props, no background people.",
 
-    [string]$NegativePrompt = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，第二个人，双人，两个女人，重复人物，重复身体，重复头部，额外身体，额外躯干，站立人物，站着的女人，背景里的大人物，身后站人，幽灵人影，残影，透明人，双曝光，镜像身体，倒影身体，影子人物，多个人，多把椅子，椅子消失，椅子变形，multiple people, second person, duplicate body, duplicate woman, standing woman, person behind, background person, ghost, double exposure, extra torso, extra head, extra chair, missing chair",
+    [string]$NegativePrompt = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，第二个人，双人，两个女人，重复人物，重复身体，重复头部，额外身体，额外躯干，背景里的大人物，身后站人，幽灵人影，残影，透明人，双曝光，镜像身体，倒影身体，影子人物，多个人，multiple people, second person, duplicate body, duplicate woman, person behind, background person, ghost, double exposure, extra torso, extra head",
 
     [Int64]$Seed = 387956277078883,
 
