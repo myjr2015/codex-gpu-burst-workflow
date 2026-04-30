@@ -12,7 +12,7 @@ Use this skill only for the KJ 30s branch:
 - workflow: `workflows/书墨-30s长视频-wan2-2AnimateKJ版_v2版-参考动作、表情.json`
 - entry: `scripts/run_wan22_kj_30s_end_to_end.ps1`
 - profile: `wan22_kj_30s`
-- default IP image: `素材资产/美女图无背景纯色/纯色站着.png`
+- default IP image for the current seated photovoltaic reference videos: `素材资产/美女图无背景纯色/纯色坐着.png`
 - default reference video: `素材资产/原视频/光伏30s.mp4`
 - staged image name: `ip_image.png`
 - staged video name: `reference_30s.mp4`
@@ -86,11 +86,12 @@ RTX 4090 comparison run:
   - segment 2: `29.8125s`, `720x720`, `16fps`
   - merged duration: `59.648s`
   - visual acceptance: failed, because the back half showed a large standing duplicate/background person
-- accepted `s02fix` attempt:
+- `s02fix` attempt:
   - reused the same live instance and cached models
   - reran only segment 2 with a new seed and stronger single-seated-person prompt/negative prompt
   - merged `s01 + s02fix` with local `ffmpeg concat_copy`
   - output: `59.648s`, `720x720`, `16fps`, with audio
+  - visual acceptance: failed, because segment 1 and segment 2 still did not keep a consistent chair state
   - local result: `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/downloads/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4`
   - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/output/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4`
   - frame review:
@@ -103,7 +104,9 @@ RTX 4090 comparison run:
 Important lesson:
 
 - The 30s KJ workflow can hallucinate a second standing person when the fixed IP image is a full-body standing figure but the reference action video is seated.
-- The first fix to try is not a merge change. Rerun the affected segment on the same live instance with a new seed, positive prompt emphasizing `single seated woman / one person only / no background people`, and negative prompt banning `second person / duplicate body / standing woman / person behind / ghost / double exposure`.
+- The first fix is to use the posture-matched IP image. For seated reference videos, use `纯色坐着.png`; do not use `纯色站着.png`.
+- Fixed seed only makes a run reproducible. It does not guarantee semantic continuity across independent 30s segments.
+- For 60s/90s/120s segmented tests, use the same seated IP image, same seed, same prompt, and same negative prompt across all segments; then frame-review every segment boundary before calling the result accepted.
 - Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
 
 ## Runtime Rules

@@ -23,7 +23,10 @@ function parseArgs(argv) {
   return options;
 }
 
-function patchPrompt(prompt, { imageName, videoName, positivePrompt, outputPrefix, frameLoadCap, attentionMode }) {
+const defaultNegativePrompt =
+  "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走";
+
+function patchPrompt(prompt, { imageName, videoName, positivePrompt, negativePrompt, outputPrefix, frameLoadCap, attentionMode, seed }) {
   const prepared = JSON.parse(JSON.stringify(prompt));
 
   delete prepared["137"];
@@ -71,7 +74,7 @@ function patchPrompt(prompt, { imageName, videoName, positivePrompt, outputPrefi
       node.inputs.model_name = "umt5-xxl-enc-fp8_e4m3fn.safetensors";
       node.inputs.precision = "bf16";
       node.inputs.positive_prompt = positivePrompt;
-      node.inputs.negative_prompt = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走";
+      node.inputs.negative_prompt = negativePrompt || defaultNegativePrompt;
       node.inputs.quantization = "disabled";
       node.inputs.use_disk_cache = false;
       node.inputs.device = "gpu";
@@ -95,9 +98,7 @@ function patchPrompt(prompt, { imageName, videoName, positivePrompt, outputPrefi
       node.inputs.steps = 6;
       node.inputs.cfg = 1;
       node.inputs.shift = 3;
-      if (typeof node.inputs.seed !== "number") {
-        node.inputs.seed = 387956277078883;
-      }
+      node.inputs.seed = Number.isFinite(seed) ? seed : 387956277078883;
       node.inputs.force_offload = true;
       node.inputs.scheduler = "dpm++_sde";
       node.inputs.riflex_freq_index = 0;
@@ -125,7 +126,7 @@ function patchPrompt(prompt, { imageName, videoName, positivePrompt, outputPrefi
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.input || !options.output || !options["image-name"] || !options["video-name"] || !options.prompt) {
-    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--output-prefix <prefix>] [--frame-load-cap <frames>] [--attention-mode <sdpa|sageattn|comfy>]");
+    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--negative-prompt <text>] [--seed <number>] [--output-prefix <prefix>] [--frame-load-cap <frames>] [--attention-mode <sdpa|sageattn|comfy>]");
   }
 
   const inputPath = path.resolve(process.cwd(), options.input);
@@ -136,9 +137,11 @@ async function main() {
     imageName: options["image-name"],
     videoName: options["video-name"],
     positivePrompt: options.prompt,
+    negativePrompt: options["negative-prompt"],
     outputPrefix: options["output-prefix"] || "wan22-kj-30s",
     frameLoadCap: options["frame-load-cap"] ? Number.parseInt(options["frame-load-cap"], 10) : undefined,
     attentionMode: options["attention-mode"] || "sdpa",
+    seed: options.seed ? Number.parseInt(options.seed, 10) : undefined,
   });
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

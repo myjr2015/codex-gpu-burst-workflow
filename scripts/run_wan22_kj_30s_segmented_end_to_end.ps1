@@ -2,11 +2,15 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$JobName,
 
-    [string]$ImagePath = ".\素材资产\美女图无背景纯色\纯色站着.png",
+    [string]$ImagePath = ".\素材资产\美女图无背景纯色\纯色坐着.png",
 
     [string]$VideoPath = ".\素材资产\原视频\光伏60s.mp4",
 
-    [string]$Prompt = "女孩在现代光伏发电场景中自然口播介绍产品，固定人物身份和五官，保持参考视频中的动作、表情、口型节奏和身体姿态。背景根据提示词重绘为真实户外光伏板场景，画面稳定，人物边缘干净，真实自然。",
+    [string]$Prompt = "固定同一个女性IP，在现代户外光伏发电场景中自然口播介绍产品。画面中只有一个女性主体，全程坐在同一把椅子上，椅子形态和人物比例保持一致，保持参考视频中的动作、表情、口型节奏和坐姿身体姿态。背景根据提示词重绘为真实光伏板场景，背景里不要人物，镜头固定，人物边缘干净，身份和五官稳定。 single seated woman, one person only, same chair, no background people.",
+
+    [string]$NegativePrompt = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，第二个人，双人，两个女人，重复人物，重复身体，重复头部，额外身体，额外躯干，站立人物，站着的女人，背景里的大人物，身后站人，幽灵人影，残影，透明人，双曝光，镜像身体，倒影身体，影子人物，多个人，多把椅子，椅子消失，椅子变形，multiple people, second person, duplicate body, duplicate woman, standing woman, person behind, background person, ghost, double exposure, extra torso, extra head, extra chair, missing chair",
+
+    [Int64]$Seed = 387956277078883,
 
     [ValidateSet("1.0-cold", "1.1-machine-registry")]
     [string]$RuntimeVersion = "1.1-machine-registry",
@@ -74,6 +78,8 @@ if ($PrepareOnly) {
         -ImagePath $ImagePath `
         -VideoPath $VideoPath `
         -Prompt $Prompt `
+        -NegativePrompt $NegativePrompt `
+        -Seed $Seed `
         -SegmentSeconds $SegmentSeconds `
         -MaxSegments $MaxSegments
     exit $LASTEXITCODE
@@ -157,6 +163,8 @@ $stageArgs = @(
     "-ImagePath", $ImagePath,
     "-VideoPath", $VideoPath,
     "-Prompt", $Prompt,
+    "-NegativePrompt", $NegativePrompt,
+    "-Seed", "$Seed",
     "-SegmentSeconds", "$SegmentSeconds",
     "-MaxSegments", "$MaxSegments",
     "-UploadToR2"

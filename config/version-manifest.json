@@ -145,8 +145,8 @@
           "segment_seconds": 30,
           "merge_mode": "concat_copy",
           "merged_duration_seconds": 59.648,
-          "visual_acceptance": "accepted_after_s02fix",
-          "notes": "Initial two-segment output technically merged but failed visual review because segment 2 hallucinated a standing duplicate/background person. The live instance was kept, only segment 2 was rerun with a new seed and stronger single-seated-person prompt/negative prompt, then s01 + s02fix were merged and frame reviewed.",
+          "visual_acceptance": "failed",
+          "notes": "Initial two-segment output technically merged but failed visual review because segment 2 hallucinated a standing duplicate/background person. The live instance was kept and only segment 2 was rerun with a new seed and stronger single-seated-person prompt/negative prompt. The s01 + s02fix merge removed the duplicate person, but later review found segment 1 and segment 2 did not keep a consistent chair state, so this run is not accepted.",
           "frame_review_paths": [
             "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-keyframes-5s.jpg",
             "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-second-half-1s.jpg",

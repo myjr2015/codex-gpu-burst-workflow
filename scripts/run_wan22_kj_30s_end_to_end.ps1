@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$JobName,
 
-    [string]$ImagePath = ".\素材资产\美女图无背景纯色\纯色站着.png",
+    [string]$ImagePath = ".\素材资产\美女图无背景纯色\纯色坐着.png",
 
     [string]$VideoPath = ".\素材资产\原视频\光伏30s.mp4",
 
