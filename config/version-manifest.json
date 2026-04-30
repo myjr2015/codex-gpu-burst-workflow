@@ -156,6 +156,29 @@
           ],
           "local_result_path": "output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/downloads/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4",
           "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/output/wan22_kj_30s_segmented-kj30s-seg60-4090-nl-20260430-133517-s02fix.mp4"
+        },
+        {
+          "job_name": "kj60-bgprompt-anchor-4090-20260430-194236",
+          "validated_at": "2026-04-30T21:20:00",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35889784,
+          "machine_id": 31054,
+          "host_id": 93447,
+          "gpu": "RTX 4090",
+          "geolocation": "Sweden, SE",
+          "dph_total": 0.351111,
+          "segment_count": 2,
+          "segment_seconds": 30,
+          "merge_mode": "concat_copy_manual",
+          "merged_duration_seconds": 59.648,
+          "visual_acceptance": "failed_after_detailed_review",
+          "notes": "Two 30s segments reused the same fixed photovoltaic background prompt and the seated pure-color IP image. Quick review showed stable background and no duplicate body, but detailed review found hand-motion drift around final 49.5s-50.5s. The corresponding reference window is segment 2 19.5s-20.5s, where large sticker/location text covers the lower body and hand area. Conclusion: overlay text can contaminate KJ action/pose conditioning even when the final output does not redraw the text; clean the reference video before rerunning.",
+          "frame_review_paths": [
+            "output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/problem_49p5_50p5_0p1s/contact-sheet-49p5-50p5.jpg",
+            "output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/reference_s02_19p5_20p5_0p1s/contact-sheet-ref-s02-19p5-20p5.jpg"
+          ],
+          "local_result_path": "output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/downloads/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4",
+          "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/output/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4"
         }
       ]
     },

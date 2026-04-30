@@ -101,12 +101,33 @@ RTX 4090 comparison run:
     - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-50s.jpg`
     - `output/wan22_kj_30s_segmented/kj30s-seg60-4090-nl-20260430-133517/frame_review/s02fix-55s.jpg`
 
+60s fixed-prompt anchor run with seated IP:
+
+- job: `kj60-bgprompt-anchor-4090-20260430-194236`
+- GPU: `RTX 4090`
+- output: `59.648s`, `720x720`, `16fps`, with audio
+- setup:
+  - IP image: `素材资产/美女图无背景纯色/纯色坐着.png`
+  - two `30s` segments reused the same fixed photovoltaic background prompt
+  - the background was generated from prompt per segment; no `美女带背景.png` background image was used
+- quick review initially passed for duplicate body / double-head / background consistency
+- detailed review found a hand-motion defect around final `49.5s-50.5s`
+- diagnosis:
+  - final generated frames did not keep the large sticker text from the reference
+  - the corresponding reference-video window was segment 2 `19.5s-20.5s`, where large sticker/location text covered the lower body and hand area
+  - this overlay likely polluted the pose/action condition and made the model invent hand motion
+- local review evidence:
+  - final frames: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/problem_49p5_50p5_0p1s/contact-sheet-49p5-50p5.jpg`
+  - reference frames: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/frame_review/reference_s02_19p5_20p5_0p1s/contact-sheet-ref-s02-19p5-20p5.jpg`
+  - merged output: `output/wan22_kj_30s_segmented/kj60-bgprompt-anchor-4090-20260430-194236/downloads/wan22_kj_30s_segmented-kj60-bgprompt-anchor-4090-20260430-194236.mp4`
+
 Important lesson:
 
 - The 30s KJ workflow can hallucinate a second standing person when the fixed IP image is a full-body standing figure but the reference action video is seated.
 - The first fix is to use a posture-matched IP image selected from the reference video / inferred prompt. For the current seated photovoltaic reference videos, use `纯色坐着.png`; for other source videos, do not hard-code seated props or chairs.
 - Fixed seed only makes a run reproducible. It does not guarantee semantic continuity across independent 30s segments.
 - For 60s/90s/120s segmented tests, keep the same IP image, same seed, same inferred prompt, and same negative prompt across all segments; concrete props and scene details should come from the video-to-prompt step, not from generic hard-coded rules.
+- Large sticker text, subtitles, location banners, and other overlays in the reference video can contaminate KJ pose/action conditioning even when the final image does not redraw the text. If overlays touch the body, hands, face, or key props, clean the reference video first, then split into 30s segments.
 - Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
 
 ## Runtime Rules

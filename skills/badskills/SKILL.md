@@ -273,6 +273,18 @@ These failures were observed on the same branch:
     - if no tested offer passes, destroy those instances and continue with the next candidate batch
     - do not run full bootstrap or inference before the HF gate passes
 
+- Symptom: KJ 30s segmented output has hand drift, extra hands, or unexpected hand gestures around a time where the reference video has large sticker text, subtitles, location banners, or other overlay text
+  - Root cause: the overlay text may not be redrawn into the final video, but it still contaminates the reference motion / pose / expression conditioning; the model then guesses the occluded hand/body motion and can hallucinate extra hands or gestures
+  - Evidence from `kj60-bgprompt-anchor-4090-20260430-194236`:
+    - final `49.5s-50.5s` frames did not reproduce the large text banner
+    - corresponding `reference_segment_02.mp4` `19.5s-20.5s` frames contained large sticker/location text over the lower body and hand area
+    - generated output showed hand-motion drift in the same interval even though the prompt and background were stable
+  - Action:
+    - treat this as reference-video preprocessing debt, not a prompt, merge, or Vast machine issue
+    - before paid reruns, clean the source/reference video by masking, cropping, blurring, or inpainting large overlay text regions that touch the body, hands, face, or key props
+    - after cleaning, re-split into 30s segments and rerun with the same IP image, seed, and fixed background prompt
+    - inspect the cleaned reference around the original problem window before renting another full inference pass
+
 ## Fast Triage Order
 
 1. `vastai show instance --raw`
