@@ -370,6 +370,10 @@ required = [
     "VHS_LoadVideo",
     "VHS_VideoCombine",
     "ImageConcatMulti",
+    "RepeatImageBatch",
+    "LoadImageMask",
+    "InvertMask",
+    "GrowMask",
 ]
 missing = [name for name in required if name not in info]
 if missing:

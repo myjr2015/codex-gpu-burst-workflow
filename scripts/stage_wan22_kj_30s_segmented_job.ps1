@@ -14,6 +14,10 @@ param(
 
     [string]$WorkflowSource = ".\workflows\书墨-30s长视频-wan2-2AnimateKJ版_v2版-参考动作、表情.json",
 
+    [string]$BackgroundImagePath = "",
+
+    [int]$BackgroundMaskGrow = 12,
+
     [ValidateSet("sdpa", "sageattn", "comfy")]
     [string]$AttentionMode = "sdpa",
 
@@ -90,6 +94,9 @@ foreach ($required in @($ffmpegPath, $ffprobePath, $prepareScript, $validateScri
         throw "Missing required file: $required"
     }
 }
+if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath) -and -not (Test-Path -LiteralPath $BackgroundImagePath)) {
+    throw "Missing background image file: $BackgroundImagePath"
+}
 
 function Get-VideoDurationSeconds {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -129,6 +136,10 @@ function New-VideoSegment {
 $resolvedWorkflow = (Resolve-Path -LiteralPath $WorkflowSource).Path
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
+$resolvedBackgroundImage = $null
+if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
+    $resolvedBackgroundImage = (Resolve-Path -LiteralPath $BackgroundImagePath).Path
+}
 $videoDurationSeconds = Get-VideoDurationSeconds -Path $resolvedVideo
 $segmentCount = [int][math]::Ceiling($videoDurationSeconds / [double]$SegmentSeconds)
 if ($MaxSegments -gt 0) {
@@ -144,7 +155,9 @@ $inputDir = Join-Path $jobDir "input"
 New-Item -ItemType Directory -Force -Path $inputDir | Out-Null
 
 $stagedImageName = "ip_image.png"
+$stagedBackgroundImageName = "bg_image.png"
 $stagedImage = Join-Path $inputDir $stagedImageName
+$stagedBackgroundImage = Join-Path $inputDir $stagedBackgroundImageName
 $canvasOut = Join-Path $jobDir "workflow_canvas.json"
 $manifestOut = Join-Path $jobDir "manifest.json"
 $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_kj_30s.sh"
@@ -152,6 +165,9 @@ $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_kj_30s.sh"
 $warmstartInspectorOut = Join-Path $jobDir "inspect_wan22_kj_30s_warmstart.py"
 
 Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
+if ($resolvedBackgroundImage) {
+    Copy-Item -LiteralPath $resolvedBackgroundImage -Destination $stagedBackgroundImage -Force
+}
 Copy-Item -LiteralPath $resolvedWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
 Copy-Item -LiteralPath $remoteSubmitScript -Destination $remoteSubmitOut -Force
@@ -176,22 +192,43 @@ for ($index = 1; $index -le $segmentCount; $index += 1) {
     $runtimePath = Join-Path $jobDir $runtimeName
     $outputPrefix = "wan22_kj_30s-$JobName-s$segmentId"
 
-    & node $prepareScript `
-        --input $canvasOut `
-        --output $runtimePath `
-        --image-name $stagedImageName `
-        --video-name $segmentVideoName `
-        --prompt $Prompt `
-        --negative-prompt $NegativePrompt `
-        --seed "$Seed" `
-        --frame-load-cap "$frameLoadCap" `
-        --attention-mode $AttentionMode `
-        --output-prefix $outputPrefix
+    $prepareArgs = @(
+        "--input", $canvasOut,
+        "--output", $runtimePath,
+        "--image-name", $stagedImageName,
+        "--video-name", $segmentVideoName,
+        "--prompt", $Prompt,
+        "--negative-prompt", $NegativePrompt,
+        "--seed", "$Seed",
+        "--frame-load-cap", "$frameLoadCap",
+        "--attention-mode", $AttentionMode,
+        "--output-prefix", $outputPrefix
+    )
+    if ($resolvedBackgroundImage) {
+        $prepareArgs += @(
+            "--background-image-name", $stagedBackgroundImageName,
+            "--background-repeat-amount", "$frameLoadCap",
+            "--mask-grow", "$BackgroundMaskGrow"
+        )
+    }
+
+    & node $prepareScript @prepareArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to prepare KJ segmented workflow runtime json for segment $segmentId."
     }
 
-    & node $validateScript --input $runtimePath --image-name $stagedImageName --video-name $segmentVideoName
+    $validateArgs = @(
+        "--input", $runtimePath,
+        "--image-name", $stagedImageName,
+        "--video-name", $segmentVideoName
+    )
+    if ($resolvedBackgroundImage) {
+        $validateArgs += @(
+            "--background-image-name", $stagedBackgroundImageName,
+            "--mask-grow", "$BackgroundMaskGrow"
+        )
+    }
+    & node $validateScript @validateArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to validate KJ segmented workflow runtime json for segment $segmentId."
     }
@@ -227,9 +264,19 @@ $manifest = [ordered]@{
         force_rate = $videoFrameRate
         attention_mode = $AttentionMode
         seed = $Seed
+        background_conditioning = [bool]$resolvedBackgroundImage
+        background_image_name = if ($resolvedBackgroundImage) { $stagedBackgroundImageName } else { $null }
+        background_repeat_strategy = if ($resolvedBackgroundImage) { "RepeatImageBatch frame_load_cap" } else { $null }
+        background_mask_source = if ($resolvedBackgroundImage) { "LoadImageMask alpha from ip_image.png -> InvertMask -> GrowMask" } else { $null }
+        background_mask_grow = if ($resolvedBackgroundImage) { $BackgroundMaskGrow } else { $null }
         final_video_node_id = "156"
         prompt_node_id = "164"
         image_node_id = "163"
+        background_image_node_id = if ($resolvedBackgroundImage) { "901" } else { $null }
+        background_repeat_node_id = if ($resolvedBackgroundImage) { "902" } else { $null }
+        alpha_mask_node_id = if ($resolvedBackgroundImage) { "903" } else { $null }
+        invert_mask_node_id = if ($resolvedBackgroundImage) { "904" } else { $null }
+        grow_mask_node_id = if ($resolvedBackgroundImage -and $BackgroundMaskGrow -ne 0) { "905" } else { $null }
         video_node_id = "178"
         merge_strategy = "ffmpeg concat; transcode fallback"
     }
@@ -237,6 +284,7 @@ $manifest = [ordered]@{
     local = [ordered]@{
         job_dir = $jobDir
         input_image = $stagedImage
+        background_image = if ($resolvedBackgroundImage) { $stagedBackgroundImage } else { $null }
         prompt = $Prompt
         negative_prompt = $NegativePrompt
         workflow_canvas = $canvasOut
@@ -284,6 +332,11 @@ if ($UploadToR2) {
 Write-Host "job staged: $jobDir"
 Write-Host "manifest: $manifestOut"
 Write-Host "image_name=$stagedImageName"
+if ($resolvedBackgroundImage) {
+    Write-Host "background_image_name=$stagedBackgroundImageName"
+    Write-Host "background_mask_source=ip_image_alpha_inverted"
+    Write-Host "background_mask_grow=$BackgroundMaskGrow"
+}
 Write-Host "source_video_duration_seconds=$([math]::Round($videoDurationSeconds, 3))"
 Write-Host "segment_seconds=$SegmentSeconds"
 Write-Host "segment_count=$($segments.Count)"

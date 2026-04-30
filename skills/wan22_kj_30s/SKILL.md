@@ -29,6 +29,33 @@ For videos longer than 30s, use the experimental wrapper:
 
 This wrapper does not add a ComfyUI merge plugin. It reuses the existing KJ 30s workflow per segment and merges downloaded MP4 files locally. The KJ workflow does not expose `continue_motion`, so cross-segment continuity is not guaranteed until visually verified.
 
+## 2.0 B2 Background Anchor Mode
+
+For fixed-scene long videos, the preferred 2.0 B path is not to replace the IP image with a generated frame.
+
+Rules:
+
+- `ip_image.png` stays the pure-color / transparent IP image, currently `素材资产/美女图无背景纯色/纯色坐着.png` for seated photovoltaic tests.
+- `bg_image.png` is a separate prompt-generated background anchor image. It may be extracted from a passed generated segment, but it is only used through `bg_images`, not as the person reference.
+- Runtime node `171` (`WanVideoAnimateEmbeds`) receives:
+  - `bg_images`: `LoadImage(bg_image.png) -> RepeatImageBatch(amount=frame_load_cap)`
+  - `mask`: `LoadImageMask(ip_image.png, alpha) -> InvertMask -> GrowMask(expand=8~16)`
+- All `30s` segments reuse the same `ip_image.png`, `bg_image.png`, prompt, negative prompt, and seed.
+- `B1` frame-as-`ip_image.png` may only be used as a temporary smoke check; it is not the final B semantics because it mixes generated person identity into the IP reference.
+
+Segmented B2 example:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
+  -JobName <job_name> `
+  -ImagePath .\素材资产\美女图无背景纯色\纯色坐着.png `
+  -VideoPath .\素材资产\原视频\光伏60s.mp4 `
+  -BackgroundImagePath <bg_image.png> `
+  -BackgroundMaskGrow 12 `
+  -SegmentSeconds 30 `
+  -MaxSegments 2
+```
+
 ## Current Status
 
 Candidate validated run:
@@ -154,7 +181,8 @@ Important lesson:
 Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
-- `2.1`: evaluate video-level inpainting such as ProPainter / E2FGVI for subtitles, banners, stickers, and location bubbles that persist across frames.
+- `2.0 B2`: current fixed-scene background anchor validation path. Keep the pure IP image as person reference and connect one repeated background anchor image plus IP alpha mask into `WanVideoAnimateEmbeds`.
+- `2.1`: implement a general reference-video pollution preprocessor before paid inference. Start from rule-based overlay detection and mask generation, then evaluate video-level inpainting such as ProPainter / E2FGVI for subtitles, banners, stickers, and location bubbles that persist across frames.
 - `2.2`: evaluate lighter local repair such as LaMa / MAT, Crop & Stitch, SAM / GroundingDINO / OCR masks, or color-token cleanup for red pins, checkmarks, and small sticker residue.
 - Roadmap details live in `docs/KJ参考视频清理方案TODO.md`.
 
@@ -290,6 +318,14 @@ Required runtime changes:
   - `scheduler="dpm++_sde"`
   - `batched_cfg=false`
   - `rope_function="comfy"`
+- optional B2 background anchor patch for segmented jobs:
+  - add `LoadImage` node `901` for `bg_image.png`
+  - add `RepeatImageBatch` node `902` with `amount=frame_load_cap`
+  - add `LoadImageMask` node `903` reading `ip_image.png` alpha
+  - add `InvertMask` node `904`
+  - add `GrowMask` node `905`, default `expand=12`
+  - connect node `171.inputs.bg_images=[902,0]`
+  - connect node `171.inputs.mask=[905,0]`
 
 Do not restore torch compile for RTX 3090. It caused fp8/TorchInductor errors.
 

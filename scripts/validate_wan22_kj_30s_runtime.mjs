@@ -55,6 +55,8 @@ async function main() {
   const prompt = JSON.parse(await fs.readFile(inputPath, "utf8"));
   const expectedImageName = options["image-name"] || "ip_image.png";
   const expectedVideoName = options["video-name"] || "reference_30s.mp4";
+  const expectedBackgroundImageName = options["background-image-name"];
+  const expectedMaskGrow = options["mask-grow"] ? Number.parseInt(options["mask-grow"], 10) : 12;
 
   const imageNode = requireNode(prompt, "163", "LoadImage");
   assertEqual(imageNode.inputs.image, expectedImageName, "LoadImage.image");
@@ -129,6 +131,36 @@ async function main() {
   assertEqual(scaledImageNode.inputs.scale_to_length, 720, "ImageScaleByAspectRatio.scale_to_length");
   const contextNode = requireNode(prompt, "172", "WanVideoContextOptions");
   assertEqual(contextNode.inputs.context_frames, 241, "WanVideoContextOptions.context_frames");
+
+  if (expectedBackgroundImageName) {
+    const bgImageNode = requireNode(prompt, "901", "LoadImage");
+    assertEqual(bgImageNode.inputs.image, expectedBackgroundImageName, "B2 LoadImage.background_image");
+    assertEqual(bgImageNode.inputs.upload, "image", "B2 LoadImage.upload");
+
+    const bgRepeatNode = requireNode(prompt, "902", "RepeatImageBatch");
+    assertArrayLink(bgRepeatNode.inputs.image, "901", 0, "B2 RepeatImageBatch.image");
+    assertEqual(bgRepeatNode.inputs.amount, videoNode.inputs.frame_load_cap, "B2 RepeatImageBatch.amount");
+
+    const alphaMaskNode = requireNode(prompt, "903", "LoadImageMask");
+    assertEqual(alphaMaskNode.inputs.image, expectedImageName, "B2 LoadImageMask.image");
+    assertEqual(alphaMaskNode.inputs.channel, "alpha", "B2 LoadImageMask.channel");
+
+    const invertMaskNode = requireNode(prompt, "904", "InvertMask");
+    assertArrayLink(invertMaskNode.inputs.mask, "903", 0, "B2 InvertMask.mask");
+
+    let expectedMaskLink = ["904", 0];
+    if (expectedMaskGrow !== 0) {
+      const growMaskNode = requireNode(prompt, "905", "GrowMask");
+      assertArrayLink(growMaskNode.inputs.mask, "904", 0, "B2 GrowMask.mask");
+      assertEqual(growMaskNode.inputs.expand, expectedMaskGrow, "B2 GrowMask.expand");
+      assertEqual(growMaskNode.inputs.tapered_corners, true, "B2 GrowMask.tapered_corners");
+      expectedMaskLink = ["905", 0];
+    }
+
+    const animateNode = requireNode(prompt, "171", "WanVideoAnimateEmbeds");
+    assertArrayLink(animateNode.inputs.bg_images, "902", 0, "B2 WanVideoAnimateEmbeds.bg_images");
+    assertArrayLink(animateNode.inputs.mask, expectedMaskLink[0], expectedMaskLink[1], "B2 WanVideoAnimateEmbeds.mask");
+  }
 
   console.log(`validated ${inputPath}`);
 }

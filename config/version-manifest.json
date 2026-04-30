@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-04-30",
+  "updated_at": "2026-05-01",
   "git_releases": [
     {
       "tag": "v1.1.0",
@@ -126,9 +126,17 @@
       "workflow_branch": "wan22_kj_30s_segmented",
       "status": "experimental",
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
-      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 will evaluate video-level inpainting such as ProPainter/E2FGVI; 2.2 will evaluate lighter image/local repair such as LaMa/MAT, Crop & Stitch, and SAM/OCR-assisted masks.",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now supports optional 2.0 B2 background anchoring: keep the pure IP image as person reference, load one prompt-generated bg_image.png, repeat it to frame_load_cap, and connect bg_images plus an IP-alpha-derived mask to WanVideoAnimateEmbeds. The branch also treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 implements a general reference-video pollution preprocessor and evaluates video-level inpainting such as ProPainter/E2FGVI; 2.2 will evaluate lighter image/local repair such as LaMa/MAT, Crop & Stitch, and SAM/OCR-assisted masks.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
       "segment_seconds": 30,
+      "b2_background_conditioning": {
+        "status": "validation",
+        "ip_image": "素材资产/美女图无背景纯色/纯色坐着.png",
+        "background_image_name": "bg_image.png",
+        "background_repeat": "RepeatImageBatch amount=frame_load_cap",
+        "mask": "LoadImageMask alpha from ip_image.png -> InvertMask -> GrowMask",
+        "wan_video_animate_embeds_node": "171"
+      },
       "validated_runs": [
         {
           "job_name": "kj30s-seg60-4090-nl-20260430-133517",

@@ -6,6 +6,10 @@ param(
 
     [string]$VideoPath = ".\素材资产\原视频\光伏60s.mp4",
 
+    [string]$BackgroundImagePath = "",
+
+    [int]$BackgroundMaskGrow = 12,
+
     [string]$Prompt = "固定同一个女性IP，在现代户外光伏发电场景中自然口播介绍产品。画面中只有一个女性主体，保持参考视频中的动作、表情、口型节奏、身体姿态和关键道具关系；背景和道具根据视频反推提示词重绘，不额外强加视频里没有的物体。镜头稳定，人物边缘干净，身份和五官稳定。 one person only, same character, prompt-guided scene and props, no background people.",
 
     [string]$NegativePrompt = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，第二个人，双人，两个女人，重复人物，重复身体，重复头部，额外身体，额外躯干，背景里的大人物，身后站人，幽灵人影，残影，透明人，双曝光，镜像身体，倒影身体，影子人物，多个人，multiple people, second person, duplicate body, duplicate woman, person behind, background person, ghost, double exposure, extra torso, extra head",
@@ -73,15 +77,22 @@ foreach ($required in @($r2HelperPath, $runnerScript, $stageScript)) {
 Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
 
 if ($PrepareOnly) {
-    & pwsh -File $stageScript `
-        -JobName $JobName `
-        -ImagePath $ImagePath `
-        -VideoPath $VideoPath `
-        -Prompt $Prompt `
-        -NegativePrompt $NegativePrompt `
-        -Seed $Seed `
-        -SegmentSeconds $SegmentSeconds `
-        -MaxSegments $MaxSegments
+    $prepareStageArgs = @(
+        "-File", $stageScript,
+        "-JobName", $JobName,
+        "-ImagePath", $ImagePath,
+        "-VideoPath", $VideoPath,
+        "-BackgroundMaskGrow", "$BackgroundMaskGrow",
+        "-Prompt", $Prompt,
+        "-NegativePrompt", $NegativePrompt,
+        "-Seed", "$Seed",
+        "-SegmentSeconds", "$SegmentSeconds",
+        "-MaxSegments", "$MaxSegments"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
+        $prepareStageArgs += @("-BackgroundImagePath", $BackgroundImagePath)
+    }
+    & pwsh @prepareStageArgs
     exit $LASTEXITCODE
 }
 
@@ -162,6 +173,7 @@ Write-Host "warm_start=$warmStart"
 $stageArgs = @(
     "-ImagePath", $ImagePath,
     "-VideoPath", $VideoPath,
+    "-BackgroundMaskGrow", "$BackgroundMaskGrow",
     "-Prompt", $Prompt,
     "-NegativePrompt", $NegativePrompt,
     "-Seed", "$Seed",
@@ -169,6 +181,9 @@ $stageArgs = @(
     "-MaxSegments", "$MaxSegments",
     "-UploadToR2"
 )
+if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
+    $stageArgs += @("-BackgroundImagePath", $BackgroundImagePath)
+}
 
 $launchArgs = @(
     "-OfferId", $OfferId,

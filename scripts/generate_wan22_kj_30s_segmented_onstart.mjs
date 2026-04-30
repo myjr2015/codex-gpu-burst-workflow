@@ -39,6 +39,10 @@ async function main() {
   const publicBase = String(r2.public_base_url || "").replace(/\/+$/, "");
   const prefix = String(r2.prefix || "").replace(/^\/+|\/+$/g, "");
   const segments = Array.isArray(manifest.segments) ? manifest.segments : [];
+  const workflow = manifest.workflow || {};
+  const backgroundImageName = workflow.background_conditioning
+    ? String(workflow.background_image_name || "bg_image.png")
+    : "";
 
   if (!publicBase || !prefix) {
     throw new Error("Manifest missing r2.public_base_url or r2.prefix");
@@ -55,6 +59,11 @@ async function main() {
     `fetch ${shQuote(url(`${prefix}/inspect_wan22_kj_30s_warmstart.py`))} "$RUN_DIR/inspect_wan22_kj_30s_warmstart.py"`,
     `fetch ${shQuote(url(`${prefix}/input/ip_image.png`))} "$COMFY_ROOT/input/ip_image.png"`,
   ];
+  if (backgroundImageName) {
+    fetchLines.push(
+      `fetch ${shQuote(url(`${prefix}/input/${backgroundImageName}`))} "$COMFY_ROOT/input/${backgroundImageName}"`,
+    );
+  }
 
   for (const segment of segments) {
     fetchLines.push(
