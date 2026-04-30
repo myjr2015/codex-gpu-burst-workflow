@@ -90,6 +90,80 @@ function Get-BaseUrlFromInstance {
     "http://{0}:{1}" -f $publicIp, $hostPort
 }
 
+function Get-InstanceIdFromPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstancePath
+    )
+
+    if (-not (Test-Path -LiteralPath $InstancePath)) {
+        return $null
+    }
+    $instance = Get-Content -Raw $InstancePath | ConvertFrom-Json
+    if ($instance -and $instance.id) {
+        return "$($instance.id)"
+    }
+    $null
+}
+
+function Get-VastLogTailSafe {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstanceId,
+
+        [int]$Tail = 160
+    )
+
+    $previousPythonUtf8 = $env:PYTHONUTF8
+    $previousPythonIoEncoding = $env:PYTHONIOENCODING
+    $env:PYTHONUTF8 = "1"
+    $env:PYTHONIOENCODING = "utf-8"
+    try {
+        @(& vastai logs $InstanceId --tail $Tail 2>&1 | ForEach-Object { "$_" })
+    }
+    catch {
+        @()
+    }
+    finally {
+        if ($null -eq $previousPythonUtf8) {
+            Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONUTF8 = $previousPythonUtf8
+        }
+
+        if ($null -eq $previousPythonIoEncoding) {
+            Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONIOENCODING = $previousPythonIoEncoding
+        }
+    }
+}
+
+function Assert-NoRemotePreflightFailure {
+    param(
+        [string]$InstanceId
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InstanceId)) {
+        return
+    }
+
+    $lines = Get-VastLogTailSafe -InstanceId $InstanceId
+    $failure = $lines |
+        Where-Object {
+            $_ -match '^\[hf-speedtest\].*decision=reject' -or
+            $_ -match '^\[hf-speedtest\] reject' -or
+            $_ -match 'stopping before bootstrap to avoid slow model download'
+        } |
+        Select-Object -Last 1
+
+    if ($failure) {
+        throw "HF speed preflight rejected this machine: $failure"
+    }
+}
+
 function Get-HistoryPayload {
     param(
         [Parameter(Mandatory = $true)]
@@ -216,9 +290,11 @@ $history = $null
 $candidate = $null
 $lastError = $null
 $resolvedBaseUrl = $BaseUrl
+$instanceId = Get-InstanceIdFromPath -InstancePath $paths.InstancePath
 
 for ($check = 1; $check -le $MaxChecks; $check += 1) {
     try {
+        Assert-NoRemotePreflightFailure -InstanceId $instanceId
         if ([string]::IsNullOrWhiteSpace($resolvedBaseUrl)) {
             $resolvedBaseUrl = Get-BaseUrlFromInstance -InstancePath $paths.InstancePath
         }
@@ -237,6 +313,7 @@ for ($check = 1; $check -le $MaxChecks; $check += 1) {
     if (-not $Wait) {
         break
     }
+    Assert-NoRemotePreflightFailure -InstanceId $instanceId
     Start-Sleep -Seconds $IntervalSeconds
 }
 

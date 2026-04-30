@@ -263,6 +263,16 @@ These failures were observed on the same branch:
     - blacklist `machine_id=47075` and `host_id=74292`
     - remember that `warm_start=True` is only a machine-selection mode; it does not prove custom nodes, models, or torch cache hit
 
+- Symptom: a cheap 4090 still wastes a cold start because HuggingFace is slow from that host
+  - Root cause: Vast offer price and GPU name do not measure real throughput to HuggingFace
+  - Action:
+    - first list `10-20` candidate offers
+    - short-rent only the best `1-3` offers per batch for HF speed preflight
+    - if a rented speedtest instance does not reach `[hf-speedtest]` logs within `5 min`, treat startup as too slow and destroy it
+    - estimate the KJ model download from the configured `32.55 GiB` remaining model size
+    - if no tested offer passes, destroy those instances and continue with the next candidate batch
+    - do not run full bootstrap or inference before the HF gate passes
+
 ## Fast Triage Order
 
 1. `vastai show instance --raw`

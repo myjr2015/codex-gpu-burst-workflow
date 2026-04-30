@@ -79,6 +79,8 @@ function Get-RelevantLogLines {
     $patterns = @(
         '^\[onstart\]'
         '^\[remote-run\]'
+        '^\[remote-kj30s\]'
+        '^\[hf-speedtest\]'
         '^\[bootstrap\]'
         '^\[stage\]'
         '^Prompt executed in'

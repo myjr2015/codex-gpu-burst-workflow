@@ -25,6 +25,16 @@ param(
 
     [int]$MinDriverMajor = 580,
 
+    [switch]$DisableHfSpeedTest,
+
+    [double]$HfMinMiBps = 15,
+
+    [int]$HfMaxEstimatedDownloadMinutes = 30,
+
+    [int]$HfSpeedTestSampleMiB = 256,
+
+    [int]$HfSpeedTestMaxSeconds = 120,
+
     [switch]$CancelUnavail,
 
     [switch]$SkipPublish,
@@ -156,6 +166,17 @@ if ($CancelUnavail) {
 }
 if ($warmStart) {
     $launchArgs += "-WarmStart"
+}
+if ($DisableHfSpeedTest) {
+    $launchArgs += "-DisableHfSpeedTest"
+}
+else {
+    $launchArgs += @(
+        "-HfMinMiBps", "$HfMinMiBps",
+        "-HfMaxEstimatedDownloadMinutes", "$HfMaxEstimatedDownloadMinutes",
+        "-HfSpeedTestSampleMiB", "$HfSpeedTestSampleMiB",
+        "-HfSpeedTestMaxSeconds", "$HfSpeedTestMaxSeconds"
+    )
 }
 
 if ($SkipPublish -and -not $KeepInstanceForDebug) {

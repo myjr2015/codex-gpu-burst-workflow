@@ -72,6 +72,11 @@ Required defaults:
 - `MaxDphTotal=0.215`
 - `MinDriverMajor=580`
 - `DiskGb=240`
+- run HuggingFace speed preflight before bootstrap
+- default HF gate:
+  - minimum speed: `15 MiB/s`
+  - maximum estimated model download time: `30 min`
+  - sample size: `256 MiB`
 - only enable `WarmStart` when the selector chooses a known successful machine
 
 Blacklisted:
@@ -80,6 +85,61 @@ Blacklisted:
 - `host_id=74292`
 
 Reason: repeated KJ 30s paid failures, no useful warm cache, and higher effective price.
+
+## HuggingFace Download Gate
+
+The KJ 30s branch downloads 11 configured HuggingFace model files on a cold machine:
+
+- total size: `34.95 GB` / `32.55 GiB`
+- main diffusion model: `16.13 GiB`
+- text encoder: `6.27 GiB`
+- CLIP vision + VAE + detection models: about `2.62 GiB`
+- LoRA files: about `7.54 GiB`
+
+Before `bootstrap`, `remote_submit_wan22_kj_30s.sh` now:
+
+1. checks which configured model files already exist under `/workspace/ComfyUI/models`
+2. measures real download speed from HuggingFace with a ranged sample of the main model
+3. estimates remaining model download time from `remaining_model_bytes / measured_speed`
+4. writes `/workspace/wan22-kj-30s-run/hf_speedtest.json`
+5. exits before model download if the host is too slow
+
+Important log lines:
+
+```text
+[hf-speedtest] decision=pass speed=<x> MiB/s estimated_model_download=<y> min
+[hf-speedtest] decision=reject ...
+```
+
+If rejected, the local download step detects the log line and fails quickly, so `-DestroyInstance` can stop billing.
+
+For RTX 4090 comparison runs, do not test every visible offer. Use the candidate selector:
+
+```powershell
+pwsh -File .\scripts\select_wan22_kj_30s_offer_by_hf_speed.ps1 `
+  -CandidateCount 20 `
+  -BatchSize 3 `
+  -MaxTests 9
+```
+
+Selection rule:
+
+- list `10-20` candidate offers first
+- filter out `CN/TR`, blacklisted hosts, low driver versions, and high price
+- short-rent only `1-3` best-looking offers per batch
+- if an instance does not print `[hf-speedtest]` within `5 min`, treat it as startup too slow and destroy it
+- if none pass the HF gate, destroy them and continue with the next candidate batch
+- rank passing machines by estimated HF download cost, then hourly price, then speed
+
+Rough cold-download estimates for this branch:
+
+| HF speed | Estimated model download |
+|---:|---:|
+| `10 MiB/s` | `55.6 min` |
+| `15 MiB/s` | `37.0 min` |
+| `20 MiB/s` | `27.8 min` |
+| `30 MiB/s` | `18.5 min` |
+| `50 MiB/s` | `11.1 min` |
 
 ## Critical Runtime Patches
 
@@ -115,4 +175,3 @@ Validated cold start on `machine_id=54625`:
 - approximate instance cost at `$0.20/h`: `$0.47`
 
 This branch is much slower than segmented v3. Treat it as quality candidate, not cost-optimized production.
-

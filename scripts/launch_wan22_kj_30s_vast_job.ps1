@@ -15,6 +15,16 @@ param(
 
     [switch]$WarmStart,
 
+    [switch]$DisableHfSpeedTest,
+
+    [double]$HfMinMiBps = 15,
+
+    [int]$HfMaxEstimatedDownloadMinutes = 30,
+
+    [int]$HfSpeedTestSampleMiB = 256,
+
+    [int]$HfSpeedTestMaxSeconds = 120,
+
     [string[]]$MountArgs = @()
 )
 
@@ -55,6 +65,13 @@ if ($CancelUnavail) {
 }
 foreach ($extraEnv in (Get-Wan22AnimateLaunchExtraEnv -WarmStart:$WarmStart)) {
     $createArgs += @("-ExtraEnv", $extraEnv)
+}
+if (-not $DisableHfSpeedTest) {
+    $createArgs += @("-ExtraEnv", "HF_SPEEDTEST=1")
+    $createArgs += @("-ExtraEnv", ("HF_MIN_MIB_PER_SEC={0}" -f $HfMinMiBps))
+    $createArgs += @("-ExtraEnv", ("HF_MAX_ESTIMATED_DOWNLOAD_MINUTES={0}" -f $HfMaxEstimatedDownloadMinutes))
+    $createArgs += @("-ExtraEnv", ("HF_SPEEDTEST_SAMPLE_MIB={0}" -f $HfSpeedTestSampleMiB))
+    $createArgs += @("-ExtraEnv", ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds))
 }
 if ($MountArgs.Count -gt 0) {
     $createArgs += @("-MountArgs", $MountArgs)
@@ -102,3 +119,8 @@ Write-Host "public_ip=$($safeInstance.public_ipaddr)"
 Write-Host "host_id=$($safeInstance.host_id)"
 Write-Host "machine_id=$($safeInstance.machine_id)"
 Write-Host "warm_start=$([bool]$WarmStart)"
+Write-Host "hf_speedtest=$(-not $DisableHfSpeedTest)"
+if (-not $DisableHfSpeedTest) {
+    Write-Host "hf_min_mib_per_sec=$HfMinMiBps"
+    Write-Host "hf_max_estimated_download_minutes=$HfMaxEstimatedDownloadMinutes"
+}

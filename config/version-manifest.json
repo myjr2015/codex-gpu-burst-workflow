@@ -66,7 +66,18 @@
       "workflow_branch": "wan22_kj_30s",
       "status": "candidate",
       "entry": "scripts/run_wan22_kj_30s_end_to_end.ps1",
-      "description": "Single-shot KJ 30s implementation. Stages a fixed transparent-background IP image and a 30s reference video, converts the KJ canvas workflow to API JSON, disables torch compile on RTX 3090, runs one 481-frame 720x720 prompt, downloads the real VHS output node, and publishes the result.",
+      "description": "Single-shot KJ 30s implementation. Stages a fixed transparent-background IP image and a 30s reference video, converts the KJ canvas workflow to API JSON, disables torch compile on RTX 3090, runs one 481-frame 720x720 prompt, downloads the real VHS output node, and publishes the result. It now runs a HuggingFace speed preflight before bootstrap and includes a 4090 candidate selector that lists 10-20 offers, short-rents 1-3 per batch, and continues to the next batch when none pass.",
+      "hf_speed_gate": {
+        "total_model_bytes": 34954915779,
+        "total_model_gib": 32.554,
+        "default_min_mib_per_sec": 15,
+        "default_max_estimated_download_minutes": 30,
+        "default_sample_mib": 256,
+        "candidate_selector": "scripts/select_wan22_kj_30s_offer_by_hf_speed.ps1",
+        "candidate_count": 20,
+        "batch_size": 3,
+        "startup_timeout_minutes": 5
+      },
       "validated_runs": [
         {
           "job_name": "kj30s-2p0-20260430-0850",
