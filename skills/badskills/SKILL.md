@@ -483,4 +483,5 @@ Why they failed:
 
 Rule:
 - If the before/after sheet does not clearly remove text/bubbles while preserving face, hands, body, legs, and clothing, stop before `stage` / `inference`.
+- For 2.1/2.2 validation, run the segmented entry with `-ReferenceRiskPolicy FailOnHigh`; do not bypass a high-risk preflight report just because the previous B2 output passed once.
 - For this source, prefer a clean reference video, manual/professional cleanup, or stronger semantic/video object-removal tools tested on 1s windows first.

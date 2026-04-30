@@ -234,6 +234,13 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
   -CancelUnavail
 ```
 
+Reference-overlay gate:
+
+- The segmented runner runs `scripts/analyze_reference_overlay_risk.py` before staging/renting unless `-ReferenceRiskPolicy Off` is set.
+- Default policy is `Warn`, which writes `output/reference_risk_preflight/<job_name>/overlay-risk-report.json` and continues.
+- For 2.1/2.2 cleaning validation, use `-ReferenceRiskPolicy FailOnHigh`; high-risk overlay windows must stop the job before Vast selection, upload, or inference.
+- Current gate smoke test: `_test-risk-gate-20260501` correctly blocked `素材资产/原视频/光伏60s.mp4` with 1 high-risk window and max score `11.374`.
+
 ## Machine Selection
 
 Required defaults:

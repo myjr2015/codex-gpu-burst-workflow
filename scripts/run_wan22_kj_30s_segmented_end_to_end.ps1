@@ -37,6 +37,19 @@ param(
 
     [int]$MaxSegments = 0,
 
+    [ValidateSet("Off", "Warn", "FailOnHigh")]
+    [string]$ReferenceRiskPolicy = "Warn",
+
+    [string]$PythonPath = "D:\code\YuYan\python\python.exe",
+
+    [double]$ReferenceRiskSampleInterval = 0.5,
+
+    [double]$ReferenceRiskThreshold = 3.0,
+
+    [double]$ReferenceRiskHighThreshold = 5.0,
+
+    [int]$ReferenceRiskMaxSheetFrames = 48,
+
     [switch]$DisableHfSpeedTest,
 
     [double]$HfMinMiBps = 15,
@@ -75,6 +88,102 @@ foreach ($required in @($r2HelperPath, $runnerScript, $stageScript)) {
 
 . $r2HelperPath
 Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+
+function Invoke-ReferenceRiskPreflight {
+    param(
+        [string]$Policy,
+        [string]$JobName,
+        [string]$VideoPath,
+        [string]$PythonPath,
+        [double]$SampleInterval,
+        [double]$RiskThreshold,
+        [double]$HighThreshold,
+        [int]$MaxSheetFrames,
+        [int]$SegmentSeconds
+    )
+
+    if ($Policy -eq "Off") {
+        Write-Host "reference_risk_policy=Off"
+        return
+    }
+
+    $analyzerScript = Join-Path $repoRoot "scripts\analyze_reference_overlay_risk.py"
+    if (-not (Test-Path -LiteralPath $analyzerScript)) {
+        throw "Reference risk analyzer missing: $analyzerScript"
+    }
+    if (-not (Test-Path -LiteralPath $VideoPath)) {
+        throw "Reference video missing for risk preflight: $VideoPath"
+    }
+
+    $pythonExe = $PythonPath
+    if (-not (Test-Path -LiteralPath $pythonExe)) {
+        $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+        if ($pythonCommand) {
+            $pythonExe = $pythonCommand.Source
+        }
+        elseif ($Policy -eq "FailOnHigh") {
+            throw "Python not found for required reference risk preflight: $PythonPath"
+        }
+        else {
+            Write-Warning "Python not found, skip reference risk preflight: $PythonPath"
+            return
+        }
+    }
+
+    $riskOutputDir = Join-Path $repoRoot ("output\reference_risk_preflight\" + $JobName)
+    New-Item -ItemType Directory -Force -Path $riskOutputDir | Out-Null
+
+    & $pythonExe $analyzerScript `
+        --video $VideoPath `
+        --output-dir $riskOutputDir `
+        --sample-interval $SampleInterval `
+        --segment-seconds $SegmentSeconds `
+        --risk-threshold $RiskThreshold `
+        --high-threshold $HighThreshold `
+        --max-sheet-frames $MaxSheetFrames
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Reference risk analyzer failed with exit code $LASTEXITCODE."
+    }
+
+    $riskReportPath = Join-Path $riskOutputDir "overlay-risk-report.json"
+    if (-not (Test-Path -LiteralPath $riskReportPath)) {
+        throw "Reference risk report not generated: $riskReportPath"
+    }
+
+    $report = Get-Content -Raw -Path $riskReportPath | ConvertFrom-Json
+    $windows = @($report.windows)
+    $highWindows = @($windows | Where-Object { $_.level -eq "high" })
+    $maxScore = 0.0
+    if ($windows.Count -gt 0) {
+        $maxScore = [double]($windows | Measure-Object -Property max_score -Maximum).Maximum
+    }
+
+    Write-Host "reference_risk_policy=$Policy"
+    Write-Host "reference_risk_report=$riskReportPath"
+    Write-Host "reference_risk_windows=$($windows.Count)"
+    Write-Host "reference_risk_high_windows=$($highWindows.Count)"
+    Write-Host ("reference_risk_max_score={0:N3}" -f $maxScore)
+
+    if ($highWindows.Count -gt 0) {
+        $summary = "Reference video has $($highWindows.Count) high-risk overlay window(s). Review $riskReportPath before paid inference."
+        if ($Policy -eq "FailOnHigh") {
+            throw $summary
+        }
+        Write-Warning $summary
+    }
+}
+
+Invoke-ReferenceRiskPreflight `
+    -Policy $ReferenceRiskPolicy `
+    -JobName $JobName `
+    -VideoPath $VideoPath `
+    -PythonPath $PythonPath `
+    -SampleInterval $ReferenceRiskSampleInterval `
+    -RiskThreshold $ReferenceRiskThreshold `
+    -HighThreshold $ReferenceRiskHighThreshold `
+    -MaxSheetFrames $ReferenceRiskMaxSheetFrames `
+    -SegmentSeconds $SegmentSeconds
 
 if ($PrepareOnly) {
     $prepareStageArgs = @(
