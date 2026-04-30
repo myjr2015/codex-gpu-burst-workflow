@@ -465,3 +465,22 @@ The job is to identify whether the failure is:
 - workflow problem
 
 Then take the cheapest next action.
+
+## KJ 2.1-next Reference Cleaning Trap
+
+Do not keep iterating local OCR glyph masks or OpenCV inpaint variants for the 2026-05-01 `光伏60s.mp4` source.
+
+Failed approaches:
+- OCR glyph mask + OpenCV Telea/NS inpaint
+- thicker glyph masks and local mask variants
+- temporal/median-style local fill attempts
+- `simple-lama-inpainting` single-frame probes on `0s`, `30s`, `45s`, and `50.5s`
+
+Why they failed:
+- OCR can detect the Chinese text, but glyph masks leave outlines, shadows, white/orange/gray blocks, or visible bubble frames.
+- Full-box or bubble masks overlap the body, hands, legs, or clothing.
+- LaMa removes the UI but hallucinates photovoltaic panels or semi-transparent fabric/body regions where the person should remain.
+
+Rule:
+- If the before/after sheet does not clearly remove text/bubbles while preserving face, hands, body, legs, and clothing, stop before `stage` / `inference`.
+- For this source, prefer a clean reference video, manual/professional cleanup, or stronger semantic/video object-removal tools tested on 1s windows first.

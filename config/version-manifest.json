@@ -126,7 +126,7 @@
       "workflow_branch": "wan22_kj_30s_segmented",
       "status": "experimental",
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
-      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now supports optional 2.0 B2 background anchoring: keep the pure IP image as person reference, load one prompt-generated bg_image.png, repeat it to frame_load_cap, and connect bg_images plus an IP-alpha-derived mask to WanVideoAnimateEmbeds. The branch also treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 implements a general reference-video pollution preprocessor and evaluates video-level inpainting such as ProPainter/E2FGVI; 2.2 will evaluate lighter image/local repair such as LaMa/MAT, Crop & Stitch, and SAM/OCR-assisted masks.",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now supports optional 2.0 B2 background anchoring: keep the pure IP image as person reference, load one prompt-generated bg_image.png, repeat it to frame_load_cap, and connect bg_images plus an IP-alpha-derived mask to WanVideoAnimateEmbeds. The branch also treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 local rules and 2.1-next OCR/LaMa samples failed on the current heavily overlaid source; next work should use clean source footage, manual cleanup, or stronger semantic/video object removal such as ProPainter/E2FGVI before any Vast inference.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
       "segment_seconds": 30,
       "b2_background_conditioning": {
@@ -138,7 +138,7 @@
         "wan_video_animate_embeds_node": "171"
       },
       "reference_overlay_cleaning": {
-        "status": "local_rule_preprocessor_failed",
+        "status": "local_samples_failed",
         "analyzer": "scripts/analyze_reference_overlay_risk.py",
         "cleaner": "scripts/clean_reference_overlay_windows.py",
         "gate": "Run analyzer before and after cleaning, inspect before/after contact sheet, and do not enter Vast stage/inference unless both human review and risk-after pass.",
@@ -152,6 +152,37 @@
           "risk_after_max_score": 8.065,
           "visual_acceptance": "failed",
           "notes": "The local rule cleaner removed or muted some safe upper overlays and small tokens, but near-body speech bubbles, mid-body text, and bottom subtitles remained visible or became gray blocks. This is not a valid reference for paid KJ inference."
+        },
+        "latest_next_validation": {
+          "validated_at": "2026-05-01T10:20:00+08:00",
+          "source_video": "素材资产/原视频/光伏60s.mp4",
+          "sample_windows": [
+            "0-3s",
+            "29-33s",
+            "45-53s"
+          ],
+          "single_frame_samples": [
+            "0s",
+            "30s",
+            "45s",
+            "50.5s"
+          ],
+          "outputs": {
+            "ocr_inpaint_v1_sheet": "output/reference_cleaning/kj60-2p1-next-20260501/ocr_inpaint_v1/before-after-ocr-inpaint-contact-sheet.jpg",
+            "variant_probe_sheet": "output/reference_cleaning/kj60-2p1-next-20260501/variant_probe/variant-sheet.jpg",
+            "ocr_inpaint_v2_sheet": "output/reference_cleaning/kj60-2p1-next-20260501/ocr_inpaint_v2/before-after-ocr-inpaint-contact-sheet.jpg",
+            "lama_frame_sheet": "output/reference_cleaning/kj60-2p1-next-20260501/lama_frame_v1/lama-before-mask-after-sheet.jpg"
+          },
+          "tested_methods": [
+            "rapidocr_onnxruntime OCR glyph masks",
+            "OpenCV Telea/NS inpaint variants",
+            "thicker OCR masks and local mask variants",
+            "simple-lama-inpainting single-frame probes"
+          ],
+          "visual_acceptance": "failed",
+          "vast_entered": false,
+          "instance_retained": 35889784,
+          "notes": "OCR detects the Chinese overlays, but local inpaint leaves visible text, outlines, white/orange/gray blocks, or bubble frames. LaMa removes some overlays but hallucinates photovoltaic panels or semi-transparent body/clothing where text and bubbles overlap the person. Do not use this cleaned reference for KJ inference."
         }
       },
       "validated_runs": [
