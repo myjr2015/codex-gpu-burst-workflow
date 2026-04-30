@@ -151,6 +151,13 @@ Important lesson:
   - if hands, face, body shape, or chair/contact structure are wrong, clean the matching reference window and rerun only that 30s segment
 - Do not destroy the Vast instance before local download, merge, frame review, and R2 publish are complete.
 
+Cleanup roadmap:
+
+- `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
+- `2.1`: evaluate video-level inpainting such as ProPainter / E2FGVI for subtitles, banners, stickers, and location bubbles that persist across frames.
+- `2.2`: evaluate lighter local repair such as LaMa / MAT, Crop & Stitch, SAM / GroundingDINO / OCR masks, or color-token cleanup for red pins, checkmarks, and small sticker residue.
+- Roadmap details live in `docs/KJ参考视频清理方案TODO.md`.
+
 ## Runtime Rules
 
 Before any paid run, also read:

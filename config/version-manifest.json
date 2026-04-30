@@ -126,7 +126,7 @@
       "workflow_branch": "wan22_kj_30s_segmented",
       "status": "experimental",
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
-      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs.",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 will evaluate video-level inpainting such as ProPainter/E2FGVI; 2.2 will evaluate lighter image/local repair such as LaMa/MAT, Crop & Stitch, and SAM/OCR-assisted masks.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
       "segment_seconds": 30,
       "validated_runs": [
