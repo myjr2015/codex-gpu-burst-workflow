@@ -48,18 +48,20 @@ function requireNode(prompt, nodeId, classType) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.input) {
-    throw new Error("Usage: node scripts/validate_wan22_kj_30s_runtime.mjs --input <workflow_runtime.json>");
+    throw new Error("Usage: node scripts/validate_wan22_kj_30s_runtime.mjs --input <workflow_runtime.json> [--image-name <name>] [--video-name <name>]");
   }
 
   const inputPath = path.resolve(process.cwd(), options.input);
   const prompt = JSON.parse(await fs.readFile(inputPath, "utf8"));
+  const expectedImageName = options["image-name"] || "ip_image.png";
+  const expectedVideoName = options["video-name"] || "reference_30s.mp4";
 
   const imageNode = requireNode(prompt, "163", "LoadImage");
-  assertEqual(imageNode.inputs.image, "ip_image.png", "LoadImage.image");
+  assertEqual(imageNode.inputs.image, expectedImageName, "LoadImage.image");
   assertEqual(imageNode.inputs.upload, "image", "LoadImage.upload");
 
   const videoNode = requireNode(prompt, "178", "VHS_LoadVideo");
-  assertEqual(videoNode.inputs.video, "reference_30s.mp4", "VHS_LoadVideo.video");
+  assertEqual(videoNode.inputs.video, expectedVideoName, "VHS_LoadVideo.video");
   assertEqual(videoNode.inputs.force_rate, 16, "VHS_LoadVideo.force_rate");
   assertEqual(videoNode.inputs.force_size, "Disabled", "VHS_LoadVideo.force_size");
   assertEqual(videoNode.inputs.custom_width, 0, "VHS_LoadVideo.custom_width");

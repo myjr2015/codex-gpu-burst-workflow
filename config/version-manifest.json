@@ -58,6 +58,17 @@
         "1.1-machine-registry"
       ],
       "notes": "2.0 KJ single-shot 30s branch. It uses a pure-color transparent IP image plus a 30s reference video, redraws the background from prompt, and avoids segmented stitching. Initial 30s validation succeeded, but cold-start and inference cost are high, so this is a candidate branch rather than the production default."
+    },
+    {
+      "id": "wan22_kj_30s_segmented",
+      "status": "experimental",
+      "source_workflow": "workflows/书墨-30s长视频-wan2-2AnimateKJ版_v2版-参考动作、表情.json",
+      "default_entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
+      "supported_runtime_strategies": [
+        "1.0-cold",
+        "1.1-machine-registry"
+      ],
+      "notes": "Experimental KJ long-duration wrapper. It splits input video into 30s chunks, runs the existing KJ 30s workflow sequentially on one Vast instance, downloads each segment, and merges with local ffmpeg concat. It does not add a ComfyUI merge plugin and does not provide continue_motion continuity because this KJ workflow has no continue_motion input."
     }
   ],
   "implementation_variants": [
@@ -109,6 +120,15 @@
           "notes": "Generation succeeded after disabling node 137 WanVideoTorchCompileSettings and removing WanVideoModelLoader.compile_args. The output was downloaded and manually published because the first run hit a Windows GBK vastai logs encoding issue during timing summarization; the runner was patched afterward."
         }
       ]
+    },
+    {
+      "id": "wan22-kj-30s-segmented-v1",
+      "workflow_branch": "wan22_kj_30s_segmented",
+      "status": "experimental",
+      "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. Initial target is 60s as two 30s segments on a reused RTX 4090-class machine.",
+      "merge_strategy": "ffmpeg concat with transcode fallback",
+      "segment_seconds": 30
     },
     {
       "id": "segmented-v1",

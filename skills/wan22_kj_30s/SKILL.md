@@ -19,6 +19,16 @@ Use this skill only for the KJ 30s branch:
 
 This is not the old `wan_2_2_animate` production branch and not the segmented v3/v4 branch.
 
+For videos longer than 30s, use the experimental wrapper:
+
+- entry: `scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
+- profile: `wan22_kj_30s_segmented`
+- default video: `素材资产/原视频/光伏60s.mp4`
+- segment size: `30s`
+- merge: local `ffmpeg concat` with transcode fallback
+
+This wrapper does not add a ComfyUI merge plugin. It reuses the existing KJ 30s workflow per segment and merges downloaded MP4 files locally. The KJ workflow does not expose `continue_motion`, so cross-segment continuity is not guaranteed until visually verified.
+
 ## Current Status
 
 Candidate validated run:
@@ -81,6 +91,16 @@ Use `PrepareOnly` before paid changes:
 pwsh -File .\scripts\run_wan22_kj_30s_end_to_end.ps1 `
   -JobName prepareonly-kj30s-<date>-<n> `
   -PrepareOnly
+```
+
+Experimental 60s segmented command:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
+  -JobName <job_name> `
+  -VideoPath .\素材资产\原视频\光伏60s.mp4 `
+  -SegmentSeconds 30 `
+  -CancelUnavail
 ```
 
 ## Machine Selection
