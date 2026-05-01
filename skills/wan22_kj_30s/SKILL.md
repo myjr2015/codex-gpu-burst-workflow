@@ -255,6 +255,8 @@ Validated local tests on `kj60-b11-sameframe-30x2-20260501`:
 - v5 result video: `59.625s`, `720x720`, `16fps`, AAC audio `59.603696s`.
 - v5 repair scope on this sample: `5` touched frames, `5` repaired color components, `911` skipped components. It remained conservative because non-red candidates were either persistent background/panel details or too close to skin/person regions.
 - v5 target review: `frame_review/polished_auto_v5/target_28p5_30p0_before_after.jpg`.
+- User acceptance: current v5 output is acceptable for now. Treat `downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v5.mp4` as the recommended polished output for this run.
+- Default acceptance flow for similar KJ 2.0 same-frame anchor jobs: generate raw merged video, run v5 local polish, inspect before/after and key windows manually, then publish/archive the polished file.
 - Do not set a large halo such as `--halo-padding 48` as the default. Local testing showed it removes more string/highlight residue but creates obvious blue-gray smearing on the leg edge and photovoltaic background.
 
 Cleanup roadmap:

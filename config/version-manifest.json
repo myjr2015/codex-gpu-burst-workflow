@@ -244,9 +244,12 @@
         ],
         "latest_validation": {
           "validated_at": "2026-05-01T11:30:00+08:00",
+          "accepted_at": "2026-05-01T11:35:00+08:00",
+          "acceptance": "user_accepted_for_now",
           "job_name": "kj60-b11-sameframe-30x2-20260501",
           "input_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4",
           "output_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v5.mp4",
+          "recommended_output": true,
           "elapsed_seconds": 424.8,
           "frames_touched": 5,
           "repaired_components": 5,
@@ -259,8 +262,8 @@
           "video_fps": 16,
           "audio_duration_seconds": 59.603696,
           "review_sheet": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/polished_auto_v5/target_28p5_30p0_before_after.jpg",
-          "visual_acceptance": "conservative_multi_color_polish_validated_with_no_hand_control_regression",
-          "notes": "v5 generalizes the repair path from red-only to detector-reported red/yellow/green/magenta candidates and adds a local silver/white halo residual mask around confirmed targets. On this sample, the safe auto-repair target remains the red hanging-ball artifact; cyan/blue stayed disabled to avoid the sky and photovoltaic panel background. A 48px halo probe removed more string/highlight residue but caused obvious blue-gray smearing on the leg edge and panel background, so it is not the default."
+          "visual_acceptance": "user_accepted_for_now",
+          "notes": "v5 generalizes the repair path from red-only to detector-reported red/yellow/green/magenta candidates and adds a local silver/white halo residual mask around confirmed targets. On this sample, the safe auto-repair target remains the red hanging-ball artifact; cyan/blue stayed disabled to avoid the sky and photovoltaic panel background. A 48px halo probe removed more string/highlight residue but caused obvious blue-gray smearing on the leg edge and panel background, so it is not the default. User accepted the v5 output as good enough for now and it is the recommended polished output for this run."
         }
       },
       "validated_runs": [

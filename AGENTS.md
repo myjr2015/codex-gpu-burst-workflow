@@ -213,6 +213,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 用户说“同图版”“同图锚定”“当前KJ固定场景版”时，默认指 `KJ 2.0 同图锚定版`。
 - 用户说“背景mask版”“B2”时，必须提醒该方案已失败，不要直接开跑。
 - 用户说“红点修理”“成片精修”“一条龙修复”时，默认指 `scripts/polish_generated_artifacts.py` 的本地后处理：检测风险、定位候选彩色组件，v5 默认自动处理 `red/yellow/green/magenta`，目标前后默认补 `2` 帧处理不足 1 秒的边缘漏帧，围绕已确认目标尝试清理银白高光/细线残留，跳过皮肤/脸/脚等高误伤区域，OpenCV 局部 inpaint，重封装音频，复检并输出 before/after 拼图；`cyan/blue` 支持显式开启但默认关闭，避免误伤天空和光伏板。
+- `kj60-b11-sameframe-30x2-20260501` 的 `polished-auto-v5.mp4` 已被用户暂时验收为可接受，作为本次 60s 推荐精修输出；后续同类 KJ 2.0 同图锚定版默认先跑 v5 精修再人工确认。
 - 最新可跑状态仍以 `config/version-manifest.json` 为准；如果 AGENTS 和 manifest 冲突，以 manifest 为准，并同步修正 AGENTS。
 
 ## 版本管理规则
