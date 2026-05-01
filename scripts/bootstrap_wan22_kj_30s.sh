@@ -13,6 +13,7 @@ PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 KJ_TORCH_AUX_INSTALL_STRICT="${KJ_TORCH_AUX_INSTALL_STRICT:-0}"
 KJ_MODEL_DOWNLOAD_PARALLELISM="${KJ_MODEL_DOWNLOAD_PARALLELISM:-3}"
+KJ_REMOTE_STOP_AFTER="${KJ_REMOTE_STOP_AFTER:-}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
 
@@ -66,6 +67,170 @@ ensure_python_package_no_deps() {
   fi
   echo "[bootstrap] installing package without deps: $package_spec"
   pip_install --upgrade-strategy only-if-needed --no-deps "$package_spec"
+}
+
+refresh_nvidia_python_ld_paths() {
+  local paths_file="/tmp/kj-bootstrap-nvidia-python-ld-paths.txt"
+  python3 - "$paths_file" <<'PY'
+import site
+import sys
+import sysconfig
+from pathlib import Path
+
+out = Path(sys.argv[1])
+roots = []
+for value in site.getsitepackages():
+    roots.append(value)
+for key in ("purelib", "platlib"):
+    value = sysconfig.get_paths().get(key)
+    if value:
+        roots.append(value)
+
+paths = []
+seen = set()
+for root in roots:
+    base = Path(root)
+    if not base.exists():
+        continue
+    for candidate in sorted(base.glob("nvidia/*/lib")):
+        if candidate.is_dir():
+            resolved = str(candidate.resolve())
+            if resolved not in seen:
+                seen.add(resolved)
+                paths.append(resolved)
+
+out.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8")
+PY
+
+  if [ ! -s "$paths_file" ]; then
+    return 0
+  fi
+
+  local joined_paths
+  joined_paths="$(paste -sd: "$paths_file")"
+  if [ -n "$joined_paths" ]; then
+    export LD_LIBRARY_PATH="$joined_paths:${LD_LIBRARY_PATH:-}"
+    echo "[bootstrap] LD_LIBRARY_PATH includes Python NVIDIA libraries"
+  fi
+
+  if [ -d /etc/ld.so.conf.d ] && [ -w /etc/ld.so.conf.d ]; then
+    cp "$paths_file" /etc/ld.so.conf.d/codex-nvidia-python-libs.conf
+    ldconfig || true
+  fi
+}
+
+onnxruntime_cuda_static_ready() {
+  python3 <<'PY' >/dev/null 2>&1
+import ctypes
+import onnxruntime as ort
+
+if hasattr(ort, "preload_dlls"):
+    ort.preload_dlls(directory="")
+
+providers = set(ort.get_available_providers())
+if "CUDAExecutionProvider" not in providers:
+    raise SystemExit(1)
+
+for lib in (
+    "libcublasLt.so.12",
+    "libcublas.so.12",
+    "libcudart.so.12",
+    "libcudnn.so.9",
+):
+    ctypes.CDLL(lib)
+PY
+}
+
+validate_onnxruntime_cuda_gpu() {
+  local output_path="${1:-$RUN_DIR/onnxruntime_cuda_validation.json}"
+  python3 - "$output_path" <<'PY'
+import ctypes
+import json
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import onnx
+import onnxruntime as ort
+from onnx import TensorProto, helper
+
+if hasattr(ort, "preload_dlls"):
+    ort.preload_dlls(directory="")
+
+providers = ort.get_available_providers()
+required_provider = "CUDAExecutionProvider"
+if required_provider not in providers:
+    raise SystemExit(f"onnxruntime missing {required_provider}; providers={providers}")
+
+loaded_libs = []
+for lib in (
+    "libcublasLt.so.12",
+    "libcublas.so.12",
+    "libcudart.so.12",
+    "libcudnn.so.9",
+):
+    ctypes.CDLL(lib)
+    loaded_libs.append(lib)
+
+input_info = helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 2])
+output_info = helper.make_tensor_value_info("y", TensorProto.FLOAT, [1, 2])
+node = helper.make_node("Identity", ["x"], ["y"])
+graph = helper.make_graph([node], "codex_onnxruntime_cuda_smoke", [input_info], [output_info])
+model = helper.make_model(
+    graph,
+    producer_name="codex-kj-smoke",
+    opset_imports=[helper.make_operatorsetid("", 13)],
+)
+model.ir_version = 8
+
+with tempfile.TemporaryDirectory() as temp_dir:
+    model_path = Path(temp_dir) / "identity.onnx"
+    onnx.save(model, model_path)
+    session = ort.InferenceSession(str(model_path), providers=[required_provider])
+    session_providers = session.get_providers()
+    if not session_providers or session_providers[0] != required_provider:
+        raise SystemExit(f"onnxruntime session did not use CUDA first; session_providers={session_providers}")
+    result = session.run(None, {"x": np.array([[1.0, 2.0]], dtype=np.float32)})[0]
+    if result.tolist() != [[1.0, 2.0]]:
+        raise SystemExit(f"unexpected onnxruntime output: {result!r}")
+
+payload = {
+    "generated_at": datetime.now(timezone.utc).isoformat(),
+    "onnxruntime": ort.__version__,
+    "available_providers": providers,
+    "required_provider": required_provider,
+    "session_providers": session_providers,
+    "loaded_libraries": loaded_libs,
+    "gpu_session_checked": True,
+}
+Path(output_path).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+print("[bootstrap] onnxruntime CUDA validation passed: " + json.dumps(payload, sort_keys=True))
+PY
+}
+
+ensure_onnxruntime_cuda_package() {
+  refresh_nvidia_python_ld_paths
+  if onnxruntime_cuda_static_ready; then
+    echo "[bootstrap] onnxruntime CUDA provider and CUDA12 libraries already available"
+  else
+    echo "[bootstrap] installing onnxruntime GPU package with CUDA/cuDNN runtime dependencies"
+    python3 -m pip uninstall -y onnxruntime || true
+    pip_install --upgrade --upgrade-strategy only-if-needed "onnxruntime-gpu[cuda,cudnn]>=1.21.0"
+    refresh_nvidia_python_ld_paths
+  fi
+  validate_onnxruntime_cuda_gpu "$RUN_DIR/onnxruntime_cuda_validation.json"
+}
+
+model_download_not_needed_for_remote_stop() {
+  case "$KJ_REMOTE_STOP_AFTER" in
+    onnx_cuda|wait_api|validate_nodes)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 torch_core_matches_expected() {
@@ -503,7 +668,14 @@ ensure_python_package "imageio-ffmpeg" "imageio_ffmpeg"
 ensure_python_package "matplotlib" "matplotlib"
 ensure_python_package "numpy" "numpy"
 ensure_python_package "onnx" "onnx"
-ensure_python_package "onnxruntime-gpu" "onnxruntime"
+stage_event "bootstrap.onnx_cuda" "start"
+ensure_onnxruntime_cuda_package
+stage_event "bootstrap.onnx_cuda" "end"
+if [ "$KJ_REMOTE_STOP_AFTER" = "onnx_cuda" ]; then
+  echo "[bootstrap] KJ_REMOTE_STOP_AFTER=onnx_cuda, stopping before remaining dependencies and model downloads"
+  stage_event "bootstrap.python_dependencies" "partial_stop"
+  exit 0
+fi
 ensure_python_package "opencv-python" "cv2"
 ensure_python_package "peft" "peft"
 ensure_python_package "pillow>=10.3.0" "PIL"
@@ -533,6 +705,12 @@ mkdir -p \
   "$MODELS_DIR/clip_vision" \
   "$MODELS_DIR/detection" \
   "$MODELS_DIR/loras"
+
+if model_download_not_needed_for_remote_stop; then
+  echo "[bootstrap] skipping model downloads because KJ_REMOTE_STOP_AFTER=$KJ_REMOTE_STOP_AFTER will not submit workflow"
+  stage_event "bootstrap.model_downloads" "skip"
+  exit 0
+fi
 
 if [ "$WARM_START" = "1" ] && [ -f "$RUN_DIR/inspect_wan22_kj_30s_warmstart.py" ]; then
   warm_state="$(inspect_warmstart_state)"

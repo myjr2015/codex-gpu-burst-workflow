@@ -51,6 +51,134 @@ ensure_python_package_no_deps() {
   pip_install --upgrade-strategy only-if-needed --no-deps "$package_spec"
 }
 
+refresh_nvidia_python_ld_paths() {
+  local paths_file="/tmp/kj-env-nvidia-python-ld-paths.txt"
+  python3 - "$paths_file" <<'PY'
+import site
+import sys
+import sysconfig
+from pathlib import Path
+
+out = Path(sys.argv[1])
+roots = []
+for value in site.getsitepackages():
+    roots.append(value)
+for key in ("purelib", "platlib"):
+    value = sysconfig.get_paths().get(key)
+    if value:
+        roots.append(value)
+
+paths = []
+seen = set()
+for root in roots:
+    base = Path(root)
+    if not base.exists():
+        continue
+    for candidate in sorted(base.glob("nvidia/*/lib")):
+        if candidate.is_dir():
+            resolved = str(candidate.resolve())
+            if resolved not in seen:
+                seen.add(resolved)
+                paths.append(resolved)
+
+out.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8")
+PY
+
+  if [ ! -s "$paths_file" ]; then
+    return 0
+  fi
+
+  local joined_paths
+  joined_paths="$(paste -sd: "$paths_file")"
+  if [ -n "$joined_paths" ]; then
+    export LD_LIBRARY_PATH="$joined_paths:${LD_LIBRARY_PATH:-}"
+    echo "[kj-env-image] LD_LIBRARY_PATH includes Python NVIDIA libraries"
+  fi
+
+  if [ -d /etc/ld.so.conf.d ] && [ -w /etc/ld.so.conf.d ]; then
+    cp "$paths_file" /etc/ld.so.conf.d/codex-nvidia-python-libs.conf
+    ldconfig || true
+  fi
+}
+
+onnxruntime_cuda_static_ready() {
+  python3 <<'PY' >/dev/null 2>&1
+import ctypes
+import onnxruntime as ort
+
+if hasattr(ort, "preload_dlls"):
+    ort.preload_dlls(directory="")
+
+providers = set(ort.get_available_providers())
+if "CUDAExecutionProvider" not in providers:
+    raise SystemExit(1)
+
+for lib in (
+    "libcublasLt.so.12",
+    "libcublas.so.12",
+    "libcudart.so.12",
+    "libcudnn.so.9",
+):
+    ctypes.CDLL(lib)
+PY
+}
+
+validate_onnxruntime_cuda_static() {
+  python3 <<'PY'
+import ctypes
+import json
+from pathlib import Path
+
+import onnxruntime as ort
+
+if hasattr(ort, "preload_dlls"):
+    ort.preload_dlls(directory="")
+
+providers = ort.get_available_providers()
+required_provider = "CUDAExecutionProvider"
+if required_provider not in providers:
+    raise SystemExit(f"onnxruntime missing {required_provider}; providers={providers}")
+
+loaded_libs = []
+for lib in (
+    "libcublasLt.so.12",
+    "libcublas.so.12",
+    "libcudart.so.12",
+    "libcudnn.so.9",
+):
+    ctypes.CDLL(lib)
+    loaded_libs.append(lib)
+
+payload = {
+    "onnxruntime": ort.__version__,
+    "available_providers": providers,
+    "required_provider": required_provider,
+    "loaded_libraries": loaded_libs,
+    "gpu_session_checked": False,
+}
+Path("/opt/codex/onnxruntime-cuda-static.json").write_text(
+    json.dumps(payload, indent=2) + "\n",
+    encoding="utf-8",
+)
+print("[kj-env-image] onnxruntime CUDA static validation passed: " + json.dumps(payload, sort_keys=True))
+PY
+}
+
+ensure_onnxruntime_cuda_package() {
+  refresh_nvidia_python_ld_paths
+  if onnxruntime_cuda_static_ready; then
+    echo "[kj-env-image] onnxruntime CUDA provider and CUDA12 libraries already available"
+    validate_onnxruntime_cuda_static
+    return 0
+  fi
+
+  echo "[kj-env-image] installing onnxruntime GPU package with CUDA/cuDNN runtime dependencies"
+  python3 -m pip uninstall -y onnxruntime || true
+  pip_install --upgrade --upgrade-strategy only-if-needed "onnxruntime-gpu[cuda,cudnn]>=1.21.0"
+  refresh_nvidia_python_ld_paths
+  validate_onnxruntime_cuda_static
+}
+
 torch_core_matches_expected() {
   python3 <<'PY' >/dev/null 2>&1
 import torch
@@ -245,7 +373,7 @@ ensure_python_package "imageio-ffmpeg" "imageio_ffmpeg"
 ensure_python_package "matplotlib" "matplotlib"
 ensure_python_package "numpy" "numpy"
 ensure_python_package "onnx" "onnx"
-ensure_python_package "onnxruntime-gpu" "onnxruntime"
+ensure_onnxruntime_cuda_package
 ensure_python_package "opencv-python" "cv2"
 ensure_python_package "peft" "peft"
 ensure_python_package "pillow>=10.3.0" "PIL"
@@ -273,6 +401,7 @@ payload = {
     "kind": "wan22_kj_30s_env_image",
     "models_included": False,
     "custom_node_seed_dir": "/opt/codex/kj-custom_nodes",
+    "onnxruntime_cuda_required": True,
 }
 try:
     import torch
@@ -288,6 +417,14 @@ for name in ("torchvision", "torchaudio"):
         payload[name] = {"version": getattr(module, "__version__", "")}
     except Exception as exc:
         payload[name] = {"error": str(exc)}
+try:
+    import onnxruntime as ort
+    payload["onnxruntime"] = {
+        "version": ort.__version__,
+        "available_providers": ort.get_available_providers(),
+    }
+except Exception as exc:
+    payload["onnxruntime_error"] = str(exc)
 Path("/opt/codex/kj-env-image.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 PY
 

@@ -14,7 +14,7 @@ on:
       image_tag:
         description: Image tag
         required: true
-        default: cuda129-py312-kj-v2
+        default: cuda129-py312-kj-v3
   push:
     paths:
       - docker/wan22-kj-comfy-env/**
@@ -36,7 +36,7 @@ jobs:
         run: |
           registry="${{ github.event.inputs.registry || 'ghcr' }}"
           image_name="${{ github.event.inputs.image_name || 'codex-wan22-kj-comfy' }}"
-          image_tag="${{ github.event.inputs.image_tag || 'cuda129-py312-kj-v2' }}"
+          image_tag="${{ github.event.inputs.image_tag || 'cuda129-py312-kj-v3' }}"
           registry="$(printf '%s' "$registry" | tr '[:upper:]' '[:lower:]')"
           image_name="$(printf '%s' "$image_name" | tr '[:upper:]' '[:lower:]')"
           case "$registry" in

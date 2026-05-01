@@ -80,17 +80,19 @@
   ],
   "implementation_variants": [
     {
-      "id": "wan22-kj-docker-env-template-v2",
+      "id": "wan22-kj-docker-env-template-v3",
       "workflow_branch": "wan22_kj_30s",
-      "status": "experimental",
+      "status": "experimental_pending_validation",
       "entry": "docker/wan22-kj-comfy-env/Dockerfile",
-      "description": "Project-owned KJ environment image and Vast template path. The image starts from vastai/comfy:v0.19.3-cuda-12.9-py312, preinstalls KJ custom nodes, Python dependencies, and records the torch/torchvision/torchaudio compatibility state, while deliberately excluding Wan/KJ model weights. Runtime strategy 1.2-docker-env-template uses the resulting Vast template hash while preserving R2 staging, onstart, HF speed gate, machine registry, and normal download/publish flow. The default registry is GHCR so the build path does not depend on a DockerHub username.",
-      "image": "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2",
+      "description": "Project-owned KJ environment image and Vast template path. The image starts from vastai/comfy:v0.19.3-cuda-12.9-py312, preinstalls KJ custom nodes, Python dependencies, records torch compatibility, and v3 validates ONNXRuntime CUDA provider plus CUDA12 runtime libraries before any KJ inference. Runtime strategy 1.2-docker-env-template uses the resulting Vast template hash while preserving R2 staging, onstart, HF speed gate, machine registry, and normal download/publish flow. The default registry is GHCR so the build path does not depend on a DockerHub username.",
+      "image": "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3",
       "build_workflow": ".github/workflows/build-wan22-kj-env-image.yml",
       "template_helper": "scripts/create_vast_wan22_kj_env_template.ps1",
       "template_hash_env": "VAST_WAN22_KJ_TEMPLATE_HASH",
-      "latest_template_hash": "3f38ca38792bcefce25bb1688f4ca2ca",
-      "latest_template_id": 400059,
+      "latest_template_hash": "",
+      "latest_template_id": null,
+      "previous_failed_template_hash": "3f38ca38792bcefce25bb1688f4ca2ca",
+      "previous_failed_template_id": 400059,
       "models_included": false,
       "volume_required": false,
       "model_download_parallelism": {
@@ -109,7 +111,20 @@
         ],
         "auxiliary_install_policy": "best-effort install missing/import-broken auxiliary packages with --no-deps matched to current torch version and current torch CUDA wheel index; if a matching auxiliary wheel is unavailable, warn and continue as long as torch core, CUDA, and GPU checks passed; do not force reinstall torch"
       },
-      "latest_smoke": {
+      "onnxruntime_cuda_policy": {
+        "package": "onnxruntime-gpu[cuda,cudnn]>=1.21.0",
+        "required_provider": "CUDAExecutionProvider",
+        "required_libraries": [
+          "libcublasLt.so.12",
+          "libcublas.so.12",
+          "libcudart.so.12",
+          "libcudnn.so.9"
+        ],
+        "smoke_stop": "RemoteStopAfter=onnx_cuda",
+        "pass_signal": "[onnx-cuda-smoke] tiny inference ok"
+      },
+      "latest_smoke": null,
+      "previous_v2_smoke": {
         "job_name": "kj30s-template-v2-smoke-fix-20260501-164926",
         "validated_at": "2026-05-01T17:13:06+08:00",
         "instance_id": 35950726,
@@ -130,7 +145,7 @@
         "model_downloads_completed": true,
         "validate_nodes": "passed",
         "destroy_status": "not_found_on_destroy_recheck_instances_empty",
-        "notes": "The first v2 smoke exposed a wrong auxiliary-package CUDA index when the base image reported torch=2.11.0+cu130; V6.5.17 fixed auxiliary installs to use the current torch CUDA wheel index and to treat auxiliary install as best-effort. The follow-up smoke reached remote.validate_nodes and stopped before /prompt as intended. Curl connection reset messages appeared during large parallel downloads, but curl retries and resume completed and all model download stage markers ended successfully."
+        "notes": "The first v2 smoke exposed a wrong auxiliary-package CUDA index when the base image reported torch=2.11.0+cu130; V6.5.17 fixed auxiliary installs to use the current torch CUDA wheel index and to treat auxiliary install as best-effort. The follow-up smoke reached remote.validate_nodes and stopped before /prompt as intended. Curl connection reset messages appeared during large parallel downloads, but curl retries and resume completed and all model download stage markers ended successfully. Later paid KJ preprocessing showed this was not enough: ONNXRuntime CUDA provider failed to load libcublasLt.so.12 and preprocessing fell back to CPU, so v2 is no longer acceptable for further paid KJ tests."
       }
     },
     {

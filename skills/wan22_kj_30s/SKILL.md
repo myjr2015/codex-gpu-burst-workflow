@@ -259,6 +259,24 @@ Validated local tests on `kj60-b11-sameframe-30x2-20260501`:
 - Default acceptance flow for similar KJ 2.0 same-frame anchor jobs: generate raw merged video, run v5 local polish, inspect before/after and key windows manually, then publish/archive the polished file.
 - Do not set a large halo such as `--halo-padding 48` as the default. Local testing showed it removes more string/highlight residue but creates obvious blue-gray smearing on the leg edge and photovoltaic background.
 
+## RTX 3090 Vast Selection
+
+User cost preference from 2026-05-01:
+
+- For KJ / Wan2.2 paid work on `RTX 3090 24GB`, default acceptable price is total `dph_total < $0.20/h`.
+- Always judge price after applying the actual `--storage` value, because Vast total hourly cost is GPU plus disk/storage fees and may differ from the bare GPU listing.
+- HF-only speed tests may use smaller storage to reach the speedtest stage quickly; real KJ cold-start or inference runs must recalculate with the disk size required by image plus models.
+- Full KJ 30s / segmented workflow selection uses `DiskGb=240` and `--storage 240` by default. Do not use 40GB/80GB HF-only speedtest prices as the final production cost.
+- Do not pick 3090 offers at or above `$0.20/h` unless the user explicitly asks or there is no usable machine below the threshold.
+- Keep excluding `CN` and `TR`.
+- Prefer drivers `580.*` or `590.*`; driver `570.*` and lower must be called out as CUDA / torch compatibility risk before spending money.
+
+Current 3090 speed-test candidates requested by the user:
+
+- `35423246`: California, `machine_id=54625`, `host_id=344939`, listed about `$0.1347/h`; with 180GB storage observed about `$0.1833/h`, still below `$0.20/h`.
+- `35135923`: California, `machine_id=68407`, `host_id=344939`, listed about `$0.1356/h`; actual total must be checked with storage.
+- `32302041`: California, `machine_id=42748`, `host_id=299337`, about `$0.1228/h`, driver `570.158.01`; inside preferred price band but driver is a CUDA / torch compatibility risk until proven reliable.
+
 Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
@@ -294,18 +312,19 @@ Artifacts:
 
 - Dockerfile: `docker/wan22-kj-comfy-env/Dockerfile`
 - build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
-- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2`
+- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
 - default registry: GHCR. DockerHub remains optional, but the default path should not assume a DockerHub username exists.
 - GHCR may remain private after Actions push. In that case, pass `-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` at instance launch; the token is read from local GitHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
-- current v2 template hash: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`)
+- failed v2 template hash: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`)
 - details: `docs/KJ环境镜像和Vast模板.md`
-- v2 startup optimization:
+- v2/v3 startup optimization:
   - `KJ_MODEL_DOWNLOAD_PARALLELISM` controls cold model download concurrency; default `3`, capped at `4`.
   - model downloads write `*.part.<pid>` first, use curl resume, and move into place only after curl succeeds; any failed model fails the whole bootstrap.
   - torch compatibility is judged by torch CUDA runtime and GPU availability first; missing `torchvision` / `torchaudio` are best-effort auxiliary no-deps installs from the current torch CUDA index. If the matching auxiliary wheel does not exist, bootstrap warns and continues instead of forcing a full torch stack reinstall.
   - the Docker env image records torch, torchvision, and torchaudio versions in `/opt/codex/kj-env-image.json`.
+  - v3 installs `onnxruntime-gpu[cuda,cudnn]`, exposes Python NVIDIA CUDA12 libraries through `LD_LIBRARY_PATH` / `ldconfig`, and verifies ONNXRuntime `CUDAExecutionProvider` plus a tiny ONNX GPU session.
 
 Expected benefit:
 
@@ -342,7 +361,24 @@ Validation signal:
 - HF speedtest should still run
 - model phase should still report existing/missing model files
 - do not call it faster until a paid smoke run compares bootstrap timing against base image
+- for v3, do not accept `validate_nodes` alone; the required pass signal is `[onnx-cuda-smoke] tiny inference ok` or `onnxruntime CUDA validation passed`
+- if ONNXRuntime CUDA validation fails, destroy the instance and fix the image before any full inference
 - for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` after staging; this stops before `/prompt` submission and avoids a full paid inference.
+
+Fast ONNX CUDA smoke:
+
+```powershell
+pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
+  -JobName <job_name> `
+  -OfferId <offer_id> `
+  -TemplateHash <template_hash_id> `
+  -PrivateRegistryLogin `
+  -RegistryHost ghcr.io `
+  -RegistryUsername myjr2015 `
+  -RemoteStopAfter onnx_cuda
+```
+
+This stops before model downloads and before `/prompt`.
 
 Latest v2 smoke:
 
@@ -360,6 +396,7 @@ Latest v2 smoke:
   - large curl downloads had transient reset/broken-pipe messages but retries/resume completed
 - cleanup: final `vastai show instances --raw` returned `[]`; destroy helper returned 404 for `35950726` because it was already absent by the cleanup call.
 - earlier failed smoke note: first v2 smoke found that `torch=2.11.0+cu130` could get stuck when auxiliary `torchaudio` was looked up on fixed cu124 index. Fixed in `V6.5.17` by deriving the auxiliary PyTorch wheel index from current `torch.version.cuda` and treating auxiliary install as best-effort when torch core is already compatible.
+- v2 failure update: a later KJ run showed `libonnxruntime_providers_cuda.so` could not load because `libcublasLt.so.12` was missing; `Detecting bboxes` and `Extracting keypoints` fell back to CPU. Do not use v2 for further paid KJ tests.
 
 Default command:
 

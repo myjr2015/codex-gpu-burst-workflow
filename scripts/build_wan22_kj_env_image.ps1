@@ -5,7 +5,7 @@ param(
 
     [string]$ImageName = "codex-wan22-kj-comfy",
 
-    [string]$Tag = "cuda129-py312-kj-v2",
+    [string]$Tag = "cuda129-py312-kj-v3",
 
     [string]$Dockerfile = ".\docker\wan22-kj-comfy-env\Dockerfile",
 

@@ -1,7 +1,7 @@
 param(
     [string]$TemplateName = "codex-wan22-kj-comfy-cuda129",
 
-    [string]$Image = "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2",
+    [string]$Image = "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3",
 
     [int]$DiskGb = 240,
 

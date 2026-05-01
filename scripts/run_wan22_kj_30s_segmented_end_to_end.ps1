@@ -67,6 +67,12 @@ param(
 
     [switch]$CancelUnavail,
 
+    [switch]$PrivateRegistryLogin,
+
+    [string]$RegistryHost = "",
+
+    [string]$RegistryUsername = "",
+
     [switch]$SkipPublish,
 
     [switch]$PrepareOnly,
@@ -311,6 +317,15 @@ $launchArgs = @(
 )
 if (-not [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
     $launchArgs += @("-TemplateHash", $VastTemplateHash)
+}
+if ($PrivateRegistryLogin) {
+    $launchArgs += "-PrivateRegistryLogin"
+    if (-not [string]::IsNullOrWhiteSpace($RegistryHost)) {
+        $launchArgs += @("-RegistryHost", $RegistryHost)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RegistryUsername)) {
+        $launchArgs += @("-RegistryUsername", $RegistryUsername)
+    }
 }
 if ($CancelUnavail) {
     $launchArgs += "-CancelUnavail"

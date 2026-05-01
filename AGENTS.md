@@ -76,6 +76,20 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 - `hit` 说中文叫“命中”。
 - `miss` 说中文叫“未命中”，意思是没有找到可复用缓存，不是文件丢失。
 
+### 3090 价格规则
+
+选择 `RTX 3090 24GB` 跑 KJ / Wan2.2 付费任务时，默认只考虑全部费用合计低于 `$0.20/h` 的机器。
+
+规则：
+
+- 仍然必须排除 `CN` 和 `TR`。
+- 优先 `driver_version` 为 `580.*` 或 `590.*`，避免 CUDA / torch 兼容问题。
+- 必须用带实际 `--storage` 后的 `dph_total` 判断价格，不能只看裸 GPU 价格。
+- HF 纯测速可以用小磁盘快速测网络；真实 KJ 冷启动/推理要用实际需要的磁盘重新计算总价。
+- KJ 30s / KJ 分段完整工作流默认按 `DiskGb=240` 选机，搜索也必须带 `--storage 240`；不要用 40GB/80GB 的测速价格判断真实任务成本。
+- 全部费用高于 `$0.20/h` 的 3090 默认不选，除非用户明确要求或当前没有低于 `$0.20/h` 的可用候选。
+- 当前用户指定的 3090 价格偏好来自 2026-05-01：全部费用加起来低于 `0.20/h`。
+
 ### 选机结果以“实际启动时”为准
 
 Vast 可租状态会在很短时间内变化。
@@ -203,10 +217,10 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 状态：当前 KJ 固定场景 60s 可用方案；用同一张完整人物+背景 anchor 图作为每段 `ip_image.png`，不接 `bg_images` / `mask`。
 - `KJ 2.0 环境镜像模板版`
   - 内部：`1.2-docker-env-template`
-  - 镜像：`ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2`
+  - 镜像：`ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
   - Dockerfile：`docker/wan22-kj-comfy-env/Dockerfile`
   - Vast template helper：`scripts/create_vast_wan22_kj_env_template.ps1`
-  - 状态：实验可跑；默认走 GHCR 构建，保留 DockerHub 可选路径，只预装 KJ custom nodes、Python 依赖和 torch 辅助包兼容记录，不包含模型权重，不使用 Vast volume；冷模型下载默认 3 路并行，最多 4 路；torch 辅助包补装失败时默认警告继续，不触发整套 torch 重装。
+  - 状态：实验修复中；v2 已证明 `validate_nodes` 不足，因 ONNXRuntime CUDA provider 加载失败会让 KJ 前处理退回 CPU。v3 必须先通过 `RemoteStopAfter=onnx_cuda`，确认 `CUDAExecutionProvider` 和 tiny ONNX GPU session 成功，再允许租 3090 继续后续验证。
 - `KJ 2.0 背景/Mask失败版`
   - 内部：`B2 bg_images/mask`
   - 状态：失败不要跑；该方案会压制嘴巴和身体动作。
@@ -315,6 +329,7 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
   - 通过 `-VastTemplateHash` 或 `VAST_WAN22_KJ_TEMPLATE_HASH` 使用 Vast template
   - template 指向项目 Docker 环境镜像，目标是减少 custom nodes / Python 依赖安装时间
   - 不代表模型缓存命中；模型仍然走 HF 测速和下载/缓存检查
+  - v3 起必须先跑 `-RemoteStopAfter onnx_cuda` 小测试，确认 ONNXRuntime CUDA provider 不退回 CPU，再做 `validate_nodes` 或完整推理
 
 ## 不要重复踩坑
 
@@ -329,6 +344,7 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
 - 不要把 Vast template 等同于模型缓存；template 只固化启动配置和镜像，模型是否命中仍看远端文件检查。
 - 不要把 KJ 环境镜像实验写回老 `wan_2_2_animate` 生产主线；它只属于 KJ 独立 profile。
 - 不要把大模型第一版塞进 Docker 镜像；先验证环境镜像能不能省掉节点和依赖安装时间。
+- 不要把 `validate_nodes` 当成 KJ 环境镜像通过标准；它只能证明节点存在，不能证明 ONNXRuntime GPU 前处理可用。v3 必须看 `[onnx-cuda-smoke] tiny inference ok`。
 - 不要把已放弃的 Docker / 缓存镜像实验重新写回 `wan_2_2_animate` 的生产记忆。
 - 新模型或新工作流必须新增独立 profile / skill，不要污染当前 Wan2.2 固定流程。
 

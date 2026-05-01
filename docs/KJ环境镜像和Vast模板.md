@@ -23,7 +23,7 @@
 默认镜像名：
 
 ```text
-ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
+ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
 ## 不放进镜像的内容
@@ -49,7 +49,7 @@ pwsh -File .\scripts\build_wan22_kj_env_image.ps1 -Push
 ```powershell
 pwsh -File .\scripts\dispatch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml `
-  -Inputs @{ registry = "ghcr"; image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v2" }
+  -Inputs @{ registry = "ghcr"; image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v3" }
 
 pwsh -File .\scripts\watch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml
@@ -76,7 +76,7 @@ pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
 如果 GHCR package 仍是 private，template 仍可创建，但真正拉镜像的私有登录要在创建实例时传入：
@@ -84,7 +84,7 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
 后续 launch 时加：
@@ -107,6 +107,15 @@ $env:VAST_WAN22_KJ_TEMPLATE_HASH = "<template_hash_id>"
 template_hash_id=3f38ca38792bcefce25bb1688f4ca2ca
 template_id=400059
 image=ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
+status=failed_for_onnx_cuda_provider
+reason=v2 only passed ComfyUI node registration; later KJ preprocessing fell back to CPU because ONNXRuntime CUDA provider could not load libcublasLt.so.12.
+```
+
+当前 v3 目标镜像：
+
+```text
+image=ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+status=building_or_pending_validation
 ```
 
 ## 运行方式
@@ -134,6 +143,7 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
 - 省掉大部分 custom node clone / requirements 安装时间。
 - 降低 Python 依赖漂移导致的启动失败概率。
 - 减少 torch 重装概率：bootstrap 以 `torch + CUDA>=12.4 + GPU 可用` 作为硬条件，缺 `torchvision` / `torchaudio` 时优先按当前 torch 版本和当前 torch CUDA 后缀补装辅助包；如果上游没有对应 wheel，默认警告后继续，不触发整套 torch force reinstall。
+- v3 额外强制验证 ONNXRuntime CUDA provider：安装 `onnxruntime-gpu[cuda,cudnn]`，写入 Python NVIDIA runtime 库路径，验证 `CUDAExecutionProvider`、`libcublasLt.so.12`、`libcudnn.so.9`、`libcudart.so.12`，并用 tiny ONNX Identity 模型创建 CUDA session 跑一次推理。
 - 模型下载默认 `3` 路并行，最多 `4` 路；每个模型先写入 `.part` 临时文件，curl 使用断点续传，下载成功后再 `mv` 到目标文件，任一模型失败则 bootstrap 失败。
 - 不直接减少 HuggingFace 模型下载时间。
 - 不改变 KJ 推理时间。
@@ -145,10 +155,33 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
 - bootstrap 日志出现 `preinstalled KJ custom nodes are ready`。
 - HF speed gate 仍正常执行。
 - workflow 能进入模型下载或缓存检查阶段。
+- `RemoteStopAfter=onnx_cuda` 能在模型下载前验证 ONNXRuntime CUDA provider，失败必须停止，不允许退回 CPU 前处理。
 
 ## Smoke 验证
 
-验证 template 启动速度时，不要完整提交 30s 推理。先 stage，再 launch，并让远端停在节点校验后：
+验证 template 启动速度时，不要完整提交 30s 推理。v3 先跑 ONNX CUDA smoke，让远端停在模型下载前：
+
+```powershell
+pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
+  -JobName <job_name> `
+  -OfferId <offer_id> `
+  -TemplateHash <template_hash_id> `
+  -PrivateRegistryLogin `
+  -RegistryHost ghcr.io `
+  -RegistryUsername myjr2015 `
+  -ModelDownloadParallelism 3 `
+  -RemoteStopAfter onnx_cuda
+```
+
+该模式只验证：
+
+1. 镜像能拉起。
+2. HF speed gate 能执行。
+3. bootstrap 能复用/安装 ONNXRuntime GPU 依赖。
+4. `onnxruntime` 能以 `CUDAExecutionProvider` 创建 tiny session 并完成一次推理。
+5. 停止在模型下载和 `/prompt` 之前。
+
+节点完整校验再使用：
 
 ```powershell
 pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `

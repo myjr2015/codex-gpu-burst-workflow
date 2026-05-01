@@ -30,6 +30,12 @@ param(
     [ValidateRange(1, 4)]
     [int]$ModelDownloadParallelism = 3,
 
+    [switch]$PrivateRegistryLogin,
+
+    [string]$RegistryHost = "",
+
+    [string]$RegistryUsername = "",
+
     [string[]]$MountArgs = @()
 )
 
@@ -67,6 +73,15 @@ $createArgs = @(
 )
 if (-not [string]::IsNullOrWhiteSpace($TemplateHash)) {
     $createArgs += @("-TemplateHash", $TemplateHash, "-TemplateProvidesStaticEnv")
+}
+if ($PrivateRegistryLogin) {
+    $createArgs += "-PrivateRegistryLogin"
+    if (-not [string]::IsNullOrWhiteSpace($RegistryHost)) {
+        $createArgs += @("-RegistryHost", $RegistryHost)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RegistryUsername)) {
+        $createArgs += @("-RegistryUsername", $RegistryUsername)
+    }
 }
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
@@ -138,3 +153,12 @@ if (-not $DisableHfSpeedTest) {
     Write-Host "hf_max_estimated_download_minutes=$HfMaxEstimatedDownloadMinutes"
 }
 Write-Host "model_download_parallelism=$ModelDownloadParallelism"
+if ($PrivateRegistryLogin) {
+    Write-Host "private_registry_login=true"
+    if (-not [string]::IsNullOrWhiteSpace($RegistryHost)) {
+        Write-Host "registry_host=$RegistryHost"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RegistryUsername)) {
+        Write-Host "registry_username=$RegistryUsername"
+    }
+}

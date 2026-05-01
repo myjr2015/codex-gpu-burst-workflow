@@ -37,6 +37,124 @@ stop_after_stage() {
   fi
 }
 
+refresh_nvidia_python_ld_paths() {
+  local paths_file="/tmp/kj-remote-nvidia-python-ld-paths.txt"
+  python3 - "$paths_file" <<'PY' >/dev/null 2>&1 || return 0
+import site
+import sys
+import sysconfig
+from pathlib import Path
+
+out = Path(sys.argv[1])
+roots = []
+for value in site.getsitepackages():
+    roots.append(value)
+for key in ("purelib", "platlib"):
+    value = sysconfig.get_paths().get(key)
+    if value:
+        roots.append(value)
+
+paths = []
+seen = set()
+for root in roots:
+    base = Path(root)
+    if not base.exists():
+        continue
+    for candidate in sorted(base.glob("nvidia/*/lib")):
+        if candidate.is_dir():
+            resolved = str(candidate.resolve())
+            if resolved not in seen:
+                seen.add(resolved)
+                paths.append(resolved)
+
+out.write_text("\n".join(paths) + ("\n" if paths else ""), encoding="utf-8")
+PY
+  if [ ! -s "$paths_file" ]; then
+    return 0
+  fi
+
+  local joined_paths
+  joined_paths="$(paste -sd: "$paths_file")"
+  if [ -n "$joined_paths" ]; then
+    export LD_LIBRARY_PATH="$joined_paths:${LD_LIBRARY_PATH:-}"
+    echo "[remote-kj30s] LD_LIBRARY_PATH includes Python NVIDIA libraries"
+  fi
+}
+
+validate_onnxruntime_cuda_gpu() {
+  local output_path="${1:-$RUN_DIR/onnxruntime_cuda_remote_validation.json}"
+  stage_event "remote.onnx_cuda" "start"
+  python3 - "$output_path" <<'PY'
+import ctypes
+import json
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+import onnx
+import onnxruntime as ort
+from onnx import TensorProto, helper
+
+if hasattr(ort, "preload_dlls"):
+    ort.preload_dlls(directory="")
+
+providers = ort.get_available_providers()
+required_provider = "CUDAExecutionProvider"
+print(f"[onnx-cuda-smoke] onnxruntime={ort.__version__}")
+print(f"[onnx-cuda-smoke] providers={providers}")
+if required_provider not in providers:
+    raise SystemExit(f"onnxruntime missing {required_provider}; providers={providers}")
+
+loaded_libs = []
+for lib in (
+    "libcublasLt.so.12",
+    "libcublas.so.12",
+    "libcudart.so.12",
+    "libcudnn.so.9",
+):
+    ctypes.CDLL(lib)
+    loaded_libs.append(lib)
+    print(f"[onnx-cuda-smoke] ctypes ok: {lib}")
+
+input_info = helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 2])
+output_info = helper.make_tensor_value_info("y", TensorProto.FLOAT, [1, 2])
+node = helper.make_node("Identity", ["x"], ["y"])
+graph = helper.make_graph([node], "codex_onnxruntime_cuda_smoke", [input_info], [output_info])
+model = helper.make_model(
+    graph,
+    producer_name="codex-kj-smoke",
+    opset_imports=[helper.make_operatorsetid("", 13)],
+)
+model.ir_version = 8
+
+with tempfile.TemporaryDirectory() as temp_dir:
+    model_path = Path(temp_dir) / "identity.onnx"
+    onnx.save(model, model_path)
+    session = ort.InferenceSession(str(model_path), providers=[required_provider])
+    session_providers = session.get_providers()
+    print(f"[onnx-cuda-smoke] session providers={session_providers}")
+    if not session_providers or session_providers[0] != required_provider:
+        raise SystemExit(f"onnxruntime session did not use CUDA first; session_providers={session_providers}")
+    result = session.run(None, {"x": np.array([[1.0, 2.0]], dtype=np.float32)})[0]
+    if result.tolist() != [[1.0, 2.0]]:
+        raise SystemExit(f"unexpected onnxruntime output: {result!r}")
+
+payload = {
+    "generated_at": datetime.now(timezone.utc).isoformat(),
+    "onnxruntime": ort.__version__,
+    "available_providers": providers,
+    "required_provider": required_provider,
+    "session_providers": session_providers,
+    "loaded_libraries": loaded_libs,
+    "gpu_session_checked": True,
+}
+Path(output_path).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+print("[onnx-cuda-smoke] tiny inference ok")
+PY
+  stage_event "remote.onnx_cuda" "end"
+}
+
 run_hf_speedtest_preflight() {
   if [ "$HF_SPEEDTEST" != "1" ]; then
     echo "[hf-speedtest] disabled"
@@ -291,6 +409,7 @@ echo "[remote-kj30s] comfy app root: $COMFY_APP_ROOT"
 echo "[remote-kj30s] comfy data root: $COMFY_ROOT"
 echo "[remote-kj30s] run dir: $RUN_DIR"
 
+refresh_nvidia_python_ld_paths
 run_hf_speedtest_preflight
 
 if [ "$HF_SPEEDTEST_ONLY" = "1" ]; then
@@ -314,7 +433,9 @@ echo "[remote-kj30s] bootstrapping"
 stage_event "remote.bootstrap" "start"
 bash "$BOOTSTRAP_PATH"
 stage_event "remote.bootstrap" "end"
+stop_after_stage "onnx_cuda"
 stop_after_stage "bootstrap"
+refresh_nvidia_python_ld_paths
 
 echo "[remote-kj30s] restarting ComfyUI"
 stage_event "remote.restart_comfy" "start"
@@ -393,6 +514,7 @@ if missing:
     print("missing object_info nodes: " + ", ".join(missing), file=sys.stderr)
     raise SystemExit(1)
 PY
+validate_onnxruntime_cuda_gpu "$RUN_DIR/onnxruntime_cuda_remote_validation.json"
 stage_event "remote.validate_nodes" "end"
 stop_after_stage "validate_nodes"
 

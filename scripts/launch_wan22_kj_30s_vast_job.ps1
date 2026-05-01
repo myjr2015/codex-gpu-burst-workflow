@@ -30,7 +30,7 @@ param(
     [ValidateRange(1, 4)]
     [int]$ModelDownloadParallelism = 3,
 
-    [ValidateSet("", "hf_speedtest", "bootstrap", "wait_api", "validate_nodes")]
+    [ValidateSet("", "hf_speedtest", "onnx_cuda", "bootstrap", "wait_api", "validate_nodes")]
     [string]$RemoteStopAfter = "",
 
     [switch]$PrivateRegistryLogin,
