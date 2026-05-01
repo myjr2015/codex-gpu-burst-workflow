@@ -133,3 +133,24 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
 - bootstrap 日志出现 `preinstalled KJ custom nodes are ready`。
 - HF speed gate 仍正常执行。
 - workflow 能进入模型下载或缓存检查阶段。
+
+## Smoke 验证
+
+验证 template 启动速度时，不要完整提交 30s 推理。先 stage，再 launch，并让远端停在节点校验后：
+
+```powershell
+pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
+  -JobName <job_name> `
+  -OfferId <offer_id> `
+  -TemplateHash <template_hash_id> `
+  -RemoteStopAfter validate_nodes
+```
+
+该模式会执行：
+
+1. 下载 R2 中的 workflow / 输入素材 / bootstrap 脚本。
+2. 执行 HF speed gate。
+3. 执行 bootstrap，验证镜像内 KJ custom nodes 是否可复用。
+4. 重启 ComfyUI，等待 `8188` API 可用。
+5. 校验 KJ workflow 所需节点存在。
+6. 停止在提交 `/prompt` 之前，避免烧完整推理费用。

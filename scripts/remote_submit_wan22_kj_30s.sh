@@ -17,6 +17,7 @@ HF_MAX_ESTIMATED_DOWNLOAD_MINUTES="${HF_MAX_ESTIMATED_DOWNLOAD_MINUTES:-30}"
 HF_SPEEDTEST_SAMPLE_MIB="${HF_SPEEDTEST_SAMPLE_MIB:-256}"
 HF_SPEEDTEST_MAX_SECONDS="${HF_SPEEDTEST_MAX_SECONDS:-120}"
 HF_SPEEDTEST_ONLY="${HF_SPEEDTEST_ONLY:-0}"
+KJ_REMOTE_STOP_AFTER="${KJ_REMOTE_STOP_AFTER:-}"
 
 mkdir -p "$RUN_DIR"
 exec > >(tee -a "$RUN_DIR/run.log") 2>&1
@@ -25,6 +26,15 @@ stage_event() {
   local stage_name="$1"
   local stage_status="$2"
   echo "[stage] $(date -Iseconds) $stage_name $stage_status"
+}
+
+stop_after_stage() {
+  local stage_name="$1"
+  if [ "$KJ_REMOTE_STOP_AFTER" = "$stage_name" ]; then
+    echo "[remote-kj30s] KJ_REMOTE_STOP_AFTER=$stage_name, stopping before workflow submit"
+    stage_event "remote.smoke_stop" "$stage_name"
+    exit 0
+  fi
 }
 
 run_hf_speedtest_preflight() {
@@ -287,6 +297,7 @@ if [ "$HF_SPEEDTEST_ONLY" = "1" ]; then
   echo "[remote-kj30s] HF_SPEEDTEST_ONLY=1, stopping before bootstrap"
   exit 0
 fi
+stop_after_stage "hf_speedtest"
 
 for required in \
   "$WORKFLOW_PATH" \
@@ -303,6 +314,7 @@ echo "[remote-kj30s] bootstrapping"
 stage_event "remote.bootstrap" "start"
 bash "$BOOTSTRAP_PATH"
 stage_event "remote.bootstrap" "end"
+stop_after_stage "bootstrap"
 
 echo "[remote-kj30s] restarting ComfyUI"
 stage_event "remote.restart_comfy" "start"
@@ -341,6 +353,7 @@ for _ in $(seq 1 360); do
   sleep 5
 done
 stage_event "remote.wait_api" "end"
+stop_after_stage "wait_api"
 
 if [ ! -s "$RUN_DIR/object_info.json" ]; then
   echo "[remote-kj30s] ComfyUI API did not become ready" >&2
@@ -381,6 +394,7 @@ if missing:
     raise SystemExit(1)
 PY
 stage_event "remote.validate_nodes" "end"
+stop_after_stage "validate_nodes"
 
 echo "[remote-kj30s] submitting workflow"
 stage_event "remote.submit_workflow" "start"

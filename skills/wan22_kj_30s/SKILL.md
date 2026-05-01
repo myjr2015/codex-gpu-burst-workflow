@@ -335,6 +335,7 @@ Validation signal:
 - HF speedtest should still run
 - model phase should still report existing/missing model files
 - do not call it faster until a paid smoke run compares bootstrap timing against base image
+- for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes` after staging; this stops before `/prompt` submission and avoids a full paid inference.
 
 Default command:
 

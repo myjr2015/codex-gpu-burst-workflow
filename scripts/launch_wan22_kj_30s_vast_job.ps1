@@ -27,6 +27,9 @@ param(
 
     [int]$HfSpeedTestMaxSeconds = 120,
 
+    [ValidateSet("", "hf_speedtest", "bootstrap", "wait_api", "validate_nodes")]
+    [string]$RemoteStopAfter = "",
+
     [string[]]$MountArgs = @()
 )
 
@@ -78,6 +81,9 @@ if (-not $DisableHfSpeedTest) {
     $extraEnvItems += ("HF_MAX_ESTIMATED_DOWNLOAD_MINUTES={0}" -f $HfMaxEstimatedDownloadMinutes)
     $extraEnvItems += ("HF_SPEEDTEST_SAMPLE_MIB={0}" -f $HfSpeedTestSampleMiB)
     $extraEnvItems += ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds)
+}
+if (-not [string]::IsNullOrWhiteSpace($RemoteStopAfter)) {
+    $extraEnvItems += "KJ_REMOTE_STOP_AFTER=$RemoteStopAfter"
 }
 if ($extraEnvItems.Count -gt 0) {
     $createArgs += @("-ExtraEnv", ($extraEnvItems -join ","))
@@ -132,4 +138,7 @@ Write-Host "hf_speedtest=$(-not $DisableHfSpeedTest)"
 if (-not $DisableHfSpeedTest) {
     Write-Host "hf_min_mib_per_sec=$HfMinMiBps"
     Write-Host "hf_max_estimated_download_minutes=$HfMaxEstimatedDownloadMinutes"
+}
+if (-not [string]::IsNullOrWhiteSpace($RemoteStopAfter)) {
+    Write-Host "remote_stop_after=$RemoteStopAfter"
 }
