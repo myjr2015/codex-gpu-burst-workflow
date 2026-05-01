@@ -19,6 +19,10 @@
    - 分段生成经验。
    - 跑 `wan_2_2_animate_segmented` / 30s 分段续接流程前必须加载。
 
+5. `skills/wan22_kj_30s/SKILL.md`
+   - KJ 30s / 60s 分段经验。
+   - 跑 `wan22_kj_30s` / `wan22_kj_30s_segmented` / KJ 2.0 同图锚定版前必须加载。
+
 ## 中文优先规则
 
 能用中文表达的地方优先用中文，包括：
@@ -159,6 +163,55 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - `v1`：两个或多个 `10s` 片段独立生成，再用 `ffmpeg` 拼接
   - `v2`：在 `v1` 基础上补尾帧 / `continue_motion`
   - `v3_single_instance`：已验证候选入口；同一台 Vast 实例内依次跑 3 个 `10s` 片段，段 2/3 使用上一段最后 5 帧作为 `continue_motion`，再本地合并为约 `30s` 文件
+- `wan22_kj_30s`
+  - KJ 2.0 30秒单段版。
+  - 使用纯色/透明人物 IP 图 + 30s 参考动作/表情视频 + 提示词重绘背景。
+- `wan22_kj_30s_segmented`
+  - KJ 2.0 长视频分段版。
+  - 固定每段最多 `30s`，本地用 `ffmpeg concat` 合并。
+  - 当前固定场景可用方案叫 `KJ 2.0 同图锚定版`，内部追踪名 `B1.1 same-frame anchor`。
+
+### 可跑版本友好命名
+
+用户问“现在有哪些版本可跑”时，必须优先用中文友好名回答，不要让用户记内部实验名。
+
+回答格式：
+
+- 先说中文方案名。
+- 括号里再写内部 profile / 脚本 / 实验名，便于追溯。
+- 明确状态：`可跑`、`候选可跑`、`实验可跑`、`失败不要跑`、`暂不跑`。
+
+当前口径：
+
+- `Wan2.2 固定图口播主线`
+  - 内部：`wan_2_2_animate`
+  - 入口：`scripts/run_wan_2_2_animate_end_to_end.ps1`
+  - 状态：可跑，当前稳定生产主线。
+- `Wan2.2 10秒分段续接版`
+  - 内部：`wan_2_2_animate_segmented` / `segmented v3_single_instance`
+  - 入口：`scripts/run_wan_2_2_animate_segmented_v3_single_instance.ps1`
+  - 状态：候选可跑，已验证 30s / 60s，但长视频人物一致性仍需验片。
+- `KJ 2.0 30秒单段版`
+  - 内部：`wan22_kj_30s`
+  - 入口：`scripts/run_wan22_kj_30s_end_to_end.ps1`
+  - 状态：候选可跑，单段 30s 已跑通，成本较高。
+- `KJ 2.0 同图锚定版`
+  - 内部：`wan22_kj_30s_segmented` / `B1.1 same-frame anchor`
+  - 入口：`scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
+  - 状态：当前 KJ 固定场景 60s 可用方案；用同一张完整人物+背景 anchor 图作为每段 `ip_image.png`，不接 `bg_images` / `mask`。
+- `KJ 2.0 背景/Mask失败版`
+  - 内部：`B2 bg_images/mask`
+  - 状态：失败不要跑；该方案会压制嘴巴和身体动作。
+- `KJ 2.1 通用清理版`
+  - 内部：`reference cleaning 2.1 / 2.1-next`
+  - 状态：暂不跑；本地清理闸门未通过，不能进入 Vast 付费推理。
+
+规则：
+
+- `B1.1`、`B2` 只作为内部追踪名，不作为对用户的主称呼。
+- 用户说“同图版”“同图锚定”“当前KJ固定场景版”时，默认指 `KJ 2.0 同图锚定版`。
+- 用户说“背景mask版”“B2”时，必须提醒该方案已失败，不要直接开跑。
+- 最新可跑状态仍以 `config/version-manifest.json` 为准；如果 AGENTS 和 manifest 冲突，以 manifest 为准，并同步修正 AGENTS。
 
 ## 版本管理规则
 
