@@ -214,15 +214,27 @@
       "generated_artifact_polishing": {
         "status": "local_candidate",
         "entry": "scripts/polish_generated_artifacts.py",
-        "purpose": "After a merged KJ output is downloaded, run local generated-video risk detection, repair isolated red dots or sticker specks with OpenCV inpaint, rewrap audio with FFmpeg, then run after-scan and generate before/after review sheets.",
+        "purpose": "After a merged KJ output is downloaded, run local generated-video risk detection, repair isolated colored dots or sticker specks with OpenCV inpaint, rewrap audio with FFmpeg, then run after-scan and generate before/after review sheets.",
         "not_pure_ffmpeg": true,
+        "default_repair_labels": [
+          "red",
+          "yellow",
+          "green",
+          "magenta"
+        ],
+        "optional_repair_labels": [
+          "cyan",
+          "blue"
+        ],
         "default_safety": [
-          "repair only detector-reported red candidates",
+          "repair only detector-reported color candidates",
           "pad each detector target by two frames to cover sub-second edge misses",
-          "skip persistent red elements",
+          "attempt local silver/white halo cleanup around confirmed targets",
+          "skip persistent color elements",
           "skip face/lip region",
           "skip bottom footwear region",
-          "skip skin-like red regions"
+          "skip skin-like color regions",
+          "keep cyan/blue off by default in photovoltaic scenes to avoid sky and panel false positives"
         ],
         "not_for": [
           "hand/body/face structural defects",
@@ -231,21 +243,24 @@
           "large overlays that polluted pose conditioning"
         ],
         "latest_validation": {
-          "validated_at": "2026-05-01T11:06:00+08:00",
+          "validated_at": "2026-05-01T11:30:00+08:00",
           "job_name": "kj60-b11-sameframe-30x2-20260501",
           "input_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4",
-          "output_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v4.mp4",
-          "elapsed_seconds": 275.5,
+          "output_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v5.mp4",
+          "elapsed_seconds": 424.8,
           "frames_touched": 5,
           "repaired_components": 5,
           "skipped_components": 911,
+          "repair_label_counts": {
+            "red": 5
+          },
           "video_duration_seconds": 59.625,
           "video_resolution": "720x720",
           "video_fps": 16,
           "audio_duration_seconds": 59.603696,
-          "review_sheet": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/polished_auto_v4/target_28p5_30p0_before_after.jpg",
-          "visual_acceptance": "target_red_ball_removed_including_sub_second_edge_frame_with_hand_regions_preserved",
-          "notes": "v2 proved the one-pass flow but over-repaired red skin on hands. v3 added skin-overlap protection but missed one short edge frame at 29.750s. v4 pads each detector target by two frames, removed the red hanging ball from 29.500s through 29.750s, and preserved hand-control frames at 28.562s and 29.812s."
+          "review_sheet": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/polished_auto_v5/target_28p5_30p0_before_after.jpg",
+          "visual_acceptance": "conservative_multi_color_polish_validated_with_no_hand_control_regression",
+          "notes": "v5 generalizes the repair path from red-only to detector-reported red/yellow/green/magenta candidates and adds a local silver/white halo residual mask around confirmed targets. On this sample, the safe auto-repair target remains the red hanging-ball artifact; cyan/blue stayed disabled to avoid the sky and photovoltaic panel background. A 48px halo probe removed more string/highlight residue but caused obvious blue-gray smearing on the leg edge and panel background, so it is not the default."
         }
       },
       "validated_runs": [

@@ -235,7 +235,9 @@ D:\code\YuYan\python\python.exe .\scripts\polish_generated_artifacts.py `
 Rules:
 
 - The script runs detection, targeted repair, audio/video re-encode, after-scan, JSON/Markdown report, and before/after contact sheet.
-- Default mode only repairs red candidates from the detection report and skips persistent red elements, face/lip area, bottom footwear area, and skin-like red regions to avoid changing hands or lips.
+- v5 default mode repairs `red/yellow/green/magenta` candidates from the detection report and skips persistent color elements, face/lip area, bottom footwear area, and skin-like color regions to avoid changing hands or lips.
+- `cyan` and `blue` are supported through `--repair-labels`, but they are not default in the photovoltaic scene because sky and solar panels create too much blue/cyan false-positive risk.
+- v5 adds a local silver/white residual mask around confirmed color targets. This can reduce shiny edges, thin strings, and highlights left after the main color is removed.
 - Default mode adds `--target-frame-padding 2`, which expands each detected target by two frames on both sides. This handles sub-second red dots that do not last a full second without expanding the whole repair window.
 - `--repair-all-window-red` is experimental and must not be used as the default because it can over-repair hands, lips, shoes, and clothing.
 - The after-scan score is only a candidate signal. It can still flag lips, hands, shoes, panel lines, and normal motion, so final acceptance requires looking at the before/after sheet and the problem window.
@@ -249,6 +251,11 @@ Validated local tests on `kj60-b11-sameframe-30x2-20260501`:
 - v4 result video: `59.625s`, `720x720`, `16fps`, AAC audio `59.603696s`.
 - v4 repair scope: `5` touched frames, `5` repaired red components, `911` skipped components.
 - Target review: `frame_review/polished_auto_v4/target_28p5_30p0_before_after.jpg` shows the red hanging ball near `29.500s-29.750s` removed while the hand-control frames at `28.562s` and `29.812s` are preserved.
+- Full 60s polish v5: `424.8s`, output `downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v5.mp4`.
+- v5 result video: `59.625s`, `720x720`, `16fps`, AAC audio `59.603696s`.
+- v5 repair scope on this sample: `5` touched frames, `5` repaired color components, `911` skipped components. It remained conservative because non-red candidates were either persistent background/panel details or too close to skin/person regions.
+- v5 target review: `frame_review/polished_auto_v5/target_28p5_30p0_before_after.jpg`.
+- Do not set a large halo such as `--halo-padding 48` as the default. Local testing showed it removes more string/highlight residue but creates obvious blue-gray smearing on the leg edge and photovoltaic background.
 
 Cleanup roadmap:
 
