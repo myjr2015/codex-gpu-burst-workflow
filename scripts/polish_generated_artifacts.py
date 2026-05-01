@@ -65,6 +65,12 @@ def parse_args():
         default=0.55,
         help="红色组件本身被判为皮肤的比例超过该值时跳过，避免误修手、脸、嘴唇。",
     )
+    parser.add_argument(
+        "--target-frame-padding",
+        type=int,
+        default=2,
+        help="每个检测目标前后额外补修的帧数，用于覆盖不足 1 秒的短时红点边缘漏帧。",
+    )
     parser.add_argument("--keep-work", action="store_true", help="保留抽帧临时目录")
     return parser.parse_args()
 
@@ -303,7 +309,7 @@ def component_is_safe_repair_candidate(component):
     return True
 
 
-def build_frame_targets(report, selected_windows, fps, sample_interval, min_score):
+def build_frame_targets(report, selected_windows, fps, sample_interval, min_score, target_frame_padding):
     selected_ranges = [(item["start_seconds"], item["end_seconds"]) for item in selected_windows]
     targets_by_frame = {}
     targets = []
@@ -322,8 +328,14 @@ def build_frame_targets(report, selected_windows, fps, sample_interval, min_scor
                 continue
             if not component_is_safe_repair_candidate(component):
                 continue
-            frame_start = max(1, int(math.floor((time_seconds - sample_interval * 0.7) * fps)) + 1)
-            frame_end = max(frame_start, int(math.ceil((time_seconds + sample_interval * 0.7) * fps)) + 1)
+            frame_start = max(
+                1,
+                int(math.floor((time_seconds - sample_interval * 0.7) * fps)) + 1 - target_frame_padding,
+            )
+            frame_end = max(
+                frame_start,
+                int(math.ceil((time_seconds + sample_interval * 0.7) * fps)) + 1 + target_frame_padding,
+            )
             target = {
                 "time_seconds": round(time_seconds, 3),
                 "frame_start": frame_start,
@@ -609,6 +621,7 @@ def main():
         info["fps"],
         args.sample_interval,
         args.min_window_score,
+        max(0, args.target_frame_padding),
     )
 
     frames = extract_frames(ffmpeg_path, video_path, raw_dir)
@@ -688,6 +701,7 @@ def main():
         "repair_all_window_red": bool(args.repair_all_window_red),
         "persistent_ratio": args.persistent_ratio,
         "max_skin_overlap": args.max_skin_overlap,
+        "target_frame_padding": max(0, args.target_frame_padding),
         "persistent_min_count": persistent_min_count,
         "persistent_red_keys": sorted(persistent_keys),
         "frames_touched": frames_touched,

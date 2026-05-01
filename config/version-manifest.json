@@ -218,6 +218,7 @@
         "not_pure_ffmpeg": true,
         "default_safety": [
           "repair only detector-reported red candidates",
+          "pad each detector target by two frames to cover sub-second edge misses",
           "skip persistent red elements",
           "skip face/lip region",
           "skip bottom footwear region",
@@ -230,21 +231,21 @@
           "large overlays that polluted pose conditioning"
         ],
         "latest_validation": {
-          "validated_at": "2026-05-01T10:48:00+08:00",
+          "validated_at": "2026-05-01T11:06:00+08:00",
           "job_name": "kj60-b11-sameframe-30x2-20260501",
           "input_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4",
-          "output_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v3.mp4",
-          "elapsed_seconds": 279.4,
-          "frames_touched": 4,
-          "repaired_components": 4,
-          "skipped_components": 702,
+          "output_video": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v4.mp4",
+          "elapsed_seconds": 275.5,
+          "frames_touched": 5,
+          "repaired_components": 5,
+          "skipped_components": 911,
           "video_duration_seconds": 59.625,
           "video_resolution": "720x720",
           "video_fps": 16,
           "audio_duration_seconds": 59.603696,
-          "review_sheet": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/polished_auto_v3/target_28p5_30p0_before_after.jpg",
-          "visual_acceptance": "target_red_ball_removed_with_hand_regions_preserved",
-          "notes": "v2 proved the one-pass flow but over-repaired red skin on hands. v3 added skin-overlap protection; it removed the red hanging ball near 29.5s-29.7s while preserving the hand regions that v2 touched."
+          "review_sheet": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/polished_auto_v4/target_28p5_30p0_before_after.jpg",
+          "visual_acceptance": "target_red_ball_removed_including_sub_second_edge_frame_with_hand_regions_preserved",
+          "notes": "v2 proved the one-pass flow but over-repaired red skin on hands. v3 added skin-overlap protection but missed one short edge frame at 29.750s. v4 pads each detector target by two frames, removed the red hanging ball from 29.500s through 29.750s, and preserved hand-control frames at 28.562s and 29.812s."
         }
       },
       "validated_runs": [

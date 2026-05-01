@@ -236,16 +236,19 @@ Rules:
 
 - The script runs detection, targeted repair, audio/video re-encode, after-scan, JSON/Markdown report, and before/after contact sheet.
 - Default mode only repairs red candidates from the detection report and skips persistent red elements, face/lip area, bottom footwear area, and skin-like red regions to avoid changing hands or lips.
+- Default mode adds `--target-frame-padding 2`, which expands each detected target by two frames on both sides. This handles sub-second red dots that do not last a full second without expanding the whole repair window.
 - `--repair-all-window-red` is experimental and must not be used as the default because it can over-repair hands, lips, shoes, and clothing.
 - The after-scan score is only a candidate signal. It can still flag lips, hands, shoes, panel lines, and normal motion, so final acceptance requires looking at the before/after sheet and the problem window.
 - If the problem is hand/body/face structure, multi-hand, double head, or chair/contact geometry, do not polish the final MP4. Clean the matching reference window or rerun that 30s segment.
 
-Validated local test on `kj60-b11-sameframe-30x2-20260501`:
+Validated local tests on `kj60-b11-sameframe-30x2-20260501`:
 
 - Full 60s polish v3: `279.4s`, output `downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v3.mp4`.
-- Result video: `59.625s`, `720x720`, `16fps`, AAC audio `59.603696s`.
-- Repair scope: `4` touched frames, `4` repaired red components, `702` skipped components.
-- Target review: `frame_review/polished_auto_v3/target_28p5_30p0_before_after.jpg` shows the red hanging ball near `29.5s-29.7s` removed while the v2 hand-overrepair areas at `28.56s` and `29.81s` are preserved.
+- v3 fixed `29.500s-29.688s`, but missed one edge frame around `29.750s`.
+- Full 60s polish v4: `275.5s`, output `downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501-polished-auto-v4.mp4`.
+- v4 result video: `59.625s`, `720x720`, `16fps`, AAC audio `59.603696s`.
+- v4 repair scope: `5` touched frames, `5` repaired red components, `911` skipped components.
+- Target review: `frame_review/polished_auto_v4/target_28p5_30p0_before_after.jpg` shows the red hanging ball near `29.500s-29.750s` removed while the hand-control frames at `28.562s` and `29.812s` are preserved.
 
 Cleanup roadmap:
 
