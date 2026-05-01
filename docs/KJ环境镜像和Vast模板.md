@@ -133,7 +133,7 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
 
 - 省掉大部分 custom node clone / requirements 安装时间。
 - 降低 Python 依赖漂移导致的启动失败概率。
-- 减少 torch 重装概率：bootstrap 以 `torch + CUDA>=12.4 + GPU 可用` 作为硬条件，缺 `torchvision` / `torchaudio` 时只按当前 torch 版本补装辅助包，不触发整套 torch force reinstall。
+- 减少 torch 重装概率：bootstrap 以 `torch + CUDA>=12.4 + GPU 可用` 作为硬条件，缺 `torchvision` / `torchaudio` 时只按当前 torch 版本和当前 torch CUDA 后缀补装辅助包，不触发整套 torch force reinstall。
 - 模型下载默认 `3` 路并行，最多 `4` 路；每个模型先写入 `.part` 临时文件，下载成功后再 `mv` 到目标文件，任一模型失败则 bootstrap 失败。
 - 不直接减少 HuggingFace 模型下载时间。
 - 不改变 KJ 推理时间。

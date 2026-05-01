@@ -97,6 +97,22 @@ for name in sys.argv[1:]:
 PY
 }
 
+torch_aux_index_url() {
+  python3 <<'PY'
+import torch
+
+cuda_version = getattr(torch.version, "cuda", None) or ""
+parts = cuda_version.split(".")
+try:
+    major = int(parts[0])
+    minor = int(parts[1]) if len(parts) > 1 else 0
+except Exception:
+    print("https://download.pytorch.org/whl/cu124")
+    raise SystemExit(0)
+print(f"https://download.pytorch.org/whl/cu{major}{minor}")
+PY
+}
+
 ensure_torch_aux_packages() {
   local missing=()
   if ! python_can_import "torchvision"; then
@@ -109,8 +125,10 @@ ensure_torch_aux_packages() {
     return 0
   fi
   mapfile -t aux_specs < <(torch_aux_package_specs "${missing[@]}")
-  echo "[kj-env-image] installing missing torch auxiliary packages without reinstalling torch: ${aux_specs[*]}"
-  pip_install --upgrade-strategy only-if-needed --no-deps --index-url https://download.pytorch.org/whl/cu124 "${aux_specs[@]}"
+  local aux_index_url
+  aux_index_url="$(torch_aux_index_url)"
+  echo "[kj-env-image] installing missing torch auxiliary packages without reinstalling torch: ${aux_specs[*]} from $aux_index_url"
+  pip_install --upgrade-strategy only-if-needed --no-deps --index-url "$aux_index_url" "${aux_specs[@]}"
 }
 
 install_filtered_requirements_file() {

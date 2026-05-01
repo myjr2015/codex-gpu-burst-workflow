@@ -106,7 +106,7 @@
           "torchvision",
           "torchaudio"
         ],
-        "auxiliary_install_policy": "install missing/import-broken auxiliary packages with --no-deps matched to current torch version; do not force reinstall torch"
+        "auxiliary_install_policy": "install missing/import-broken auxiliary packages with --no-deps matched to current torch version and current torch CUDA wheel index; do not force reinstall torch"
       }
     },
     {
