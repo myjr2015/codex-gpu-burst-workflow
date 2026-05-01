@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       registry:
-        description: Container registry: ghcr or dockerhub
+        description: "Container registry: ghcr or dockerhub"
         required: true
         default: ghcr
       image_name:
