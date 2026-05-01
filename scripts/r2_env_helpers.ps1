@@ -33,12 +33,58 @@ function Read-ProjectApiBackup {
     }
 
     $lines = @(Get-Content -LiteralPath $Path | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    for ($i = 0; $i + 1 -lt $lines.Count; $i += 2) {
+    for ($i = 0; $i -lt $lines.Count) {
         $site = $lines[$i].Trim()
+        if ([string]::IsNullOrWhiteSpace($site)) {
+            $i += 1
+            continue
+        }
+
+        if ($site -eq "DockerHub") {
+            $next = if ($i + 1 -lt $lines.Count) { $lines[$i + 1].Trim() } else { "" }
+            $next2 = if ($i + 2 -lt $lines.Count) { $lines[$i + 2].Trim() } else { "" }
+            if ($next -match '^(用户名|账号|账户|username|user)\s*[:：]\s*(?<username>.+)$') {
+                $entries["DockerHub Username"] = $Matches.username.Trim()
+                if ($i + 2 -lt $lines.Count) {
+                    $entries["DockerHub"] = $next2
+                    $i += 3
+                }
+                else {
+                    $i += 2
+                }
+                continue
+            }
+            if (-not [string]::IsNullOrWhiteSpace($next) -and $next -notmatch '^dckr_pat_' -and $next2 -match '^dckr_pat_') {
+                $entries["DockerHub Username"] = $next
+                $entries["DockerHub"] = $next2
+                $i += 3
+                continue
+            }
+        }
+
+        if ($site -match '^DockerHub\s+(Username|User|用户名|账号|账户)\s*[:：]\s*(?<username>.+)$') {
+            $entries["DockerHub Username"] = $Matches.username.Trim()
+            $i += 1
+            continue
+        }
+
+        if ($site -match '^DockerHub\s+(Token|PAT|密钥|令牌)\s*[:：]\s*(?<token>.+)$') {
+            $entries["DockerHub"] = $Matches.token.Trim()
+            $i += 1
+            continue
+        }
+
+        if ($i + 1 -ge $lines.Count) {
+            $i += 1
+            continue
+        }
+
         $key = $lines[$i + 1].Trim()
         if (-not [string]::IsNullOrWhiteSpace($site) -and -not [string]::IsNullOrWhiteSpace($key)) {
             $entries[$site] = $key
         }
+
+        $i += 2
     }
 
     return $entries
