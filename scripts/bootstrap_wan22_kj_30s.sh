@@ -11,6 +11,7 @@ KJ_ENV_IMAGE="${KJ_ENV_IMAGE:-0}"
 KJ_CUSTOM_NODE_SEED_DIR="${KJ_CUSTOM_NODE_SEED_DIR:-/opt/codex/kj-custom_nodes}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
+KJ_TORCH_AUX_INSTALL_STRICT="${KJ_TORCH_AUX_INSTALL_STRICT:-0}"
 KJ_MODEL_DOWNLOAD_PARALLELISM="${KJ_MODEL_DOWNLOAD_PARALLELISM:-3}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
@@ -159,7 +160,17 @@ ensure_torch_aux_packages() {
   local aux_index_url
   aux_index_url="$(torch_aux_index_url)"
   echo "[bootstrap] installing missing torch auxiliary packages without reinstalling torch: ${aux_specs[*]} from $aux_index_url"
-  pip_install --upgrade-strategy only-if-needed --no-deps --index-url "$aux_index_url" "${aux_specs[@]}"
+  if pip_install --upgrade-strategy only-if-needed --no-deps --index-url "$aux_index_url" "${aux_specs[@]}"; then
+    return 0
+  fi
+
+  if [ "$KJ_TORCH_AUX_INSTALL_STRICT" = "1" ]; then
+    echo "[bootstrap] failed to install missing torch auxiliary packages and KJ_TORCH_AUX_INSTALL_STRICT=1"
+    return 1
+  fi
+
+  echo "[bootstrap] warning: failed to install optional torch auxiliary packages: ${aux_specs[*]}"
+  echo "[bootstrap] continuing because torch core, CUDA, and GPU are already compatible"
 }
 
 ensure_torch_stack() {
@@ -346,6 +357,7 @@ download_if_missing() {
   local temp_target="$target.part.${BASHPID:-$$}"
   rm -f "$temp_target"
   if ! curl --http1.1 -L --fail --retry 10 --retry-delay 8 --retry-all-errors \
+    -C - \
     --connect-timeout 30 --max-time 7200 -o "$temp_target" "$url"; then
     rm -f "$temp_target"
     stage_event "$stage_name" "fail"

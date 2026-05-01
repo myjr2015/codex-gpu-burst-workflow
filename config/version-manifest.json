@@ -98,6 +98,7 @@
         "default": 3,
         "max": 4,
         "temporary_suffix": ".part.<pid>",
+        "resume": true,
         "failure_policy": "fail_bootstrap"
       },
       "torch_policy": {
@@ -106,7 +107,7 @@
           "torchvision",
           "torchaudio"
         ],
-        "auxiliary_install_policy": "install missing/import-broken auxiliary packages with --no-deps matched to current torch version and current torch CUDA wheel index; do not force reinstall torch"
+        "auxiliary_install_policy": "best-effort install missing/import-broken auxiliary packages with --no-deps matched to current torch version and current torch CUDA wheel index; if a matching auxiliary wheel is unavailable, warn and continue as long as torch core, CUDA, and GPU checks passed; do not force reinstall torch"
       }
     },
     {

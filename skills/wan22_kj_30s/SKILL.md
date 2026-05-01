@@ -303,8 +303,8 @@ Artifacts:
 - details: `docs/KJ环境镜像和Vast模板.md`
 - v2 startup optimization:
   - `KJ_MODEL_DOWNLOAD_PARALLELISM` controls cold model download concurrency; default `3`, capped at `4`.
-  - model downloads write `*.part.<pid>` first and move into place only after curl succeeds; any failed model fails the whole bootstrap.
-  - torch compatibility is judged by torch CUDA runtime and GPU availability first; missing `torchvision` / `torchaudio` are installed as auxiliary no-deps packages from the current torch CUDA index instead of forcing a full torch stack reinstall.
+  - model downloads write `*.part.<pid>` first, use curl resume, and move into place only after curl succeeds; any failed model fails the whole bootstrap.
+  - torch compatibility is judged by torch CUDA runtime and GPU availability first; missing `torchvision` / `torchaudio` are best-effort auxiliary no-deps installs from the current torch CUDA index. If the matching auxiliary wheel does not exist, bootstrap warns and continues instead of forcing a full torch stack reinstall.
   - the Docker env image records torch, torchvision, and torchaudio versions in `/opt/codex/kj-env-image.json`.
 
 Expected benefit:

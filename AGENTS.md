@@ -206,7 +206,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 镜像：`ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2`
   - Dockerfile：`docker/wan22-kj-comfy-env/Dockerfile`
   - Vast template helper：`scripts/create_vast_wan22_kj_env_template.ps1`
-  - 状态：实验可跑；默认走 GHCR 构建，保留 DockerHub 可选路径，只预装 KJ custom nodes、Python 依赖和 torch 辅助包兼容记录，不包含模型权重，不使用 Vast volume；冷模型下载默认 3 路并行，最多 4 路。
+  - 状态：实验可跑；默认走 GHCR 构建，保留 DockerHub 可选路径，只预装 KJ custom nodes、Python 依赖和 torch 辅助包兼容记录，不包含模型权重，不使用 Vast volume；冷模型下载默认 3 路并行，最多 4 路；torch 辅助包补装失败时默认警告继续，不触发整套 torch 重装。
 - `KJ 2.0 背景/Mask失败版`
   - 内部：`B2 bg_images/mask`
   - 状态：失败不要跑；该方案会压制嘴巴和身体动作。
