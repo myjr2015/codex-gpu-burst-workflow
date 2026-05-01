@@ -170,6 +170,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - KJ 2.0 长视频分段版。
   - 固定每段最多 `30s`，本地用 `ffmpeg concat` 合并。
   - 当前固定场景可用方案叫 `KJ 2.0 同图锚定版`，内部追踪名 `B1.1 same-frame anchor`。
+  - 成片合并后如果只剩孤立小红点/贴纸色块，使用 `scripts/polish_generated_artifacts.py` 做本地一条龙精修；这不是纯 FFmpeg，FFmpeg 只负责抽帧/编码/音频封装，局部修复由 OpenCV inpaint 完成。
 
 ### 可跑版本友好命名
 
@@ -211,6 +212,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `B1.1`、`B2` 只作为内部追踪名，不作为对用户的主称呼。
 - 用户说“同图版”“同图锚定”“当前KJ固定场景版”时，默认指 `KJ 2.0 同图锚定版`。
 - 用户说“背景mask版”“B2”时，必须提醒该方案已失败，不要直接开跑。
+- 用户说“红点修理”“成片精修”“一条龙修复”时，默认指 `scripts/polish_generated_artifacts.py` 的本地后处理：检测风险、定位候选红色组件、跳过皮肤/脸/脚等高误伤区域、OpenCV 局部 inpaint、重封装音频、复检并输出 before/after 拼图。
 - 最新可跑状态仍以 `config/version-manifest.json` 为准；如果 AGENTS 和 manifest 冲突，以 manifest 为准，并同步修正 AGENTS。
 
 ## 版本管理规则
