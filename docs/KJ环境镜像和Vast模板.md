@@ -23,7 +23,7 @@
 默认镜像名：
 
 ```text
-ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
 ## 不放进镜像的内容
@@ -65,9 +65,9 @@ pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 
 - 先读 `.env`
 - 再读 `api.txt`
-- GHCR 默认使用 GitHub Actions 内置 `GITHUB_TOKEN`，不需要 DockerHub 用户名。
-- `DockerHub` 对应 DockerHub token，仅 DockerHub 路径需要。
-- `DockerHub Username` 仅 DockerHub 路径需要；不要缺省盲试。
+- 当前默认走 DockerHub v3，因为 GHCR v3 在本地/Vast 拉取侧需要 `read:packages`，当前本地 GitHub token scopes 只有 `gist, repo, workflow`，manifest 检查会返回 `401`。
+- `DockerHub` 对应 DockerHub token。
+- `DockerHub Username` 对应 DockerHub 用户名。
 
 ## 创建 Vast template
 
@@ -76,21 +76,21 @@ pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+  -Image j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
-如果 GHCR package 仍是 private，template 仍可创建，但真正拉镜像的私有登录要在创建实例时传入：
+如果 DockerHub 仓库需要登录，template 仍可创建，但真正拉镜像的私有登录要在创建实例时传入：
 
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+  -Image j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3
 ```
 
 后续 launch 时加：
 
 ```powershell
--PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015
+-PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3
 ```
 
 `RegistryToken` 默认从 `.env` / `api.txt` 的 GitHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
@@ -114,8 +114,11 @@ reason=v2 only passed ComfyUI node registration; later KJ preprocessing fell bac
 当前 v3 目标镜像：
 
 ```text
-image=ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3
-status=building_or_pending_validation
+image=j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+template_hash_id=eb3ff9185d9de9a9482c2cffbdfd8f9f
+template_id=400607
+status=onnx_cuda_smoke_passed
+validated_job=kj30s-v3-dhub-4090-onnxfix-20260502-0020
 ```
 
 ## 运行方式
@@ -167,8 +170,8 @@ pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
   -OfferId <offer_id> `
   -TemplateHash <template_hash_id> `
   -PrivateRegistryLogin `
-  -RegistryHost ghcr.io `
-  -RegistryUsername myjr2015 `
+  -RegistryHost docker.io `
+  -RegistryUsername j1c2k3 `
   -ModelDownloadParallelism 3 `
   -RemoteStopAfter onnx_cuda
 ```
@@ -189,8 +192,8 @@ pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
   -OfferId <offer_id> `
   -TemplateHash <template_hash_id> `
   -PrivateRegistryLogin `
-  -RegistryHost ghcr.io `
-  -RegistryUsername myjr2015 `
+  -RegistryHost docker.io `
+  -RegistryUsername j1c2k3 `
   -ModelDownloadParallelism 3 `
   -RemoteStopAfter validate_nodes
 ```

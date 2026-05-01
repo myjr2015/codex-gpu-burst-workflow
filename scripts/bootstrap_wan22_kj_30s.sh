@@ -146,6 +146,7 @@ validate_onnxruntime_cuda_gpu() {
   python3 - "$output_path" <<'PY'
 import ctypes
 import json
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -154,6 +155,8 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 from onnx import TensorProto, helper
+
+output_path = sys.argv[1]
 
 if hasattr(ort, "preload_dlls"):
     ort.preload_dlls(directory="")

@@ -312,9 +312,9 @@ Artifacts:
 
 - Dockerfile: `docker/wan22-kj-comfy-env/Dockerfile`
 - build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
-- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
-- default registry: GHCR. DockerHub remains optional, but the default path should not assume a DockerHub username exists.
-- GHCR may remain private after Actions push. In that case, pass `-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` at instance launch; the token is read from local GitHub credentials and must not be printed.
+- image: `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+- default registry: DockerHub. GHCR v3 exists from Actions but current local GitHub token lacks `read:packages`, so GHCR manifest checks return 401 and Vast can sit in pre-container pull. Do not use GHCR as the default until package visibility or token scope is fixed.
+- When launching the DockerHub v3 image, pass `-PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3`; the token is read from local DockerHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
 - failed v2 template hash: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`)
@@ -363,7 +363,7 @@ Validation signal:
 - do not call it faster until a paid smoke run compares bootstrap timing against base image
 - for v3, do not accept `validate_nodes` alone; the required pass signal is `[onnx-cuda-smoke] tiny inference ok` or `onnxruntime CUDA validation passed`
 - if ONNXRuntime CUDA validation fails, destroy the instance and fix the image before any full inference
-- for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` after staging; this stops before `/prompt` submission and avoids a full paid inference.
+- for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3` after staging; this stops before `/prompt` submission and avoids a full paid inference.
 
 Fast ONNX CUDA smoke:
 
@@ -373,8 +373,8 @@ pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
   -OfferId <offer_id> `
   -TemplateHash <template_hash_id> `
   -PrivateRegistryLogin `
-  -RegistryHost ghcr.io `
-  -RegistryUsername myjr2015 `
+  -RegistryHost docker.io `
+  -RegistryUsername j1c2k3 `
   -RemoteStopAfter onnx_cuda
 ```
 
@@ -397,6 +397,24 @@ Latest v2 smoke:
 - cleanup: final `vastai show instances --raw` returned `[]`; destroy helper returned 404 for `35950726` because it was already absent by the cleanup call.
 - earlier failed smoke note: first v2 smoke found that `torch=2.11.0+cu130` could get stuck when auxiliary `torchaudio` was looked up on fixed cu124 index. Fixed in `V6.5.17` by deriving the auxiliary PyTorch wheel index from current `torch.version.cuda` and treating auxiliary install as best-effort when torch core is already compatible.
 - v2 failure update: a later KJ run showed `libonnxruntime_providers_cuda.so` could not load because `libcublasLt.so.12` was missing; `Detecting bboxes` and `Extracting keypoints` fell back to CPU. Do not use v2 for further paid KJ tests.
+
+Latest v3 smoke:
+
+- job: `kj30s-v3-dhub-4090-onnxfix-20260502-0020`
+- instance: `35969529` (destroyed after smoke)
+- machine / host: `17049 / 96607`
+- GPU / location: `RTX 4090`, `California, US`
+- image: `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+- template created for future use: `eb3ff9185d9de9a9482c2cffbdfd8f9f` (`template_id=400607`)
+- HF speed gate: `67.41 MiB/s`, estimated `8.2 min` for remaining `32.55 GiB`
+- result: `RemoteStopAfter=onnx_cuda` passed and stopped before model download and `/prompt`
+- observed behavior:
+  - DockerHub v3 pulled and started; GHCR v3 had previously stayed in pre-container pull with local token returning GHCR manifest `401`
+  - preinstalled KJ custom nodes were reused
+  - torch stack was reused; only missing `torchaudio==2.11.0+cu130` was installed without reinstalling torch
+  - ONNXRuntime `CUDAExecutionProvider` loaded `libcublasLt.so.12`, `libcublas.so.12`, `libcudart.so.12`, and `libcudnn.so.9`
+  - tiny ONNX Identity session ran on `CUDAExecutionProvider`
+  - local bug fixed before the passing smoke: both staged ONNX smoke Python blocks now set `output_path = sys.argv[1]`
 
 Default command:
 

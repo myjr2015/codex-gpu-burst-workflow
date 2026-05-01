@@ -217,10 +217,10 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 状态：当前 KJ 固定场景 60s 可用方案；用同一张完整人物+背景 anchor 图作为每段 `ip_image.png`，不接 `bg_images` / `mask`。
 - `KJ 2.0 环境镜像模板版`
   - 内部：`1.2-docker-env-template`
-  - 镜像：`ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+  - 镜像：`j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
   - Dockerfile：`docker/wan22-kj-comfy-env/Dockerfile`
   - Vast template helper：`scripts/create_vast_wan22_kj_env_template.ps1`
-  - 状态：实验修复中；v2 已证明 `validate_nodes` 不足，因 ONNXRuntime CUDA provider 加载失败会让 KJ 前处理退回 CPU。v3 必须先通过 `RemoteStopAfter=onnx_cuda`，确认 `CUDAExecutionProvider` 和 tiny ONNX GPU session 成功，再允许租 3090 继续后续验证。
+  - 状态：ONNX CUDA smoke 已通过；GHCR v3 因本地 token 缺 `read:packages` 会 401，默认改走 DockerHub v3。v3 仍必须先通过 `RemoteStopAfter=onnx_cuda`，确认 `CUDAExecutionProvider` 和 tiny ONNX GPU session 成功，再允许进入模型下载或完整推理。
 - `KJ 2.0 背景/Mask失败版`
   - 内部：`B2 bg_images/mask`
   - 状态：失败不要跑；该方案会压制嘴巴和身体动作。
