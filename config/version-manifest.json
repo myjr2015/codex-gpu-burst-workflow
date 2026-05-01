@@ -89,6 +89,8 @@
       "build_workflow": ".github/workflows/build-wan22-kj-env-image.yml",
       "template_helper": "scripts/create_vast_wan22_kj_env_template.ps1",
       "template_hash_env": "VAST_WAN22_KJ_TEMPLATE_HASH",
+      "latest_template_hash": "3f38ca38792bcefce25bb1688f4ca2ca",
+      "latest_template_id": 400059,
       "models_included": false,
       "volume_required": false,
       "model_download_parallelism": {

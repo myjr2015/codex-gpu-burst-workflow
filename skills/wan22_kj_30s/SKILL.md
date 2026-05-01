@@ -299,6 +299,7 @@ Artifacts:
 - GHCR may remain private after Actions push. In that case, pass `-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` at instance launch; the token is read from local GitHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
+- current v2 template hash: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`)
 - details: `docs/KJ环境镜像和Vast模板.md`
 - v2 startup optimization:
   - `KJ_MODEL_DOWNLOAD_PARALLELISM` controls cold model download concurrency; default `3`, capped at `4`.

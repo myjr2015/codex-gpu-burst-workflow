@@ -101,6 +101,14 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 $env:VAST_WAN22_KJ_TEMPLATE_HASH = "<template_hash_id>"
 ```
 
+当前 v2 template：
+
+```text
+template_hash_id=3f38ca38792bcefce25bb1688f4ca2ca
+template_id=400059
+image=ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
+```
+
 ## 运行方式
 
 单段 30s：
