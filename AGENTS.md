@@ -53,6 +53,7 @@
 
 - `1.0`：冷启动跑通版
 - `1.1`：机器库优选 + 暖启动探测版
+- `1.2`：KJ 环境镜像 + Vast template 实验版，仅限 `wan22_kj_30s` / `wan22_kj_30s_segmented`，不用于老 Wan2.2 主线
 
 ## 机器库规则
 
@@ -200,6 +201,12 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 内部：`wan22_kj_30s_segmented` / `B1.1 same-frame anchor`
   - 入口：`scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
   - 状态：当前 KJ 固定场景 60s 可用方案；用同一张完整人物+背景 anchor 图作为每段 `ip_image.png`，不接 `bg_images` / `mask`。
+- `KJ 2.0 环境镜像模板版`
+  - 内部：`1.2-docker-env-template`
+  - 镜像：`myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
+  - Dockerfile：`docker/wan22-kj-comfy-env/Dockerfile`
+  - Vast template helper：`scripts/create_vast_wan22_kj_env_template.ps1`
+  - 状态：实验可跑；只预装 KJ custom nodes 和 Python 依赖，不包含模型权重，不使用 Vast volume。
 - `KJ 2.0 背景/Mask失败版`
   - 内部：`B2 bg_images/mask`
   - 状态：失败不要跑；该方案会压制嘴巴和身体动作。
@@ -303,6 +310,11 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
 - `-RuntimeVersion 1.1-machine-registry`
   - 用机器库优选老机器
   - 老机器命中时才启用 `WarmStart`
+- `-RuntimeVersion 1.2-docker-env-template`
+  - 仅用于 KJ 分支
+  - 通过 `-VastTemplateHash` 或 `VAST_WAN22_KJ_TEMPLATE_HASH` 使用 Vast template
+  - template 指向项目 Docker 环境镜像，目标是减少 custom nodes / Python 依赖安装时间
+  - 不代表模型缓存命中；模型仍然走 HF 测速和下载/缓存检查
 
 ## 不要重复踩坑
 
@@ -314,6 +326,9 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
 - 不要猜输出文件名，必须从 ComfyUI `/history` 读取。
 - 不要给 `destroy_vast_instance.ps1` 传 `-JobName`，它只接受 `-InstanceId`。
 - 不要把同一台机器等同于模型缓存命中；必须看日志里的命中/未命中。
+- 不要把 Vast template 等同于模型缓存；template 只固化启动配置和镜像，模型是否命中仍看远端文件检查。
+- 不要把 KJ 环境镜像实验写回老 `wan_2_2_animate` 生产主线；它只属于 KJ 独立 profile。
+- 不要把大模型第一版塞进 Docker 镜像；先验证环境镜像能不能省掉节点和依赖安装时间。
 - 不要把已放弃的 Docker / 缓存镜像实验重新写回 `wan_2_2_animate` 的生产记忆。
 - 新模型或新工作流必须新增独立 profile / skill，不要污染当前 Wan2.2 固定流程。
 

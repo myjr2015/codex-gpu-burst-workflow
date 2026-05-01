@@ -23,6 +23,11 @@
       "id": "1.1-machine-registry",
       "status": "production",
       "description": "Prefer previously successful machines and enable WarmStart only when one is selected."
+    },
+    {
+      "id": "1.2-docker-env-template",
+      "status": "experimental",
+      "description": "Use a project Docker environment image through a Vast template to preinstall KJ custom nodes and Python dependencies. Model weights are still downloaded or cache-probed at runtime."
     }
   ],
   "workflow_branches": [
@@ -55,7 +60,8 @@
       "default_entry": "scripts/run_wan22_kj_30s_end_to_end.ps1",
       "supported_runtime_strategies": [
         "1.0-cold",
-        "1.1-machine-registry"
+        "1.1-machine-registry",
+        "1.2-docker-env-template"
       ],
       "notes": "2.0 KJ single-shot 30s branch. It uses a pure-color transparent IP image plus a 30s reference video, redraws the background from prompt, and avoids segmented stitching. Initial 30s validation succeeded, but cold-start and inference cost are high, so this is a candidate branch rather than the production default."
     },
@@ -66,12 +72,26 @@
       "default_entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
       "supported_runtime_strategies": [
         "1.0-cold",
-        "1.1-machine-registry"
+        "1.1-machine-registry",
+        "1.2-docker-env-template"
       ],
       "notes": "Experimental KJ long-duration wrapper. It splits input video into 30s chunks, runs the existing KJ 30s workflow sequentially on one Vast instance, downloads each segment, and merges with local ffmpeg concat. It does not add a ComfyUI merge plugin and does not provide continue_motion continuity because this KJ workflow has no continue_motion input."
     }
   ],
   "implementation_variants": [
+    {
+      "id": "wan22-kj-docker-env-template-v1",
+      "workflow_branch": "wan22_kj_30s",
+      "status": "experimental",
+      "entry": "docker/wan22-kj-comfy-env/Dockerfile",
+      "description": "Project-owned KJ environment image and Vast template path. The image starts from vastai/comfy:v0.19.3-cuda-12.9-py312, preinstalls KJ custom nodes and Python dependencies, and deliberately excludes Wan/KJ model weights. Runtime strategy 1.2-docker-env-template uses the resulting Vast template hash while preserving R2 staging, onstart, HF speed gate, machine registry, and normal download/publish flow.",
+      "image": "myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1",
+      "build_workflow": ".github/workflows/build-wan22-kj-env-image.yml",
+      "template_helper": "scripts/create_vast_wan22_kj_env_template.ps1",
+      "template_hash_env": "VAST_WAN22_KJ_TEMPLATE_HASH",
+      "models_included": false,
+      "volume_required": false
+    },
     {
       "id": "wan22-kj-30s-v1-single-shot",
       "workflow_branch": "wan22_kj_30s",

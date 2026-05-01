@@ -8,7 +8,7 @@ param(
 
     [string]$Prompt = "女孩在现代光伏发电场景中自然口播介绍产品，固定人物身份和五官，保持参考视频中的动作、表情、口型节奏和身体姿态。背景根据提示词重绘为真实户外光伏板场景，画面稳定，人物边缘干净，真实自然。",
 
-    [ValidateSet("1.0-cold", "1.1-machine-registry")]
+    [ValidateSet("1.0-cold", "1.1-machine-registry", "1.2-docker-env-template")]
     [string]$RuntimeVersion = "1.1-machine-registry",
 
     [string]$OfferId,
@@ -18,6 +18,8 @@ param(
     [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
+
+    [string]$VastTemplateHash = $(if ($env:VAST_WAN22_KJ_TEMPLATE_HASH) { $env:VAST_WAN22_KJ_TEMPLATE_HASH } else { "" }),
 
     [int]$DiskGb = 240,
 
@@ -74,6 +76,10 @@ if ($PrepareOnly) {
     exit $LASTEXITCODE
 }
 
+if ($RuntimeVersion -eq "1.2-docker-env-template" -and [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
+    throw "RuntimeVersion 1.2-docker-env-template requires -VastTemplateHash or env VAST_WAN22_KJ_TEMPLATE_HASH."
+}
+
 $selection = $null
 $warmStart = $false
 
@@ -87,7 +93,7 @@ if (-not [string]::IsNullOrWhiteSpace($OfferId)) {
         selection_reason = "OfferId provided"
     }
 }
-elseif ($RuntimeVersion -eq "1.1-machine-registry") {
+elseif ($RuntimeVersion -eq "1.1-machine-registry" -or $RuntimeVersion -eq "1.2-docker-env-template") {
     $selection = & pwsh -File $selectorScript `
         -RegistryPath $RegistryPath `
         -SearchQuery $SearchQuery `
@@ -161,6 +167,9 @@ $launchArgs = @(
     "-Image", $Image,
     "-DiskGb", "$DiskGb"
 )
+if (-not [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
+    $launchArgs += @("-TemplateHash", $VastTemplateHash)
+}
 if ($CancelUnavail) {
     $launchArgs += "-CancelUnavail"
 }

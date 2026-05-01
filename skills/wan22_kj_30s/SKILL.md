@@ -277,6 +277,64 @@ Before any paid run, also read:
 - `skills/okskills/SKILL.md`
 - `skills/badskills/SKILL.md`
 
+## KJ 1.2 环境镜像模板实验
+
+Friendly name: `KJ 2.0 环境镜像模板版`.
+
+Runtime strategy: `1.2-docker-env-template`.
+
+Scope:
+
+- only for `wan22_kj_30s` and `wan22_kj_30s_segmented`
+- not for the old `wan_2_2_animate` production branch
+- not a Vast volume strategy
+- not a model-cache guarantee
+
+Artifacts:
+
+- Dockerfile: `docker/wan22-kj-comfy-env/Dockerfile`
+- build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
+- image: `myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
+- Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
+- template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
+- details: `docs/KJ环境镜像和Vast模板.md`
+
+Expected benefit:
+
+- reduce custom node clone and requirements install time
+- reduce dependency drift
+- keep HF speed gate, model download checks, R2 stage, ComfyUI `/history` download, and local merge/polish unchanged
+
+Non-goals:
+
+- does not include Wan/KJ model weights
+- does not reduce KJ inference time
+- does not remove the need for HF speed testing
+- does not use paid Vast volume
+
+Run examples:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_end_to_end.ps1 `
+  -JobName <job_name> `
+  -RuntimeVersion 1.2-docker-env-template `
+  -VastTemplateHash <template_hash_id>
+```
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
+  -JobName <job_name> `
+  -RuntimeVersion 1.2-docker-env-template `
+  -VastTemplateHash <template_hash_id>
+```
+
+Validation signal:
+
+- bootstrap should print `preinstalled KJ custom nodes are ready`
+- HF speedtest should still run
+- model phase should still report existing/missing model files
+- do not call it faster until a paid smoke run compares bootstrap timing against base image
+
 Default command:
 
 ```powershell

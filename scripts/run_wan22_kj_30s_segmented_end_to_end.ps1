@@ -16,7 +16,7 @@ param(
 
     [Int64]$Seed = 387956277078883,
 
-    [ValidateSet("1.0-cold", "1.1-machine-registry")]
+    [ValidateSet("1.0-cold", "1.1-machine-registry", "1.2-docker-env-template")]
     [string]$RuntimeVersion = "1.1-machine-registry",
 
     [string]$OfferId,
@@ -26,6 +26,8 @@ param(
     [string]$SearchQuery = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
+
+    [string]$VastTemplateHash = $(if ($env:VAST_WAN22_KJ_TEMPLATE_HASH) { $env:VAST_WAN22_KJ_TEMPLATE_HASH } else { "" }),
 
     [int]$DiskGb = 240,
 
@@ -205,6 +207,10 @@ if ($PrepareOnly) {
     exit $LASTEXITCODE
 }
 
+if ($RuntimeVersion -eq "1.2-docker-env-template" -and [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
+    throw "RuntimeVersion 1.2-docker-env-template requires -VastTemplateHash or env VAST_WAN22_KJ_TEMPLATE_HASH."
+}
+
 $selection = $null
 $warmStart = $false
 
@@ -246,7 +252,7 @@ else {
     }
 
     $registry = $null
-    if ($RuntimeVersion -eq "1.1-machine-registry" -and (Test-Path -LiteralPath $RegistryPath)) {
+    if (($RuntimeVersion -eq "1.1-machine-registry" -or $RuntimeVersion -eq "1.2-docker-env-template") -and (Test-Path -LiteralPath $RegistryPath)) {
         $registry = Get-Content -Raw $RegistryPath | ConvertFrom-Json
     }
     $knownMachineIds = @()
@@ -299,6 +305,9 @@ $launchArgs = @(
     "-Image", $Image,
     "-DiskGb", "$DiskGb"
 )
+if (-not [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
+    $launchArgs += @("-TemplateHash", $VastTemplateHash)
+}
 if ($CancelUnavail) {
     $launchArgs += "-CancelUnavail"
 }

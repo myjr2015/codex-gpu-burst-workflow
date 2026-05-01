@@ -7,6 +7,8 @@ RUN_DIR="${RUN_DIR:-/workspace/wan22-kj-30s-run}"
 MODELS_DIR="$COMFY_ROOT/models"
 CUSTOM_NODES_DIR="$COMFY_ROOT/custom_nodes"
 WARM_START="${WARM_START:-0}"
+KJ_ENV_IMAGE="${KJ_ENV_IMAGE:-0}"
+KJ_CUSTOM_NODE_SEED_DIR="${KJ_CUSTOM_NODE_SEED_DIR:-/opt/codex/kj-custom_nodes}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
@@ -210,6 +212,45 @@ sync_git_plugin() {
   git -C "$target_dir" submodule update --init --recursive || true
 }
 
+required_custom_nodes_ready() {
+  local required_nodes=(
+    "ComfyUI-WanVideoWrapper"
+    "ComfyUI-WanAnimatePreprocess"
+    "ComfyUI-VideoHelperSuite"
+    "ComfyUI-KJNodes"
+    "ComfyUI_LayerStyle"
+  )
+  for node_name in "${required_nodes[@]}"; do
+    if [ ! -d "$CUSTOM_NODES_DIR/$node_name" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+seed_preinstalled_custom_nodes() {
+  if [ "$KJ_ENV_IMAGE" != "1" ]; then
+    return 1
+  fi
+  if required_custom_nodes_ready; then
+    return 0
+  fi
+  if [ ! -d "$KJ_CUSTOM_NODE_SEED_DIR" ]; then
+    echo "[bootstrap] KJ_ENV_IMAGE=1 but seed dir missing: $KJ_CUSTOM_NODE_SEED_DIR"
+    return 1
+  fi
+
+  echo "[bootstrap] seeding KJ custom nodes from image: $KJ_CUSTOM_NODE_SEED_DIR"
+  mkdir -p "$CUSTOM_NODES_DIR"
+  for plugin_dir in "$KJ_CUSTOM_NODE_SEED_DIR"/*; do
+    if [ -d "$plugin_dir" ]; then
+      rm -rf "$CUSTOM_NODES_DIR/$(basename "$plugin_dir")"
+      cp -a "$plugin_dir" "$CUSTOM_NODES_DIR/"
+    fi
+  done
+  required_custom_nodes_ready
+}
+
 install_custom_node_requirements() {
   for plugin_dir in \
     "$CUSTOM_NODES_DIR/ComfyUI-WanVideoWrapper" \
@@ -247,7 +288,13 @@ inspect_warmstart_state() {
 echo "[bootstrap] preparing KJ custom nodes"
 stage_event "bootstrap.custom_nodes" "start"
 warm_state='{"custom_nodes_ready":false,"models_ready":false,"missing_custom_nodes":[],"missing_models":[]}'
-if [ "$WARM_START" = "1" ] && [ -f "$RUN_DIR/inspect_wan22_kj_30s_warmstart.py" ]; then
+custom_nodes_resolved=0
+if seed_preinstalled_custom_nodes; then
+  echo "[bootstrap] preinstalled KJ custom nodes are ready"
+  custom_nodes_resolved=1
+fi
+
+if [ "$custom_nodes_resolved" != "1" ] && [ "$WARM_START" = "1" ] && [ -f "$RUN_DIR/inspect_wan22_kj_30s_warmstart.py" ]; then
   warm_state="$(inspect_warmstart_state)"
   if python3 - "$warm_state" <<'PY'
 import json, sys
@@ -255,7 +302,7 @@ raise SystemExit(0 if json.loads(sys.argv[1])["custom_nodes_ready"] else 1)
 PY
   then
     echo "[bootstrap] warm-start hit: custom_nodes"
-    stage_event "bootstrap.custom_nodes" "skip"
+    custom_nodes_resolved=1
   else
     echo "[bootstrap] warm-start miss: custom_nodes"
     python3 - "$warm_state" <<'PY'
@@ -266,11 +313,11 @@ PY
   fi
 fi
 
-if [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
+if [ "$custom_nodes_resolved" != "1" ] && { [ "$WARM_START" != "1" ] || ! python3 - "$warm_state" <<'PY'
 import json, sys
 raise SystemExit(0 if json.loads(sys.argv[1])["custom_nodes_ready"] else 1)
 PY
-then
+}; then
   find "$CUSTOM_NODES_DIR" -mindepth 1 -maxdepth 1 ! -name 'ComfyUI-Manager' -exec rm -rf {} +
   sync_git_plugin "https://github.com/kijai/ComfyUI-WanVideoWrapper.git" "$CUSTOM_NODES_DIR/ComfyUI-WanVideoWrapper"
   sync_git_plugin "https://github.com/kijai/ComfyUI-WanAnimatePreprocess.git" "$CUSTOM_NODES_DIR/ComfyUI-WanAnimatePreprocess"

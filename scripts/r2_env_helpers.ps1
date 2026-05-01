@@ -87,6 +87,7 @@ function Import-ProjectApiBackup {
         Set-ProcessEnvIfMissing -Name "GH_TOKEN" -Value $entries["GitHub PAT 用户给过"]
     }
     Set-ProcessEnvIfMissing -Name "DOCKERHUB_TOKEN" -Value $entries["DockerHub"]
+    Set-ProcessEnvIfMissing -Name "DOCKERHUB_USERNAME" -Value $entries["DockerHub Username"]
     Set-ProcessEnvIfMissing -Name "RUNPOD_API_KEY" -Value $entries["RunPod"]
     Set-ProcessEnvIfMissing -Name "OPENAI_API_KEY" -Value $entries["OpenAI"]
 }

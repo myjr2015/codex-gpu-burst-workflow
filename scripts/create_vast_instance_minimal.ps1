@@ -4,6 +4,8 @@ param(
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
+    [string]$TemplateHash = "",
+
     [string]$Label = "codex-comfy-minimal",
 
     [int]$DiskGb = 180,
@@ -14,7 +16,9 @@ param(
 
     [string[]]$ExtraEnv = @(),
 
-    [string[]]$MountArgs = @()
+    [string[]]$MountArgs = @(),
+
+    [switch]$TemplateProvidesStaticEnv
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,12 +30,16 @@ if (Test-Path -LiteralPath $r2HelperPath) {
     Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
 }
 
-$envItems = @(
-    "DATA_DIRECTORY=/workspace/"
-    "JUPYTER_DIR=/"
-    "OPEN_BUTTON_PORT=8188"
-)
-$envItems += "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
+$useTemplate = -not [string]::IsNullOrWhiteSpace($TemplateHash)
+$envItems = @()
+if (-not $useTemplate -or -not $TemplateProvidesStaticEnv) {
+    $envItems += @(
+        "DATA_DIRECTORY=/workspace/"
+        "JUPYTER_DIR=/"
+        "OPEN_BUTTON_PORT=8188"
+    )
+    $envItems += "PROVISIONING_SCRIPT=https://raw.githubusercontent.com/vast-ai/base-image/refs/heads/main/derivatives/pytorch/derivatives/comfyui/provisioning_scripts/default.sh"
+}
 if ($ExtraEnv.Count -gt 0) {
     foreach ($item in $ExtraEnv) {
         if ([string]::IsNullOrWhiteSpace($item)) {
@@ -58,24 +66,37 @@ if ($MountArgs.Count -gt 0) {
         }
     }
 }
-$envParts += @(
-    "-p 1111:1111"
-    "-p 8080:8080"
-    "-p 8188:8188"
-    "-p 8384:8384"
-)
+if (-not $useTemplate -or -not $TemplateProvidesStaticEnv) {
+    $envParts += @(
+        "-p 1111:1111"
+        "-p 8080:8080"
+        "-p 8188:8188"
+        "-p 8384:8384"
+    )
+}
 $envString = $envParts -join " "
 
 $arguments = @(
-    "create", "instance", $OfferId,
-    "--image", $Image,
+    "create", "instance", $OfferId
+)
+
+if ($useTemplate) {
+    $arguments += @("--template_hash", $TemplateHash)
+}
+else {
+    $arguments += @("--image", $Image)
+}
+
+$arguments += @(
     "--disk", $DiskGb.ToString(),
     "--label", $Label,
     "--jupyter",
-    "--direct",
-    "--env", $envString,
-    "--raw"
+    "--direct"
 )
+if (-not [string]::IsNullOrWhiteSpace($envString)) {
+    $arguments += @("--env", $envString)
+}
+$arguments += "--raw"
 
 if ($CancelUnavail) {
     $arguments += "--cancel-unavail"

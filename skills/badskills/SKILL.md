@@ -273,6 +273,15 @@ These failures were observed on the same branch:
     - if no tested offer passes, destroy those instances and continue with the next candidate batch
     - do not run full bootstrap or inference before the HF gate passes
 
+- Symptom: a Vast template or Docker environment image exists, but cold start still spends time downloading Wan/KJ model files
+  - Root cause: the `1.2-docker-env-template` experiment only preinstalls KJ custom nodes and Python dependencies; it deliberately does not include model weights
+  - Action:
+    - keep HF speed preflight enabled
+    - keep model existence checks in bootstrap
+    - do not call template launch a model-cache hit unless logs show the model files already exist
+    - do not use Vast volume as the default cache strategy because it keeps charging and is tied to one physical machine
+    - do not write this KJ environment-image experiment back into the old `wan_2_2_animate` production memory
+
 - Symptom: KJ 30s segmented output has hand drift, extra hands, unexpected hand gestures, a short-lived red dot, sticker residue, or local limb/body distortion around a time where the reference video has large sticker text, subtitles, red checkmarks, location pins, banners, or other overlay UI
   - Root cause: the overlay may not be redrawn into the final video, but it still contaminates the reference motion / pose / expression conditioning; the model then guesses the occluded hand/body motion or leaks small visual tokens from the reference
   - Important: this failure is probabilistic. The same reference overlay may pass in one segment/run and leak in another; fixed seed improves repeatability of one run, but it does not prove the source is safe for future long-video segmentation.

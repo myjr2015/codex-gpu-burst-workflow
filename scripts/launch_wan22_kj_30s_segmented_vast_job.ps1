@@ -7,6 +7,8 @@ param(
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
+    [string]$TemplateHash = "",
+
     [string]$Label = "wan22-kj-30s-segmented-job",
 
     [int]$DiskGb = 240,
@@ -60,6 +62,9 @@ $createArgs = @(
     "-DiskGb", "$DiskGb",
     "-Onstart", $onstartPath
 )
+if (-not [string]::IsNullOrWhiteSpace($TemplateHash)) {
+    $createArgs += @("-TemplateHash", $TemplateHash, "-TemplateProvidesStaticEnv")
+}
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
 }
