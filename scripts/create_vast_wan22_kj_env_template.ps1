@@ -1,7 +1,7 @@
 param(
     [string]$TemplateName = "codex-wan22-kj-comfy-cuda129",
 
-    [string]$Image = "myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1",
+    [string]$Image = "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1",
 
     [int]$DiskGb = 240,
 
@@ -11,7 +11,15 @@ param(
 
     [string]$DockerHubUsername = "",
 
-    [string]$DockerHubToken = ""
+    [string]$DockerHubToken = "",
+
+    [switch]$PrivateRegistryLogin,
+
+    [string]$RegistryHost = "",
+
+    [string]$RegistryUsername = "",
+
+    [string]$RegistryToken = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,6 +36,30 @@ if ([string]::IsNullOrWhiteSpace($DockerHubUsername)) {
 }
 if ([string]::IsNullOrWhiteSpace($DockerHubToken)) {
     $DockerHubToken = if ($env:DOCKERHUB_TOKEN) { $env:DOCKERHUB_TOKEN } else { "" }
+}
+if ([string]::IsNullOrWhiteSpace($RegistryHost)) {
+    if ($Image -match "^(?<host>[^/]+\.[^/]+)/") {
+        $RegistryHost = $Matches.host
+    }
+    else {
+        $RegistryHost = "docker.io"
+    }
+}
+if ([string]::IsNullOrWhiteSpace($RegistryUsername)) {
+    if ($RegistryHost -eq "ghcr.io") {
+        $RegistryUsername = if ($env:GITHUB_USERNAME) { $env:GITHUB_USERNAME } elseif ($env:GITHUB_ACTOR) { $env:GITHUB_ACTOR } else { "myjr2015" }
+    }
+    elseif ($RegistryHost -eq "docker.io") {
+        $RegistryUsername = $DockerHubUsername
+    }
+}
+if ([string]::IsNullOrWhiteSpace($RegistryToken)) {
+    if ($RegistryHost -eq "ghcr.io") {
+        $RegistryToken = if ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } elseif ($env:GH_TOKEN) { $env:GH_TOKEN } else { "" }
+    }
+    elseif ($RegistryHost -eq "docker.io") {
+        $RegistryToken = $DockerHubToken
+    }
 }
 
 $imageRepo = $Image
@@ -74,6 +106,12 @@ if ($PrivateDockerHubLogin) {
     }
     $arguments += @("--login", "-u $DockerHubUsername -p $DockerHubToken docker.io")
 }
+elseif ($PrivateRegistryLogin) {
+    if ([string]::IsNullOrWhiteSpace($RegistryHost) -or [string]::IsNullOrWhiteSpace($RegistryUsername) -or [string]::IsNullOrWhiteSpace($RegistryToken)) {
+        throw "PrivateRegistryLogin requires registry host, username, and token."
+    }
+    $arguments += @("--login", "-u $RegistryUsername -p $RegistryToken $RegistryHost")
+}
 
 $previousPythonUtf8 = $env:PYTHONUTF8
 $previousPythonIoEncoding = $env:PYTHONIOENCODING
@@ -84,6 +122,11 @@ try {
     Write-Host "image=$imageRepo`:$imageTag"
     if ($PrivateDockerHubLogin) {
         Write-Host "private_dockerhub_login=true"
+    }
+    if ($PrivateRegistryLogin) {
+        Write-Host "private_registry_login=true"
+        Write-Host "registry_host=$RegistryHost"
+        Write-Host "registry_username=$RegistryUsername"
     }
     & vastai @arguments
 }

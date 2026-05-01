@@ -24,7 +24,7 @@ if ([string]::IsNullOrWhiteSpace($DockerHubToken)) {
     $DockerHubToken = if ($env:DOCKERHUB_TOKEN) { $env:DOCKERHUB_TOKEN } else { "" }
 }
 if ([string]::IsNullOrWhiteSpace($DockerHubUsername)) {
-    $DockerHubUsername = if ($env:DOCKERHUB_USERNAME) { $env:DOCKERHUB_USERNAME } else { "myjr2015" }
+    $DockerHubUsername = if ($env:DOCKERHUB_USERNAME) { $env:DOCKERHUB_USERNAME } else { "" }
 }
 
 if ([string]::IsNullOrWhiteSpace($GitHubToken)) {

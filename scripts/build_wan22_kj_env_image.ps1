@@ -30,7 +30,7 @@ if (Test-Path -LiteralPath $r2HelperPath) {
 }
 
 if ([string]::IsNullOrWhiteSpace($DockerHubUsername)) {
-    $DockerHubUsername = if ($env:DOCKERHUB_USERNAME) { $env:DOCKERHUB_USERNAME } else { "myjr2015" }
+    $DockerHubUsername = if ($env:DOCKERHUB_USERNAME) { $env:DOCKERHUB_USERNAME } else { "" }
 }
 if ([string]::IsNullOrWhiteSpace($DockerHubToken)) {
     $DockerHubToken = if ($env:DOCKERHUB_TOKEN) { $env:DOCKERHUB_TOKEN } else { "" }
@@ -48,8 +48,11 @@ if (-not (Test-Path -LiteralPath $Context)) {
 if ($Push -and [string]::IsNullOrWhiteSpace($DockerHubToken)) {
     throw "DockerHub token missing. Set DOCKERHUB_TOKEN or add DockerHub to api.txt."
 }
+if ($Push -and [string]::IsNullOrWhiteSpace($DockerHubUsername)) {
+    throw "DockerHub username missing. Set DOCKERHUB_USERNAME or add DockerHub Username to api.txt. The default unattended path is GitHub Actions registry=ghcr."
+}
 
-$imageRef = "$DockerHubUsername/$ImageName`:$Tag"
+$imageRef = if ([string]::IsNullOrWhiteSpace($DockerHubUsername)) { "$ImageName`:$Tag" } else { "$DockerHubUsername/$ImageName`:$Tag" }
 
 if ($Push) {
     $DockerHubToken | docker login --username $DockerHubUsername --password-stdin

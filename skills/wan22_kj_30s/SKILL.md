@@ -294,7 +294,8 @@ Artifacts:
 
 - Dockerfile: `docker/wan22-kj-comfy-env/Dockerfile`
 - build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
-- image: `myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
+- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
+- default registry: GHCR. DockerHub remains optional, but the default path should not assume a DockerHub username exists.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
 - details: `docs/KJ环境镜像和Vast模板.md`

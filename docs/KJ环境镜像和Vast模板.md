@@ -16,14 +16,14 @@
 - 安装脚本：`docker/wan22-kj-comfy-env/install-kj-env.sh`
 - GitHub Actions：`.github/workflows/build-wan22-kj-env-image.yml`
 - 本地构建脚本：`scripts/build_wan22_kj_env_image.ps1`
-- GitHub Actions secret helper：`scripts/bootstrap_github_actions_dockerhub.ps1`
+- GitHub Actions secret helper：`scripts/bootstrap_github_actions_dockerhub.ps1`，仅 DockerHub 构建路径需要
 - workflow dispatch helper：`scripts/dispatch_github_actions_workflow.ps1`
 - Vast template helper：`scripts/create_vast_wan22_kj_env_template.ps1`
 
 默认镜像名：
 
 ```text
-myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
+ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
 ```
 
 ## 不放进镜像的内容
@@ -47,22 +47,27 @@ pwsh -File .\scripts\build_wan22_kj_env_image.ps1 -Push
 当前 Windows 控制机没有 Docker CLI 时，走 GitHub Actions：
 
 ```powershell
-pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
-
 pwsh -File .\scripts\dispatch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml `
-  -Inputs @{ image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v1" }
+  -Inputs @{ registry = "ghcr"; image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v1" }
 
 pwsh -File .\scripts\watch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml
+```
+
+如果明确要推 DockerHub，再先执行：
+
+```powershell
+pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 ```
 
 密钥读取规则：
 
 - 先读 `.env`
 - 再读 `api.txt`
-- `DockerHub` 对应 DockerHub token
-- `DockerHub Username` 可选；缺省按 `myjr2015` 处理
+- GHCR 默认使用 GitHub Actions 内置 `GITHUB_TOKEN`，不需要 DockerHub 用户名。
+- `DockerHub` 对应 DockerHub token，仅 DockerHub 路径需要。
+- `DockerHub Username` 仅 DockerHub 路径需要；不要缺省盲试。
 
 ## 创建 Vast template
 
@@ -71,8 +76,21 @@ pwsh -File .\scripts\watch_github_actions_workflow.ps1 `
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
 ```
+
+如果 GHCR package 仍是 private，可临时创建带 registry login 的 template：
+
+```powershell
+pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
+  -TemplateName codex-wan22-kj-comfy-cuda129 `
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1 `
+  -PrivateRegistryLogin `
+  -RegistryHost ghcr.io `
+  -RegistryUsername myjr2015
+```
+
+`RegistryToken` 默认从 `.env` / `api.txt` 的 GitHub token 读取，不要把 token 写进命令行。
 
 创建后记录返回的 `template_hash_id`，然后设置：
 

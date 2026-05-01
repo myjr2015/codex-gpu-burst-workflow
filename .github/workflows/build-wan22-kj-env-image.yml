@@ -3,8 +3,12 @@ name: Build Wan22 KJ Env Image
 on:
   workflow_dispatch:
     inputs:
+      registry:
+        description: Container registry: ghcr or dockerhub
+        required: true
+        default: ghcr
       image_name:
-        description: Docker Hub image name
+        description: Image name without owner
         required: true
         default: codex-wan22-kj-comfy
       image_tag:
@@ -21,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,19 +34,49 @@ jobs:
         id: meta
         shell: bash
         run: |
+          registry="${{ github.event.inputs.registry || 'ghcr' }}"
           image_name="${{ github.event.inputs.image_name || 'codex-wan22-kj-comfy' }}"
           image_tag="${{ github.event.inputs.image_tag || 'cuda129-py312-kj-v1' }}"
-          echo "image=${{ secrets.DOCKERHUB_USERNAME }}/${image_name}" >> "$GITHUB_OUTPUT"
+          registry="$(printf '%s' "$registry" | tr '[:upper:]' '[:lower:]')"
+          image_name="$(printf '%s' "$image_name" | tr '[:upper:]' '[:lower:]')"
+          case "$registry" in
+            ghcr)
+              owner="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+              image="ghcr.io/${owner}/${image_name}"
+              ;;
+            dockerhub)
+              if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+                echo "DOCKERHUB_USERNAME secret is required for dockerhub registry." >&2
+                exit 1
+              fi
+              image="${{ secrets.DOCKERHUB_USERNAME }}/${image_name}"
+              ;;
+            *)
+              echo "Unsupported registry: $registry" >&2
+              exit 1
+              ;;
+          esac
+          echo "registry=${registry}" >> "$GITHUB_OUTPUT"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
           echo "tag=${image_tag}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
+        if: steps.meta.outputs.registry == 'dockerhub'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        if: steps.meta.outputs.registry == 'ghcr'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -50,6 +85,9 @@ jobs:
           file: docker/wan22-kj-comfy-env/Dockerfile
           platforms: linux/amd64
           push: true
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Codex Wan2.2 KJ ComfyUI environment image
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.image }}:latest
