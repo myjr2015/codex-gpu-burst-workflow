@@ -126,16 +126,26 @@
       "workflow_branch": "wan22_kj_30s_segmented",
       "status": "experimental",
       "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
-      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The branch now supports optional 2.0 B2 background anchoring: keep the pure IP image as person reference, load one prompt-generated bg_image.png, repeat it to frame_load_cap, and connect bg_images plus an IP-alpha-derived mask to WanVideoAnimateEmbeds. The branch also treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 local rules and 2.1-next OCR/LaMa samples failed on the current heavily overlaid source; next work should use clean source footage, manual cleanup, or stronger semantic/video object removal such as ProPainter/E2FGVI before any Vast inference.",
+      "description": "Splits videos longer than 30s into 30s chunks, stages per-segment KJ runtime workflows, runs them sequentially on one Vast instance via the existing KJ remote submit script, then downloads and ffmpeg-concats the segment outputs. The current accepted fixed-scene 2.0 path is B1.1 same-frame anchor: reuse one complete person+background anchor image as ip_image.png for every 30s segment and leave WanVideoAnimateEmbeds without bg_images or mask. The separate B2 bg_images/mask experiment is retained as a failed record because it suppressed mouth/body motion. The branch also treats reference-video overlays as a probabilistic quality risk and uses preflight reference-overlay scanning plus postflight generated-artifact review before accepting long-video outputs. Cleanup roadmap: 2.0 keeps rule-based detection and targeted local cleaning; 2.1 local rules and 2.1-next OCR/LaMa samples failed on the current heavily overlaid source; next work should use clean source footage, manual cleanup, or stronger semantic/video object removal such as ProPainter/E2FGVI before any Vast inference.",
       "merge_strategy": "ffmpeg concat with transcode fallback",
       "segment_seconds": 30,
+      "b1_1_same_frame_anchor": {
+        "status": "current_candidate",
+        "anchor_image": "output/wan22_kj_30s_segmented/_b2_anchors/bg_anchor_10s.png",
+        "staged_image_name": "ip_image.png",
+        "wan_video_animate_embeds_node": "171",
+        "bg_images_connected": false,
+        "mask_connected": false,
+        "validated_job": "kj60-b11-sameframe-30x2-20260501"
+      },
       "b2_background_conditioning": {
-        "status": "validation",
+        "status": "failed_abandoned",
         "ip_image": "素材资产/美女图无背景纯色/纯色坐着.png",
         "background_image_name": "bg_image.png",
         "background_repeat": "RepeatImageBatch amount=frame_load_cap",
         "mask": "LoadImageMask alpha from ip_image.png -> InvertMask -> GrowMask",
-        "wan_video_animate_embeds_node": "171"
+        "wan_video_animate_embeds_node": "171",
+        "failure_reason": "bg_images plus mask over-constrained the KJ animate embedding path, and the generated background image contained the full person, suppressing mouth/body motion."
       },
       "reference_overlay_cleaning": {
         "status": "local_samples_failed",
@@ -203,6 +213,48 @@
       },
       "validated_runs": [
         {
+          "job_name": "kj60-b11-sameframe-30x2-20260501",
+          "validated_at": "2026-05-01T09:50:00+08:00",
+          "runtime_strategy": "1.1-machine-registry",
+          "instance_id": 35889784,
+          "machine_id": 31054,
+          "host_id": 93447,
+          "gpu": "RTX 4090",
+          "geolocation": "Sweden, SE",
+          "dph_total": 0.351111,
+          "segment_count": 2,
+          "segment_seconds": 30,
+          "b1_1_same_frame_anchor": true,
+          "b2_background_conditioning": false,
+          "anchor_image": "output/wan22_kj_30s_segmented/_b2_anchors/bg_anchor_10s.png",
+          "wan_video_animate_embeds_bg_images": false,
+          "wan_video_animate_embeds_mask": false,
+          "merge_mode": "concat_copy_manual",
+          "merged_duration_seconds": 59.648,
+          "output_resolution": "720x720",
+          "output_fps": 16,
+          "has_audio": true,
+          "prompt_execution_seconds": {
+            "segment_1": 2320.327,
+            "segment_2": 2992.393
+          },
+          "motion_metrics_absdiff_every_4_frames": {
+            "body_mean": 8.254,
+            "mouth_mean": 10.239,
+            "background_mean": 0.366
+          },
+          "visual_acceptance": "passed_manual_and_artifact_review",
+          "notes": "B1.1 reuses one complete person+photovoltaic-background anchor frame as ip_image.png for both 30s segments and keeps the original KJ node 171 structure without bg_images or mask. The 5s+5s smoke test restored motion, and the full 30s+30s test passed keyframes, seam, 26-30s, 48-52s, and generated-artifact review. This is the current accepted 2.0 fixed-scene path.",
+          "frame_review_paths": [
+            "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/b11_60s_check/keyframes_5s_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/b11_60s_check/seam_28_33s_0p5s_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/b11_60s_check/window_26_30s_0p5s_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/b11_60s_check/window_48_52s_0p5s_sheet.jpg",
+            "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/frame_review/b11_60s_check/generated_artifact_risk/generated-artifact-contact-sheet.jpg"
+          ],
+          "local_result_path": "output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4"
+        },
+        {
           "job_name": "kj60-b2-bgmask-20260501-0100",
           "validated_at": "2026-05-01T01:00:00+08:00",
           "runtime_strategy": "1.1-machine-registry",
@@ -219,8 +271,13 @@
           "output_resolution": "720x720",
           "output_fps": 16,
           "has_audio": true,
-          "visual_acceptance": "passed_quick_manual_review",
-          "notes": "B2 background-anchor validation reused the same pure seated IP image, same generated bg_image.png, same prompt/negative/seed, and IP-alpha-derived mask for both 30s segments. Quick review of keyframes, 26-30s, 28-33s seam, 48-52s, and automatic risk closeups found no double head, duplicate person, or obvious hand-structure collapse. This pass does not override the separate 2.1 reference-cleaning gate.",
+          "motion_metrics_absdiff_every_4_frames": {
+            "body_mean": 1.2,
+            "mouth_mean": 0.705,
+            "background_mean": 0.282
+          },
+          "visual_acceptance": "failed_motion_suppressed",
+          "notes": "B2 reused the same pure seated IP image, generated bg_image.png, prompt/negative/seed, and IP-alpha-derived mask for both 30s segments. A quick structural review did not find double head or duplicate person, but detailed comparison showed mouth and body motion were nearly locked. The bg_images/mask patch over-constrained node 171, and bg_image.png contained a complete person rather than true background-only content. Do not use this B2 structure for the current KJ 2.0 path.",
           "frame_review_paths": [
             "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/keyframes_5s_sheet.jpg",
             "output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/frame_review/manual/window_26_30s_4fps_sheet.jpg",

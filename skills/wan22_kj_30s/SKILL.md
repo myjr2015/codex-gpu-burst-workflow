@@ -29,44 +29,61 @@ For videos longer than 30s, use the experimental wrapper:
 
 This wrapper does not add a ComfyUI merge plugin. It reuses the existing KJ 30s workflow per segment and merges downloaded MP4 files locally. The KJ workflow does not expose `continue_motion`, so cross-segment continuity is not guaranteed until visually verified.
 
-## 2.0 B2 Background Anchor Mode
+## 2.0 B1.1 Same-Frame Anchor Mode
 
-For fixed-scene long videos, the preferred 2.0 B path is not to replace the IP image with a generated frame.
+For fixed-scene long videos, the current accepted 2.0 B path is B1.1 same-frame anchor.
+
+This is a pragmatic validated path: keep the original KJ workflow structure, do not connect `bg_images` or `mask`, and reuse the same complete person+background anchor image as `ip_image.png` for every `30s` segment. It is not the final "pure IP plus separate generated background" semantics, but it preserves mouth/body motion and keeps the background stable.
 
 Rules:
 
-- `ip_image.png` stays the pure-color / transparent IP image, currently `素材资产/美女图无背景纯色/纯色坐着.png` for seated photovoltaic tests.
-- `bg_image.png` is a separate prompt-generated background anchor image. It may be extracted from a passed generated segment, but it is only used through `bg_images`, not as the person reference.
-- Runtime node `171` (`WanVideoAnimateEmbeds`) receives:
-  - `bg_images`: `LoadImage(bg_image.png) -> RepeatImageBatch(amount=frame_load_cap)`
-  - `mask`: `LoadImageMask(ip_image.png, alpha) -> InvertMask -> GrowMask(expand=8~16)`
-- All `30s` segments reuse the same `ip_image.png`, `bg_image.png`, prompt, negative prompt, and seed.
-- `B1` frame-as-`ip_image.png` may only be used as a temporary smoke check; it is not the final B semantics because it mixes generated person identity into the IP reference.
+- Use one accepted complete anchor frame containing the same person and photovoltaic background, currently `output/wan22_kj_30s_segmented/_b2_anchors/bg_anchor_10s.png`.
+- Stage that anchor as `ip_image.png` for every segment.
+- Do not add or connect `WanVideoAnimateEmbeds.bg_images`.
+- Do not add or connect `WanVideoAnimateEmbeds.mask`.
+- Runtime node `171` (`WanVideoAnimateEmbeds`) stays on the original KJ inputs for image, pose, face, and audio/video conditioning.
+- All `30s` segments reuse the same `ip_image.png`, prompt, negative prompt, and seed.
 
-Segmented B2 example:
+B1.1 validation result:
+
+- short smoke: `kj60-b11-sameframe-5x2-20260501`
+  - result: motion restored
+  - metrics: `body mean 9.746`, `mouth mean 15.975`, `background mean 0.548`
+- full 60s test: `kj60-b11-sameframe-30x2-20260501`
+  - instance kept alive after validation: `35889784`
+  - machine: `31054`
+  - host: `93447`
+  - GPU/location: `RTX 4090`, `Sweden, SE`
+  - output: `59.648s`, `720x720`, `16fps`, with audio
+  - prompt execution: segment 1 `2320.327s`, segment 2 `2992.393s`
+  - metrics: `body mean 8.254`, `mouth mean 10.239`, `background mean 0.366`
+  - visual acceptance: `pass` after keyframes, `26-30s`, `28-33s` seam, `48-52s`, and generated-artifact review
+  - local result: `output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4`
+
+Segmented B1.1 example:
 
 ```powershell
 pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
   -JobName <job_name> `
-  -ImagePath .\素材资产\美女图无背景纯色\纯色坐着.png `
+  -ImagePath .\output\wan22_kj_30s_segmented\_b2_anchors\bg_anchor_10s.png `
   -VideoPath .\素材资产\原视频\光伏60s.mp4 `
-  -BackgroundImagePath <bg_image.png> `
-  -BackgroundMaskGrow 12 `
   -SegmentSeconds 30 `
   -MaxSegments 2
 ```
 
-B2 validation result:
+## 2.0 B2 Background/Mask Mode Is Failed
+
+B2 tried to keep the pure seated IP image as `ip_image.png`, load a separate `bg_image.png`, repeat it to `frame_load_cap`, and connect `bg_images` plus an IP-alpha-derived mask into `WanVideoAnimateEmbeds`.
+
+Do not use this structure for the current KJ 2.0 branch.
+
+Observed failure:
 
 - job: `kj60-b2-bgmask-20260501-0100`
-- instance kept alive after validation: `35889784`
-- machine: `31054`
-- host: `93447`
-- GPU/location: `RTX 4090`, `Sweden, SE`
-- output: `59.648s`, `720x720`, `16fps`, with audio
-- visual acceptance: `pass` after quick review of keyframes, `26-30s`, `28-33s` seam, `48-52s`, and automatic risk closeups
-- local result: `output/wan22_kj_30s_segmented/kj60-b2-bgmask-20260501-0100/downloads/wan22_kj_30s_segmented-kj60-b2-bgmask-20260501-0100.mp4`
-- note: this B2 pass does not mean reference-video cleaning 2.1 passed; keep the reference-cleaning gate separate.
+- initial quick review saw stable composition, but detailed review showed the mouth and body barely moved
+- metrics: `body mean 1.2`, `mouth mean 0.705`, far below B1/A/B1.1
+- root cause: `bg_images` + `mask` over-constrained node `171`; the `bg_image.png` also contained the complete person, so the model effectively locked to a static person/background reference
+- action: revert to B1.1 same-frame anchor unless B2 is redesigned and first passes a short motion metric check
 
 ## Current Status
 
@@ -193,7 +210,8 @@ Important lesson:
 Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
-- `2.0 B2`: current fixed-scene background anchor validation path. Keep the pure IP image as person reference and connect one repeated background anchor image plus IP alpha mask into `WanVideoAnimateEmbeds`.
+- `2.0 B1.1`: current fixed-scene accepted validation path. Use one complete anchor image as `ip_image.png` for all segments and do not connect `bg_images` / `mask`.
+- `2.0 B2`: failed background/mask experiment. It suppressed mouth/body motion and must not be used as the default path.
 - `2.1`: local rule-based preprocessor exists, but the 2026-05-01 `光伏60s.mp4` conservative_v9 validation failed. It can generate `cleanup_plan`, `cleaned_reference.mp4`, `cleaning-report.json`, and before/after sheets, but it must not be treated as a passed cleaner when near-body text/labels remain or turn into gray blocks. If risk-after is still high or the before/after sheet shows residual UI, stop before stage/inference.
 - `2.1-next`: local samples also failed after OCR glyph masks + OpenCV Telea/NS variants and `simple-lama-inpainting` single-frame probes. OCR can detect the text, and LaMa can remove some text, but when subtitles or location bubbles touch the body, hands, legs, or clothing, the repaired frame gets text remnants, white/orange/gray blocks, photovoltaic-panel hallucination, or semi-transparent body/clothing distortion. Do not run full cleaned-reference generation or Vast inference from this source unless a new sample sheet is visibly clean and preserves face/hands/body.
 - Next step after `2.1-next`: request a no-subtitle/no-sticker reference video, do manual/professional cleanup for the obstructed windows, or evaluate stronger semantic/video object-removal tools such as ProPainter / E2FGVI / commercial object removal on 1s windows before any full-video pass.
@@ -339,7 +357,7 @@ Required runtime changes:
   - `scheduler="dpm++_sde"`
   - `batched_cfg=false`
   - `rope_function="comfy"`
-- optional B2 background anchor patch for segmented jobs:
+- failed B2 background anchor patch for segmented jobs; do not enable for current B1.1:
   - add `LoadImage` node `901` for `bg_image.png`
   - add `RepeatImageBatch` node `902` with `amount=frame_load_cap`
   - add `LoadImageMask` node `903` reading `ip_image.png` alpha

@@ -294,6 +294,18 @@ These failures were observed on the same branch:
     - after cleaning, re-split into 30s segments and rerun with the same IP image, seed, and fixed background prompt
     - inspect the cleaned reference around each original problem window before renting another full inference pass
 
+- Symptom: KJ 2.0 B2 output has stable background, but the mouth and body barely move
+  - Root cause: connecting `WanVideoAnimateEmbeds.bg_images` plus `mask` over-constrained the original KJ conditioning path; in `kj60-b2-bgmask-20260501-0100`, the `bg_image.png` also contained the complete person instead of a true background-only image, so the model locked onto a nearly static person/background reference
+  - Evidence:
+    - B2 `body mean 1.2`
+    - B2 `mouth mean 0.705`
+    - B1.1 same-frame anchor `body mean 8.254`
+    - B1.1 same-frame anchor `mouth mean 10.239`
+  - Action:
+    - do not reuse the B2 `bg_images` / `mask` patch for the current KJ 2.0 path
+    - use B1.1 same-frame anchor instead: stage the same complete anchor image as `ip_image.png` for every `30s` segment and leave node `171` without `bg_images` / `mask`
+    - if B2 is redesigned later, first run a 5s+5s smoke test and reject it unless body/mouth motion metrics are close to B1/A
+
 ## Fast Triage Order
 
 1. `vastai show instance --raw`
