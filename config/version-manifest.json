@@ -108,6 +108,29 @@
           "torchaudio"
         ],
         "auxiliary_install_policy": "best-effort install missing/import-broken auxiliary packages with --no-deps matched to current torch version and current torch CUDA wheel index; if a matching auxiliary wheel is unavailable, warn and continue as long as torch core, CUDA, and GPU checks passed; do not force reinstall torch"
+      },
+      "latest_smoke": {
+        "job_name": "kj30s-template-v2-smoke-fix-20260501-164926",
+        "validated_at": "2026-05-01T17:13:06+08:00",
+        "instance_id": 35950726,
+        "machine_id": 17049,
+        "host_id": 96607,
+        "gpu": "RTX 4090",
+        "geolocation": "California, US",
+        "dph_total": 0.3688888888888889,
+        "template_hash": "3f38ca38792bcefce25bb1688f4ca2ca",
+        "remote_stop_after": "validate_nodes",
+        "prompt_submitted": false,
+        "hf_speed_mib_per_sec": 100.29,
+        "estimated_model_download_minutes": 5.5,
+        "model_download_parallelism": 3,
+        "custom_nodes_seeded_from_image": true,
+        "torch_stack_reused": true,
+        "torch_reinstall_forced": false,
+        "model_downloads_completed": true,
+        "validate_nodes": "passed",
+        "destroy_status": "not_found_on_destroy_recheck_instances_empty",
+        "notes": "The first v2 smoke exposed a wrong auxiliary-package CUDA index when the base image reported torch=2.11.0+cu130; V6.5.17 fixed auxiliary installs to use the current torch CUDA wheel index and to treat auxiliary install as best-effort. The follow-up smoke reached remote.validate_nodes and stopped before /prompt as intended. Curl connection reset messages appeared during large parallel downloads, but curl retries and resume completed and all model download stage markers ended successfully."
       }
     },
     {

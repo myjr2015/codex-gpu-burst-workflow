@@ -344,6 +344,23 @@ Validation signal:
 - do not call it faster until a paid smoke run compares bootstrap timing against base image
 - for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` after staging; this stops before `/prompt` submission and avoids a full paid inference.
 
+Latest v2 smoke:
+
+- job: `kj30s-template-v2-smoke-fix-20260501-164926`
+- instance: `35950726`
+- machine / host: `17049 / 96607`
+- GPU / location: `RTX 4090`, `California, US`
+- template: `3f38ca38792bcefce25bb1688f4ca2ca`
+- HF speed gate: `100.29 MiB/s`, estimated `5.5 min` for remaining `32.55 GiB`
+- result: `validate_nodes` passed and stopped before `/prompt`
+- observed behavior:
+  - preinstalled KJ custom nodes were reused
+  - torch stack was reused; no full torch reinstall
+  - model downloads ran with `KJ_MODEL_DOWNLOAD_PARALLELISM=3`
+  - large curl downloads had transient reset/broken-pipe messages but retries/resume completed
+- cleanup: final `vastai show instances --raw` returned `[]`; destroy helper returned 404 for `35950726` because it was already absent by the cleanup call.
+- earlier failed smoke note: first v2 smoke found that `torch=2.11.0+cu130` could get stuck when auxiliary `torchaudio` was looked up on fixed cu124 index. Fixed in `V6.5.17` by deriving the auxiliary PyTorch wheel index from current `torch.version.cuda` and treating auxiliary install as best-effort when torch core is already compatible.
+
 Default command:
 
 ```powershell
