@@ -117,6 +117,23 @@ $previousPythonUtf8 = $env:PYTHONUTF8
 $previousPythonIoEncoding = $env:PYTHONIOENCODING
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
+
+function Redact-SecretText {
+    param(
+        [string]$Text,
+        [string[]]$Secrets = @()
+    )
+
+    $result = $Text
+    foreach ($secret in $Secrets) {
+        if ([string]::IsNullOrWhiteSpace($secret)) {
+            continue
+        }
+        $result = $result -replace [regex]::Escape($secret), "<redacted>"
+    }
+    $result
+}
+
 try {
     Write-Host "creating_vast_template=$TemplateName"
     Write-Host "image=$imageRepo`:$imageTag"
@@ -128,7 +145,15 @@ try {
         Write-Host "registry_host=$RegistryHost"
         Write-Host "registry_username=$RegistryUsername"
     }
-    & vastai @arguments
+    $output = @(& vastai @arguments 2>&1 | ForEach-Object { "$_" })
+    $exitCode = $LASTEXITCODE
+    $secretsToRedact = @($DockerHubToken, $RegistryToken)
+    foreach ($line in $output) {
+        Write-Host (Redact-SecretText -Text $line -Secrets $secretsToRedact)
+    }
+    if ($exitCode -ne 0) {
+        throw "vastai create template failed with exit code $exitCode"
+    }
 }
 finally {
     if ($null -eq $previousPythonUtf8) {
