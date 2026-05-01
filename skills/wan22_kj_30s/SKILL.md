@@ -294,12 +294,17 @@ Artifacts:
 
 - Dockerfile: `docker/wan22-kj-comfy-env/Dockerfile`
 - build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
-- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
+- image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2`
 - default registry: GHCR. DockerHub remains optional, but the default path should not assume a DockerHub username exists.
 - GHCR may remain private after Actions push. In that case, pass `-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` at instance launch; the token is read from local GitHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
 - details: `docs/KJ环境镜像和Vast模板.md`
+- v2 startup optimization:
+  - `KJ_MODEL_DOWNLOAD_PARALLELISM` controls cold model download concurrency; default `3`, capped at `4`.
+  - model downloads write `*.part.<pid>` first and move into place only after curl succeeds; any failed model fails the whole bootstrap.
+  - torch compatibility is judged by torch CUDA runtime and GPU availability first; missing `torchvision` / `torchaudio` are installed as auxiliary no-deps packages instead of forcing a full torch stack reinstall.
+  - the Docker env image records torch, torchvision, and torchaudio versions in `/opt/codex/kj-env-image.json`.
 
 Expected benefit:
 

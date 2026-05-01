@@ -37,6 +37,9 @@ param(
 
     [int]$HfSpeedTestMaxSeconds = 120,
 
+    [ValidateRange(1, 4)]
+    [int]$ModelDownloadParallelism = 3,
+
     [switch]$CancelUnavail,
 
     [switch]$SkipPublish,
@@ -165,7 +168,8 @@ $stageArgs = @(
 $launchArgs = @(
     "-OfferId", $OfferId,
     "-Image", $Image,
-    "-DiskGb", "$DiskGb"
+    "-DiskGb", "$DiskGb",
+    "-ModelDownloadParallelism", "$ModelDownloadParallelism"
 )
 if (-not [string]::IsNullOrWhiteSpace($VastTemplateHash)) {
     $launchArgs += @("-TemplateHash", $VastTemplateHash)

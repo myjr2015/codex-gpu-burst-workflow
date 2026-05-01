@@ -11,6 +11,7 @@ KJ_ENV_IMAGE="${KJ_ENV_IMAGE:-0}"
 KJ_CUSTOM_NODE_SEED_DIR="${KJ_CUSTOM_NODE_SEED_DIR:-/opt/codex/kj-custom_nodes}"
 PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 FORCE_TORCH_REINSTALL="${FORCE_TORCH_REINSTALL:-0}"
+KJ_MODEL_DOWNLOAD_PARALLELISM="${KJ_MODEL_DOWNLOAD_PARALLELISM:-3}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
 
@@ -32,6 +33,15 @@ python_has_module() {
 import importlib.util
 import sys
 raise SystemExit(0 if importlib.util.find_spec(sys.argv[1]) else 1)
+PY
+}
+
+python_can_import() {
+  local module_name="$1"
+  python3 - "$module_name" <<'PY' >/dev/null 2>&1
+import importlib
+import sys
+importlib.import_module(sys.argv[1])
 PY
 }
 
@@ -57,11 +67,8 @@ ensure_python_package_no_deps() {
   pip_install --upgrade-strategy only-if-needed --no-deps "$package_spec"
 }
 
-torch_stack_matches_expected() {
+torch_core_matches_expected() {
   python3 <<'PY' >/dev/null 2>&1
-import importlib
-for name in ("torch", "torchvision", "torchaudio"):
-    importlib.import_module(name)
 import torch
 cuda_version = getattr(torch.version, "cuda", None) or ""
 parts = cuda_version.split(".")
@@ -81,9 +88,6 @@ PY
 
 describe_existing_torch_stack() {
   python3 <<'PY' 2>/dev/null || true
-import importlib
-for name in ("torch", "torchvision", "torchaudio"):
-    importlib.import_module(name)
 import torch
 print(
     f"[bootstrap] reusing existing torch stack: "
@@ -94,12 +98,59 @@ print(
 PY
 }
 
+torch_aux_package_specs() {
+  python3 - "$@" <<'PY'
+import re
+import sys
+
+import torch
+
+version = torch.__version__.split("+", 1)[0]
+match = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+if not match:
+    for name in sys.argv[1:]:
+        print(name)
+    raise SystemExit(0)
+
+major = int(match.group(1))
+minor = int(match.group(2))
+patch = int(match.group(3))
+torch_version = f"{major}.{minor}.{patch}"
+vision_minor = minor + 15 if major == 2 else None
+
+for name in sys.argv[1:]:
+    if name == "torchvision" and vision_minor is not None:
+        print(f"torchvision==0.{vision_minor}.0")
+    elif name == "torchaudio":
+        print(f"torchaudio=={torch_version}")
+    else:
+        print(name)
+PY
+}
+
+ensure_torch_aux_packages() {
+  local missing=()
+  if ! python_can_import "torchvision"; then
+    missing+=("torchvision")
+  fi
+  if ! python_can_import "torchaudio"; then
+    missing+=("torchaudio")
+  fi
+  if [ "${#missing[@]}" -eq 0 ]; then
+    return 0
+  fi
+  mapfile -t aux_specs < <(torch_aux_package_specs "${missing[@]}")
+  echo "[bootstrap] installing missing torch auxiliary packages without reinstalling torch: ${aux_specs[*]}"
+  pip_install --upgrade-strategy only-if-needed --no-deps --index-url "$PYTORCH_INDEX_URL" "${aux_specs[@]}"
+}
+
 ensure_torch_stack() {
   if [ "$FORCE_TORCH_REINSTALL" = "1" ]; then
     echo "[bootstrap] FORCE_TORCH_REINSTALL=1, reinstalling torch stack"
-  elif torch_stack_matches_expected; then
+  elif torch_core_matches_expected; then
     describe_existing_torch_stack
     echo "[bootstrap] existing torch stack is compatible with this workflow runtime"
+    ensure_torch_aux_packages
     return 0
   fi
 
@@ -274,9 +325,85 @@ download_if_missing() {
   mkdir -p "$(dirname "$target")"
   echo "[bootstrap] downloading: $(basename "$target")"
   stage_event "$stage_name" "start"
-  curl --http1.1 -L --fail --retry 10 --retry-delay 8 --retry-all-errors \
-    --connect-timeout 30 --max-time 7200 -o "$target" "$url"
+  local temp_target="$target.part.${BASHPID:-$$}"
+  rm -f "$temp_target"
+  if ! curl --http1.1 -L --fail --retry 10 --retry-delay 8 --retry-all-errors \
+    --connect-timeout 30 --max-time 7200 -o "$temp_target" "$url"; then
+    rm -f "$temp_target"
+    stage_event "$stage_name" "fail"
+    return 1
+  fi
+  if ! mv -f "$temp_target" "$target"; then
+    rm -f "$temp_target"
+    stage_event "$stage_name" "fail"
+    return 1
+  fi
   stage_event "$stage_name" "end"
+}
+
+download_model_entry() {
+  local entry="$1"
+  local url=""
+  local target=""
+  IFS='|' read -r url target <<< "$entry"
+  download_if_missing "$url" "$target"
+}
+
+model_download_manifest() {
+  cat <<EOF
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors|$MODELS_DIR/diffusion_models/Wan22Animate/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors
+https://huggingface.co/realung/umt5-xxl-enc-fp8_e4m3fn.safetensors/resolve/main/umt5-xxl-enc-fp8_e4m3fn.safetensors|$MODELS_DIR/text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/wan_2.1_vae.safetensors|$MODELS_DIR/vae/wan_2.1_vae.safetensors
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/clip_vision_h.safetensors|$MODELS_DIR/clip_vision/clip_vision_h.safetensors
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/vitpose-l-wholebody.onnx|$MODELS_DIR/detection/vitpose-l-wholebody.onnx
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/yolov10m.onnx|$MODELS_DIR/detection/yolov10m.onnx
+https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/lightx2v_elite_it2v_animate_face.safetensors|$MODELS_DIR/loras/lightx2v_elite_it2v_animate_face.safetensors
+https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/WAN22_MoCap_fullbodyCOPY_ED.safetensors|$MODELS_DIR/loras/WAN22_MoCap_fullbodyCOPY_ED.safetensors
+https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/FullDynamic_Ultimate_Fusion_Elite.safetensors|$MODELS_DIR/loras/FullDynamic_Ultimate_Fusion_Elite.safetensors
+https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/Wan2.2-Fun-A14B-InP-Fusion-Elite.safetensors|$MODELS_DIR/loras/Wan2.2-Fun-A14B-InP-Fusion-Elite.safetensors
+https://huggingface.co/VladimirSoch/For_Work/resolve/main/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors|$MODELS_DIR/loras/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors
+EOF
+}
+
+download_all_models() {
+  local parallelism="$KJ_MODEL_DOWNLOAD_PARALLELISM"
+  if ! [[ "$parallelism" =~ ^[0-9]+$ ]] || [ "$parallelism" -lt 1 ]; then
+    parallelism=1
+  fi
+  if [ "$parallelism" -gt 4 ]; then
+    parallelism=4
+  fi
+
+  mapfile -t model_entries < <(model_download_manifest)
+  echo "[bootstrap] model download parallelism=$parallelism"
+  if [ "$parallelism" -le 1 ]; then
+    local entry=""
+    for entry in "${model_entries[@]}"; do
+      download_model_entry "$entry"
+    done
+    return 0
+  fi
+
+  local active=0
+  local failed=0
+  local entry=""
+  for entry in "${model_entries[@]}"; do
+    download_model_entry "$entry" &
+    active=$((active + 1))
+    if [ "$active" -ge "$parallelism" ]; then
+      if ! wait -n; then
+        failed=1
+      fi
+      active=$((active - 1))
+    fi
+  done
+  while [ "$active" -gt 0 ]; do
+    if ! wait -n; then
+      failed=1
+    fi
+    active=$((active - 1))
+  done
+  return "$failed"
 }
 
 inspect_warmstart_state() {
@@ -401,49 +528,7 @@ import json, sys
 raise SystemExit(0 if json.loads(sys.argv[1])["models_ready"] else 1)
 PY
 then
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors" \
-    "$MODELS_DIR/diffusion_models/Wan22Animate/Wan2_2-Animate-14B_fp8_scaled_e4m3fn_KJ_v2.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/realung/umt5-xxl-enc-fp8_e4m3fn.safetensors/resolve/main/umt5-xxl-enc-fp8_e4m3fn.safetensors" \
-    "$MODELS_DIR/text_encoders/umt5-xxl-enc-fp8_e4m3fn.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/wan_2.1_vae.safetensors" \
-    "$MODELS_DIR/vae/wan_2.1_vae.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/clip_vision_h.safetensors" \
-    "$MODELS_DIR/clip_vision/clip_vision_h.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/vitpose-l-wholebody.onnx" \
-    "$MODELS_DIR/detection/vitpose-l-wholebody.onnx"
-
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/yolov10m.onnx" \
-    "$MODELS_DIR/detection/yolov10m.onnx"
-
-  download_if_missing \
-    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/lightx2v_elite_it2v_animate_face.safetensors" \
-    "$MODELS_DIR/loras/lightx2v_elite_it2v_animate_face.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/WAN22_MoCap_fullbodyCOPY_ED.safetensors" \
-    "$MODELS_DIR/loras/WAN22_MoCap_fullbodyCOPY_ED.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/FullDynamic_Ultimate_Fusion_Elite.safetensors" \
-    "$MODELS_DIR/loras/FullDynamic_Ultimate_Fusion_Elite.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/eddy1111111/Wan_toolkit/resolve/main/Wan2.2-Fun-A14B-InP-Fusion-Elite.safetensors" \
-    "$MODELS_DIR/loras/Wan2.2-Fun-A14B-InP-Fusion-Elite.safetensors"
-
-  download_if_missing \
-    "https://huggingface.co/VladimirSoch/For_Work/resolve/main/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors" \
-    "$MODELS_DIR/loras/Wan2.2-Fun-A14B-InP-low-noise-HPS2.1.safetensors"
+  download_all_models
 fi
 stage_event "bootstrap.model_downloads" "end"
 

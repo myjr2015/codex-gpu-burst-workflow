@@ -80,17 +80,32 @@
   ],
   "implementation_variants": [
     {
-      "id": "wan22-kj-docker-env-template-v1",
+      "id": "wan22-kj-docker-env-template-v2",
       "workflow_branch": "wan22_kj_30s",
       "status": "experimental",
       "entry": "docker/wan22-kj-comfy-env/Dockerfile",
-      "description": "Project-owned KJ environment image and Vast template path. The image starts from vastai/comfy:v0.19.3-cuda-12.9-py312, preinstalls KJ custom nodes and Python dependencies, and deliberately excludes Wan/KJ model weights. Runtime strategy 1.2-docker-env-template uses the resulting Vast template hash while preserving R2 staging, onstart, HF speed gate, machine registry, and normal download/publish flow. The default registry is GHCR so the build path does not depend on a DockerHub username.",
-      "image": "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1",
+      "description": "Project-owned KJ environment image and Vast template path. The image starts from vastai/comfy:v0.19.3-cuda-12.9-py312, preinstalls KJ custom nodes, Python dependencies, and records the torch/torchvision/torchaudio compatibility state, while deliberately excluding Wan/KJ model weights. Runtime strategy 1.2-docker-env-template uses the resulting Vast template hash while preserving R2 staging, onstart, HF speed gate, machine registry, and normal download/publish flow. The default registry is GHCR so the build path does not depend on a DockerHub username.",
+      "image": "ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2",
       "build_workflow": ".github/workflows/build-wan22-kj-env-image.yml",
       "template_helper": "scripts/create_vast_wan22_kj_env_template.ps1",
       "template_hash_env": "VAST_WAN22_KJ_TEMPLATE_HASH",
       "models_included": false,
-      "volume_required": false
+      "volume_required": false,
+      "model_download_parallelism": {
+        "env": "KJ_MODEL_DOWNLOAD_PARALLELISM",
+        "default": 3,
+        "max": 4,
+        "temporary_suffix": ".part.<pid>",
+        "failure_policy": "fail_bootstrap"
+      },
+      "torch_policy": {
+        "core_check": "torch CUDA runtime >= 12.4 and at least one CUDA device",
+        "auxiliary_packages": [
+          "torchvision",
+          "torchaudio"
+        ],
+        "auxiliary_install_policy": "install missing/import-broken auxiliary packages with --no-deps matched to current torch version; do not force reinstall torch"
+      }
     },
     {
       "id": "wan22-kj-30s-v1-single-shot",

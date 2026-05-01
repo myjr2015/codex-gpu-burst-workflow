@@ -23,7 +23,7 @@
 默认镜像名：
 
 ```text
-ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
+ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
 ```
 
 ## 不放进镜像的内容
@@ -49,7 +49,7 @@ pwsh -File .\scripts\build_wan22_kj_env_image.ps1 -Push
 ```powershell
 pwsh -File .\scripts\dispatch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml `
-  -Inputs @{ registry = "ghcr"; image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v1" }
+  -Inputs @{ registry = "ghcr"; image_name = "codex-wan22-kj-comfy"; image_tag = "cuda129-py312-kj-v2" }
 
 pwsh -File .\scripts\watch_github_actions_workflow.ps1 `
   -Workflow build-wan22-kj-env-image.yml
@@ -76,7 +76,7 @@ pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
 ```
 
 如果 GHCR package 仍是 private，template 仍可创建，但真正拉镜像的私有登录要在创建实例时传入：
@@ -84,7 +84,7 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
 ```
 
 后续 launch 时加：
@@ -125,7 +125,8 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
 
 - 省掉大部分 custom node clone / requirements 安装时间。
 - 降低 Python 依赖漂移导致的启动失败概率。
-- 减少 torch 重装概率，但仍由 bootstrap 做兼容性检查。
+- 减少 torch 重装概率：bootstrap 以 `torch + CUDA>=12.4 + GPU 可用` 作为硬条件，缺 `torchvision` / `torchaudio` 时只按当前 torch 版本补装辅助包，不触发整套 torch force reinstall。
+- 模型下载默认 `3` 路并行，最多 `4` 路；每个模型先写入 `.part` 临时文件，下载成功后再 `mv` 到目标文件，任一模型失败则 bootstrap 失败。
 - 不直接减少 HuggingFace 模型下载时间。
 - 不改变 KJ 推理时间。
 
@@ -149,6 +150,7 @@ pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
   -PrivateRegistryLogin `
   -RegistryHost ghcr.io `
   -RegistryUsername myjr2015 `
+  -ModelDownloadParallelism 3 `
   -RemoteStopAfter validate_nodes
 ```
 

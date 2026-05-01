@@ -26,5 +26,6 @@ RUN chmod +x /opt/codex/install-kj-env.sh \
     && /opt/codex/install-kj-env.sh
 
 LABEL org.opencontainers.image.title="codex-wan22-kj-comfy" \
-      org.opencontainers.image.description="Wan2.2 KJ ComfyUI environment image without model weights." \
+      org.opencontainers.image.description="Wan2.2 KJ ComfyUI environment image without model weights. v2 records torch compatibility and preinstalls missing torch auxiliary packages without forcing torch reinstall." \
+      org.opencontainers.image.version="cuda129-py312-kj-v2" \
       org.opencontainers.image.base.name="vastai/comfy:v0.19.3-cuda-12.9-py312"

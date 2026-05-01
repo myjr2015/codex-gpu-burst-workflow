@@ -27,6 +27,9 @@ param(
 
     [int]$HfSpeedTestMaxSeconds = 120,
 
+    [ValidateRange(1, 4)]
+    [int]$ModelDownloadParallelism = 3,
+
     [ValidateSet("", "hf_speedtest", "bootstrap", "wait_api", "validate_nodes")]
     [string]$RemoteStopAfter = "",
 
@@ -100,6 +103,7 @@ if (-not $DisableHfSpeedTest) {
     $extraEnvItems += ("HF_SPEEDTEST_SAMPLE_MIB={0}" -f $HfSpeedTestSampleMiB)
     $extraEnvItems += ("HF_SPEEDTEST_MAX_SECONDS={0}" -f $HfSpeedTestMaxSeconds)
 }
+$extraEnvItems += ("KJ_MODEL_DOWNLOAD_PARALLELISM={0}" -f $ModelDownloadParallelism)
 if (-not [string]::IsNullOrWhiteSpace($RemoteStopAfter)) {
     $extraEnvItems += "KJ_REMOTE_STOP_AFTER=$RemoteStopAfter"
 }
@@ -157,6 +161,7 @@ if (-not $DisableHfSpeedTest) {
     Write-Host "hf_min_mib_per_sec=$HfMinMiBps"
     Write-Host "hf_max_estimated_download_minutes=$HfMaxEstimatedDownloadMinutes"
 }
+Write-Host "model_download_parallelism=$ModelDownloadParallelism"
 if (-not [string]::IsNullOrWhiteSpace($RemoteStopAfter)) {
     Write-Host "remote_stop_after=$RemoteStopAfter"
 }

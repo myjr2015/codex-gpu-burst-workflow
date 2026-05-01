@@ -20,6 +20,15 @@ raise SystemExit(0 if importlib.util.find_spec(sys.argv[1]) else 1)
 PY
 }
 
+python_can_import() {
+  local module_name="$1"
+  python3 - "$module_name" <<'PY' >/dev/null 2>&1
+import importlib
+import sys
+importlib.import_module(sys.argv[1])
+PY
+}
+
 ensure_python_package() {
   local package_spec="$1"
   local module_name="$2"
@@ -40,6 +49,68 @@ ensure_python_package_no_deps() {
   fi
   echo "[kj-env-image] installing package without deps: $package_spec"
   pip_install --upgrade-strategy only-if-needed --no-deps "$package_spec"
+}
+
+torch_core_matches_expected() {
+  python3 <<'PY' >/dev/null 2>&1
+import torch
+cuda_version = getattr(torch.version, "cuda", None) or ""
+parts = cuda_version.split(".")
+try:
+    major = int(parts[0])
+    minor = int(parts[1]) if len(parts) > 1 else 0
+except Exception:
+    raise SystemExit(1)
+if major < 12 or (major == 12 and minor < 4):
+    raise SystemExit(1)
+raise SystemExit(0)
+PY
+}
+
+torch_aux_package_specs() {
+  python3 - "$@" <<'PY'
+import re
+import sys
+
+import torch
+
+version = torch.__version__.split("+", 1)[0]
+match = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+if not match:
+    for name in sys.argv[1:]:
+        print(name)
+    raise SystemExit(0)
+
+major = int(match.group(1))
+minor = int(match.group(2))
+patch = int(match.group(3))
+torch_version = f"{major}.{minor}.{patch}"
+vision_minor = minor + 15 if major == 2 else None
+
+for name in sys.argv[1:]:
+    if name == "torchvision" and vision_minor is not None:
+        print(f"torchvision==0.{vision_minor}.0")
+    elif name == "torchaudio":
+        print(f"torchaudio=={torch_version}")
+    else:
+        print(name)
+PY
+}
+
+ensure_torch_aux_packages() {
+  local missing=()
+  if ! python_can_import "torchvision"; then
+    missing+=("torchvision")
+  fi
+  if ! python_can_import "torchaudio"; then
+    missing+=("torchaudio")
+  fi
+  if [ "${#missing[@]}" -eq 0 ]; then
+    return 0
+  fi
+  mapfile -t aux_specs < <(torch_aux_package_specs "${missing[@]}")
+  echo "[kj-env-image] installing missing torch auxiliary packages without reinstalling torch: ${aux_specs[*]}"
+  pip_install --upgrade-strategy only-if-needed --no-deps --index-url https://download.pytorch.org/whl/cu124 "${aux_specs[@]}"
 }
 
 install_filtered_requirements_file() {
@@ -115,6 +186,12 @@ copy_seed_nodes() {
 }
 
 mkdir -p "$SEED_DIR"
+if torch_core_matches_expected; then
+  ensure_torch_aux_packages
+else
+  echo "[kj-env-image] base torch stack is not cu124-compatible; leaving runtime bootstrap to repair it"
+fi
+
 sync_git_plugin "https://github.com/kijai/ComfyUI-WanVideoWrapper.git" "$SEED_DIR/ComfyUI-WanVideoWrapper"
 sync_git_plugin "https://github.com/kijai/ComfyUI-WanAnimatePreprocess.git" "$SEED_DIR/ComfyUI-WanAnimatePreprocess"
 sync_git_plugin "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git" "$SEED_DIR/ComfyUI-VideoHelperSuite"
@@ -179,12 +256,36 @@ payload = {
     "models_included": False,
     "custom_node_seed_dir": "/opt/codex/kj-custom_nodes",
 }
+try:
+    import torch
+    payload["torch"] = {
+        "version": torch.__version__,
+        "cuda": getattr(torch.version, "cuda", ""),
+    }
+except Exception as exc:
+    payload["torch_error"] = str(exc)
+for name in ("torchvision", "torchaudio"):
+    try:
+        module = __import__(name)
+        payload[name] = {"version": getattr(module, "__version__", "")}
+    except Exception as exc:
+        payload[name] = {"error": str(exc)}
 Path("/opt/codex/kj-env-image.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 PY
 
 python3 - <<'PY' || true
+import importlib
+
 import torch
-print(f"[kj-env-image] torch={torch.__version__} cuda={getattr(torch.version, 'cuda', '')}")
+
+parts = [f"torch={torch.__version__}", f"cuda={getattr(torch.version, 'cuda', '')}"]
+for name in ("torchvision", "torchaudio"):
+    try:
+        module = importlib.import_module(name)
+        parts.append(f"{name}={getattr(module, '__version__', '')}")
+    except Exception as exc:
+        parts.append(f"{name}=missing:{exc}")
+print("[kj-env-image] " + " ".join(parts))
 PY
 
 python3 -m pip cache purge || true
