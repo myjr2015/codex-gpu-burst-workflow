@@ -296,6 +296,7 @@ Artifacts:
 - build workflow: `.github/workflows/build-wan22-kj-env-image.yml`
 - image: `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1`
 - default registry: GHCR. DockerHub remains optional, but the default path should not assume a DockerHub username exists.
+- GHCR may remain private after Actions push. In that case, pass `-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` at instance launch; the token is read from local GitHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
 - details: `docs/KJ环境镜像和Vast模板.md`
@@ -335,7 +336,7 @@ Validation signal:
 - HF speedtest should still run
 - model phase should still report existing/missing model files
 - do not call it faster until a paid smoke run compares bootstrap timing against base image
-- for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes` after staging; this stops before `/prompt` submission and avoids a full paid inference.
+- for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015` after staging; this stops before `/prompt` submission and avoids a full paid inference.
 
 Default command:
 

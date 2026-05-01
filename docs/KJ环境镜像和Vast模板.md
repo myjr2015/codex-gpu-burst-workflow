@@ -79,18 +79,21 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
 ```
 
-如果 GHCR package 仍是 private，可临时创建带 registry login 的 template：
+如果 GHCR package 仍是 private，template 仍可创建，但真正拉镜像的私有登录要在创建实例时传入：
 
 ```powershell
 pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
   -TemplateName codex-wan22-kj-comfy-cuda129 `
-  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1 `
-  -PrivateRegistryLogin `
-  -RegistryHost ghcr.io `
-  -RegistryUsername myjr2015
+  -Image ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v1
 ```
 
-`RegistryToken` 默认从 `.env` / `api.txt` 的 GitHub token 读取，不要把 token 写进命令行。
+后续 launch 时加：
+
+```powershell
+-PrivateRegistryLogin -RegistryHost ghcr.io -RegistryUsername myjr2015
+```
+
+`RegistryToken` 默认从 `.env` / `api.txt` 的 GitHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
 
 创建后记录返回的 `template_hash_id`，然后设置：
 
@@ -143,6 +146,9 @@ pwsh -File .\scripts\launch_wan22_kj_30s_vast_job.ps1 `
   -JobName <job_name> `
   -OfferId <offer_id> `
   -TemplateHash <template_hash_id> `
+  -PrivateRegistryLogin `
+  -RegistryHost ghcr.io `
+  -RegistryUsername myjr2015 `
   -RemoteStopAfter validate_nodes
 ```
 

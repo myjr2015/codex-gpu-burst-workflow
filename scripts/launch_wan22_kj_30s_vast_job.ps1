@@ -30,6 +30,12 @@ param(
     [ValidateSet("", "hf_speedtest", "bootstrap", "wait_api", "validate_nodes")]
     [string]$RemoteStopAfter = "",
 
+    [switch]$PrivateRegistryLogin,
+
+    [string]$RegistryHost = "",
+
+    [string]$RegistryUsername = "",
+
     [string[]]$MountArgs = @()
 )
 
@@ -67,6 +73,15 @@ $createArgs = @(
 )
 if (-not [string]::IsNullOrWhiteSpace($TemplateHash)) {
     $createArgs += @("-TemplateHash", $TemplateHash, "-TemplateProvidesStaticEnv")
+}
+if ($PrivateRegistryLogin) {
+    $createArgs += "-PrivateRegistryLogin"
+    if (-not [string]::IsNullOrWhiteSpace($RegistryHost)) {
+        $createArgs += @("-RegistryHost", $RegistryHost)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RegistryUsername)) {
+        $createArgs += @("-RegistryUsername", $RegistryUsername)
+    }
 }
 if ($CancelUnavail) {
     $createArgs += "-CancelUnavail"
@@ -141,4 +156,13 @@ if (-not $DisableHfSpeedTest) {
 }
 if (-not [string]::IsNullOrWhiteSpace($RemoteStopAfter)) {
     Write-Host "remote_stop_after=$RemoteStopAfter"
+}
+if ($PrivateRegistryLogin) {
+    Write-Host "private_registry_login=true"
+    if (-not [string]::IsNullOrWhiteSpace($RegistryHost)) {
+        Write-Host "registry_host=$RegistryHost"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RegistryUsername)) {
+        Write-Host "registry_username=$RegistryUsername"
+    }
 }
