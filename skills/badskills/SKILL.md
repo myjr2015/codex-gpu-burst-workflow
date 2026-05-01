@@ -229,6 +229,10 @@ These failures were observed on the same branch:
     - call `Import-ProjectDotEnv` before invoking `vastai`
     - never paste the Vast key into command arguments
 
+- Symptom: KJ launch creates the instance, then fails while reading `vastai show instances --raw` with `403: This action requires login` or JSON parse errors beginning with `Failed with error 403`
+  - Root cause: the child create-instance helper loaded `VAST_API_KEY`, but the parent launch script did not import local credentials before its follow-up `vastai show instances` polling
+  - Action: import `scripts/r2_env_helpers.ps1` and call `Import-ProjectDotEnv` in every script that calls `vastai`, including launch wrappers after instance creation
+
 - Symptom: a manual pre-check says machine-registry `miss`, but the actual launched run immediately selects a previously successful machine
   - Root cause: Vast offer availability changed between the manual check and the real launch; the earlier result became stale
   - Action:

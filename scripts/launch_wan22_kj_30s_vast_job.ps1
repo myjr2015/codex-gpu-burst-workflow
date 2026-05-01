@@ -48,14 +48,17 @@ $onstartPath = Join-Path $jobDir "onstart_wan22_kj_30s.sh"
 $generator = Join-Path $repoRoot "scripts\generate_wan22_kj_30s_onstart.mjs"
 $createScript = Join-Path $repoRoot "scripts\create_vast_instance_minimal.ps1"
 $helpersPath = Join-Path $repoRoot "scripts\launch_wan_2_2_animate_vast_job_helpers.ps1"
+$r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 
-foreach ($required in @($manifestPath, $generator, $createScript, $helpersPath)) {
+foreach ($required in @($manifestPath, $generator, $createScript, $helpersPath, $r2HelperPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required file: $required"
     }
 }
 
 . $helpersPath
+. $r2HelperPath
+Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
 
 & node $generator --manifest $manifestPath --output $onstartPath
 if ($LASTEXITCODE -ne 0) {
