@@ -429,7 +429,7 @@ KJ v3 pending fixes / skill memory:
 - `summarize_vast_job_timing.ps1 -FetchLog` must force UTF-8 around `vastai logs`; Windows GBK can fail when remote logs contain non-GBK characters and should not block timing reports.
 - HF 256MiB speedtest can be optimistic. Record the speedtest value and the actual large-file model download stage separately whenever `RemoteStopAfter=bootstrap` or a real run downloads models.
 - The v3 Docker image is not a model cache. It can save custom-node clone and Python dependency drift, but model downloads still dominate on a fresh host unless the machine already has the files.
-- GHCR is not the default until package visibility/token scope is fixed. Use DockerHub v3 with private registry login and never print the token.
+- GHCR is not the default. The 2026-05-02 registry/HF check showed current GHCR v3 manifest/layer access is no longer blocked by 401 on the tested token/path, but GHCR image pull on Vast was much slower than DockerHub v3 and did not reach onstart within the stop-loss window. Use DockerHub v3 with private registry login and never print the token.
 
 No-inference bootstrap comparison from 2026-05-02:
 
@@ -498,6 +498,33 @@ Same-machine v3 vs base environment-only comparison from 2026-05-02:
   - v3's defensible value is dependency determinism and less post-onstart installation work: it avoids custom-node extraction and avoids a full torch reinstall; it also makes ONNX/CUDA availability deterministic.
   - v3 does not include model weights, so it does not reduce the 32.55 GiB HF model cold download.
   - For "does v3 improve time before inference" reports, separate these lines: Docker/container startup, HF speedtest, dependency/ONNX, model download/cache check, and inference. Do not merge them into one vague cold-start number, and do not count cached second runs as cold-start evidence.
+
+KJ v3 registry/HF selector check from 2026-05-02:
+
+- Test target: same candidate machine, `DiskGb=240`, no `/prompt`, no ComfyUI bootstrap, no model download. The onstart script only ran a 256MiB HuggingFace range sample plus DockerHub v3 and GHCR v3 manifest/layer range samples.
+- Machine: `RTX 4090`, Michigan US, `machine_id=56169`, `host_id=65203`, offer `31931540`, `dph_total=$0.3067/h`, driver `590.48.01`.
+- DockerHub v3 image sample:
+  - instance `35993311`, image `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+  - result: reached `running` in `50.4s`, onstart speed suite finished in about `13s`, then destroyed
+  - HF `104.00 MiB/s`, estimated `5.3 min` for remaining `32.55 GiB`
+  - DockerHub v3 layer `101.88 MiB/s`, manifest/layer HTTP `200/206`
+  - GHCR v3 layer from the same onstart environment `33.56 MiB/s`, manifest/layer HTTP `200/206`
+- GHCR v3 image-pull sample:
+  - instance `35993402`, image `ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+  - local token preflight returned manifest HTTP `200`, so this was not the old `401` permission failure
+  - Vast stayed in `cuda129-py312-kj-v3: Pulling from myjr2015/codex-wan22-kj-comfy` and did not reach onstart in the stop-loss window; destroyed before further billing
+  - conclusion: GHCR was authorized but too slow as the default image source on this tested machine
+- Base image sample:
+  - instance `35993588`, image `vastai/comfy:v0.19.3-cuda-12.9-py312`
+  - result: reached `running` in `57.7s`, onstart speed suite finished in about `14s`, then destroyed
+  - HF `103.81 MiB/s`, estimated `5.4 min` for remaining `32.55 GiB`
+  - DockerHub v3 layer `102.45 MiB/s`, manifest/layer HTTP `200/206`
+  - GHCR v3 layer `32.50 MiB/s`, manifest/layer HTTP `200/206`
+- Operational conclusion:
+  - Prefer DockerHub v3 for KJ `1.2-docker-env-template` on this path. It reached onstart quickly, DockerHub layer speed matched HF network quality, and it keeps the v3 dependency/ONNX determinism.
+  - Do not prioritize GHCR v3 yet. In this run GHCR was not a permissions/401 problem, but it was much slower as an actual Vast image pull and its layer range speed was roughly one third of DockerHub.
+  - Base remains the fallback only if DockerHub v3 pull/login fails. Network speed to HF/DockerHub from base was essentially the same, but base does not include the preinstalled KJ custom nodes / Python / ONNX fixes.
+  - Final cleanup check: `vastai show instances --raw` returned `[]`.
 
 Default command:
 
