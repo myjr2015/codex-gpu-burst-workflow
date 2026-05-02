@@ -456,6 +456,47 @@ No-inference bootstrap comparison from 2026-05-02:
   - Treat "image pull/container startup success rate" as a first-class metric. If no onstart/HF speedtest appears within about `5 min`, destroy and move hosts.
   - Do not select based only on GPU class. In this comparison, one 3090 with excellent HF throughput beat several 4090s on pre-inference cold start, while several 3090s failed before onstart.
 
+Same-machine v3 vs base environment-only comparison from 2026-05-02:
+
+- Test target: `RemoteStopAfter=validate_nodes`, same physical machine, no `/prompt`, no inference, and model downloads intentionally skipped by the stop point.
+- Machine: `RTX 4090`, Michigan US, `machine_id=56169`, `host_id=65203`, offer `31931540`, `dph_total=$0.3067/h`, driver `590.48.01`, `DiskGb=240`.
+- Network control: all completed samples measured almost identical HF speed, about `103 MiB/s`, so the comparison mainly reflects image/container and dependency preparation, not HF variance.
+- Base sample `kj-ab-base-r1-20260502-1013`:
+  - instance `35991178`
+  - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
+  - result: destroyed as an invalid sample after it reached `running` but stalled after the first R2 onstart fetch and never reached `[hf-speedtest]` or `[bootstrap]`
+  - lesson: base image cold container/onstart path can fail before useful workflow evidence; do not keep it alive indefinitely
+- v3 sample `kj-ab-v3-r1-20260502-1024`:
+  - instance `35991581`
+  - image `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+  - HF speed `103.27 MiB/s`
+  - onstart lifecycle `40s`
+  - `bootstrap.custom_nodes=0s`, because preinstalled KJ custom nodes were seeded from `/opt/codex/kj-custom_nodes`
+  - `bootstrap.python_dependencies=23s`, torch stack reused as `torch=2.11.0+cu130`, only auxiliary packages were checked/filled
+  - `remote.bootstrap=23s`, `remote.wait_api=11s`, `validate_nodes` passed
+- Base sample `kj-ab-base-r2-20260502-1034`:
+  - instance `35991826`
+  - image `vastai/comfy:v0.19.3-cuda-12.9-py312`
+  - HF speed `103.33 MiB/s`
+  - onstart lifecycle `228s`
+  - `bootstrap.custom_nodes=20s`
+  - `bootstrap.python_dependencies=190s`, including full torch/cu124 reinstall and ComfyUI/custom-node requirements
+  - `remote.bootstrap=210s`, `remote.wait_api=10s`, `validate_nodes` passed
+- v3 sample `kj-ab-v3-r2-20260502-1041`:
+  - instance `35992151`
+  - image `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
+  - HF speed `103.56 MiB/s`
+  - onstart lifecycle `46s`
+  - `bootstrap.custom_nodes=0s`
+  - `bootstrap.python_dependencies=23s`
+  - `remote.bootstrap=23s`, `remote.wait_api=10s`, `validate_nodes` passed
+- Conclusion:
+  - v3's useful improvement is clear inside the environment phase: on this same machine, successful base bootstrap was `210s`, while v3 bootstrap was `23s`.
+  - v3 avoids custom-node extraction and avoids a full torch reinstall; it also makes ONNX/CUDA availability deterministic.
+  - v3 does not include model weights, so it does not reduce the 32.55 GiB HF model cold download.
+  - Cold Docker/container startup can still dominate. The first v3 pull paid about several minutes before onstart, while the later same-machine v3 run reached onstart quickly after image layers were cached.
+  - For "does v3 improve time before inference" reports, separate these lines: Docker/container startup, HF speedtest, dependency/ONNX, model download/cache check, and inference. Do not merge them into one vague cold-start number.
+
 Default command:
 
 ```powershell
