@@ -317,7 +317,10 @@ Artifacts:
 - When launching the DockerHub v3 image, pass `-PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3`; the token is read from local DockerHub credentials and must not be printed.
 - Vast template helper: `scripts/create_vast_wan22_kj_env_template.ps1`
 - template hash env: `VAST_WAN22_KJ_TEMPLATE_HASH`
-- failed v2 template hash: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`)
+- active Vast private templates:
+  - RTX 4090: `codex-wan22-kj-comfy-cuda129-v3-dockerhub`, `template_id=400607`, hash `eb3ff9185d9de9a9482c2cffbdfd8f9f`
+  - RTX 3090: `codex-wan22-kj-comfy-cuda129-v3-dockerhub-3090`, `template_id=401196`, hash `ffe5b8f532b7b14b825df78c43be59d9`
+- deleted old experiment templates: `399965`, `399966`, `399967`, `399969`, `399970`, `400059`, `400060`, `400370`
 - details: `docs/KJ环境镜像和Vast模板.md`
 - v2/v3 startup optimization:
   - `KJ_MODEL_DOWNLOAD_PARALLELISM` controls cold model download concurrency; default `3`, capped at `4`.
@@ -393,7 +396,7 @@ Latest v2 smoke:
 - instance: `35950726`
 - machine / host: `17049 / 96607`
 - GPU / location: `RTX 4090`, `California, US`
-- template: `3f38ca38792bcefce25bb1688f4ca2ca`
+- template: `3f38ca38792bcefce25bb1688f4ca2ca` (`template_id=400059`, deleted after v3 DockerHub templates were split into 4090/3090)
 - HF speed gate: `100.29 MiB/s`, estimated `5.5 min` for remaining `32.55 GiB`
 - result: `validate_nodes` passed and stopped before `/prompt`
 - observed behavior:
@@ -412,7 +415,8 @@ Latest v3 smoke:
 - machine / host: `17049 / 96607`
 - GPU / location: `RTX 4090`, `California, US`
 - image: `j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
-- template created for future use: `eb3ff9185d9de9a9482c2cffbdfd8f9f` (`template_id=400607`)
+- active RTX 4090 template: `eb3ff9185d9de9a9482c2cffbdfd8f9f` (`template_id=400607`)
+- active RTX 3090 template: `ffe5b8f532b7b14b825df78c43be59d9` (`template_id=401196`)
 - HF speed gate: `67.41 MiB/s`, estimated `8.2 min` for remaining `32.55 GiB`
 - result: `RemoteStopAfter=onnx_cuda` passed and stopped before model download and `/prompt`
 - observed behavior:
@@ -433,7 +437,7 @@ KJ v3 pending fixes / skill memory:
 
 No-inference bootstrap comparison from 2026-05-02:
 
-- Test target: `RemoteStopAfter=bootstrap`, DockerHub v3 image, Vast template `eb3ff9185d9de9a9482c2cffbdfd8f9f`, no `/prompt` submission and no inference.
+- Test target: `RemoteStopAfter=bootstrap`, DockerHub v3 image, Vast template `eb3ff9185d9de9a9482c2cffbdfd8f9f` for 4090 or `ffe5b8f532b7b14b825df78c43be59d9` for 3090, no `/prompt` submission and no inference.
 - Successful RTX 4090 Estonia sample `kj-v3boot-r1-4090-20260502-0815`:
   - HF speedtest `98.14 MiB/s`, estimated model download `5.7 min`
   - Python dependency / ONNX phase about `41s`

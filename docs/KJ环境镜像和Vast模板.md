@@ -93,7 +93,7 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 -PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3
 ```
 
-`RegistryToken` 默认从 `.env` / `api.txt` 的 GitHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
+`RegistryToken` 默认从 `.env` / `api.txt` 的 DockerHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
 
 创建后记录返回的 `template_hash_id`，然后设置：
 
@@ -101,23 +101,31 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 $env:VAST_WAN22_KJ_TEMPLATE_HASH = "<template_hash_id>"
 ```
 
-当前 v2 template：
+已删除旧实验 template：
 
 ```text
-template_hash_id=3f38ca38792bcefce25bb1688f4ca2ca
-template_id=400059
-image=ghcr.io/myjr2015/codex-wan22-kj-comfy:cuda129-py312-kj-v2
-status=failed_for_onnx_cuda_provider
-reason=v2 only passed ComfyUI node registration; later KJ preprocessing fell back to CPU because ONNXRuntime CUDA provider could not load libcublasLt.so.12.
+deleted_template_ids=399965,399966,399967,399969,399970,400059,400060,400370
+reason=GHCR v1/v2/v3 smoke templates and failed v2 ONNX CUDA templates were retained only for experiments and made the Vast "My Templates" page confusing.
 ```
 
-当前 v3 目标镜像：
+当前 v3 目标镜像和 Vast 私有模板：
 
 ```text
 image=j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3
+
+RTX 4090 template:
+template_name=codex-wan22-kj-comfy-cuda129-v3-dockerhub
 template_hash_id=eb3ff9185d9de9a9482c2cffbdfd8f9f
 template_id=400607
-status=onnx_cuda_smoke_passed
+search_filter=gpu_name == RTX 4090, disk_space > 240, geolocation notin [CN,TR]
+
+RTX 3090 template:
+template_name=codex-wan22-kj-comfy-cuda129-v3-dockerhub-3090
+template_hash_id=ffe5b8f532b7b14b825df78c43be59d9
+template_id=401196
+search_filter=gpu_name == RTX 3090, disk_space > 240, geolocation notin [CN,TR]
+
+status=onnx_cuda_smoke_passed_on_4090_template
 validated_job=kj30s-v3-dhub-4090-onnxfix-20260502-0020
 ```
 
