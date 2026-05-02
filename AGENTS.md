@@ -181,9 +181,11 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `wan22_kj_30s`
   - KJ 2.0 30秒单段版。
   - 使用纯色/透明人物 IP 图 + 30s 参考动作/表情视频 + 提示词重绘背景。
+  - 2026-05-02 起默认输出 `720x1280` 抖音 9:16 竖屏；stage 会把方形 IP/锚定图转成 9:16 画布，再送入 workflow。
 - `wan22_kj_30s_segmented`
   - KJ 2.0 长视频分段版。
   - 固定每段最多 `30s`，本地用 `ffmpeg concat` 合并。
+  - 2026-05-02 起默认每段和合并成片都按 `720x1280` 9:16 竖屏生成。
   - 当前固定场景可用方案叫 `KJ 2.0 同图锚定版`，内部追踪名 `B1.1 same-frame anchor`。
   - 成片合并后如果只剩孤立小红点/贴纸色块，使用 `scripts/polish_generated_artifacts.py` 做本地一条龙精修；这不是纯 FFmpeg，FFmpeg 只负责抽帧/编码/音频封装，局部修复由 OpenCV inpaint 完成。
 

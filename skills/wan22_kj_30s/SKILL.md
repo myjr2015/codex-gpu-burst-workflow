@@ -43,6 +43,8 @@ Rules:
 
 - Use one accepted complete anchor frame containing the same person and photovoltaic background, currently `output/wan22_kj_30s_segmented/_b2_anchors/bg_anchor_10s.png`.
 - Stage that anchor as `ip_image.png` for every segment.
+- 2026-05-02 起默认输出 `720x1280` 抖音 9:16 竖屏。Stage 阶段会把方形 IP/同图锚定图用 FFmpeg 转成 `720x1280` 画布：背景用同图放大模糊铺满，前景图等比居中保留。
+- Runtime workflow 必须设置 `VHS_LoadVideo.custom_width=720`、`custom_height=1280`，并让 `LayerUtility: ImageScaleByAspectRatio V2` 按 `scale_to_side="width"`、`scale_to_length=720` 缩放锚定图。
 - Do not add or connect `WanVideoAnimateEmbeds.bg_images`.
 - Do not add or connect `WanVideoAnimateEmbeds.mask`.
 - Runtime node `171` (`WanVideoAnimateEmbeds`) stays on the original KJ inputs for image, pose, face, and audio/video conditioning.
@@ -72,7 +74,9 @@ pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
   -ImagePath .\output\wan22_kj_30s_segmented\_b2_anchors\bg_anchor_10s.png `
   -VideoPath .\素材资产\原视频\光伏60s.mp4 `
   -SegmentSeconds 30 `
-  -MaxSegments 2
+  -MaxSegments 2 `
+  -OutputWidth 720 `
+  -OutputHeight 1280
 ```
 
 ## KJ 2.0 背景/Mask失败版

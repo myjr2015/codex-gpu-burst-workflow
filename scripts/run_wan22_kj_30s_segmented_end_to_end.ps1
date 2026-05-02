@@ -35,6 +35,10 @@ param(
 
     [int]$MinDriverMajor = 580,
 
+    [int]$OutputWidth = 720,
+
+    [int]$OutputHeight = 1280,
+
     [int]$SegmentSeconds = 30,
 
     [int]$MaxSegments = 0,
@@ -206,6 +210,8 @@ if ($PrepareOnly) {
         "-Prompt", $Prompt,
         "-NegativePrompt", $NegativePrompt,
         "-Seed", "$Seed",
+        "-OutputWidth", "$OutputWidth",
+        "-OutputHeight", "$OutputHeight",
         "-SegmentSeconds", "$SegmentSeconds",
         "-MaxSegments", "$MaxSegments"
     )
@@ -266,7 +272,14 @@ else {
     }
     $knownMachineIds = @()
     if ($registry -and $registry.machines) {
-        $knownMachineIds = @($registry.machines | Where-Object { $_.result -eq "succeeded" -and $_.gpu_name -eq "RTX 4090" } | ForEach-Object { [string]$_.machine_id })
+        $preferredGpuName = ""
+        if ($SearchQuery -match 'gpu_name=([^\s]+)') {
+            $preferredGpuName = $Matches[1].Replace("_", " ")
+        }
+        $knownMachineIds = @($registry.machines | Where-Object {
+            $_.result -eq "succeeded" -and
+            ([string]::IsNullOrWhiteSpace($preferredGpuName) -or $_.gpu_name -eq $preferredGpuName)
+        } | ForEach-Object { [string]$_.machine_id })
     }
     $preferred = $offers | Where-Object { $knownMachineIds -contains [string]$_.machine_id } | Sort-Object dph_total | Select-Object -First 1
     $offer = if ($preferred) { $preferred } else { $offers | Sort-Object dph_total | Select-Object -First 1 }
@@ -279,7 +292,7 @@ else {
         host_id = $offer.host_id
         warm_start = [bool]$preferred
         selection_mode = if ($preferred) { "preferred_machine" } else { "cold_start" }
-        selection_reason = if ($preferred) { "Matched successful RTX 4090 machine in registry" } else { "Cheapest matching non-CN/TR RTX 4090 offer" }
+        selection_reason = if ($preferred) { "Matched successful $preferredGpuName machine in registry" } else { "Cheapest matching non-CN/TR $preferredGpuName offer" }
     }
 }
 
@@ -301,6 +314,8 @@ $stageArgs = @(
     "-Prompt", $Prompt,
     "-NegativePrompt", $NegativePrompt,
     "-Seed", "$Seed",
+    "-OutputWidth", "$OutputWidth",
+    "-OutputHeight", "$OutputHeight",
     "-SegmentSeconds", "$SegmentSeconds",
     "-MaxSegments", "$MaxSegments",
     "-UploadToR2"

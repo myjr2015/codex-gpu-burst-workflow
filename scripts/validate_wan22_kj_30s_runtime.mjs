@@ -57,6 +57,8 @@ async function main() {
   const expectedVideoName = options["video-name"] || "reference_30s.mp4";
   const expectedBackgroundImageName = options["background-image-name"];
   const expectedMaskGrow = options["mask-grow"] ? Number.parseInt(options["mask-grow"], 10) : 12;
+  const expectedOutputWidth = options["output-width"] ? Number.parseInt(options["output-width"], 10) : 720;
+  const expectedOutputHeight = options["output-height"] ? Number.parseInt(options["output-height"], 10) : 1280;
 
   const imageNode = requireNode(prompt, "163", "LoadImage");
   assertEqual(imageNode.inputs.image, expectedImageName, "LoadImage.image");
@@ -66,8 +68,8 @@ async function main() {
   assertEqual(videoNode.inputs.video, expectedVideoName, "VHS_LoadVideo.video");
   assertEqual(videoNode.inputs.force_rate, 16, "VHS_LoadVideo.force_rate");
   assertEqual(videoNode.inputs.force_size, "Disabled", "VHS_LoadVideo.force_size");
-  assertEqual(videoNode.inputs.custom_width, 0, "VHS_LoadVideo.custom_width");
-  assertEqual(videoNode.inputs.custom_height, 0, "VHS_LoadVideo.custom_height");
+  assertEqual(videoNode.inputs.custom_width, expectedOutputWidth, "VHS_LoadVideo.custom_width");
+  assertEqual(videoNode.inputs.custom_height, expectedOutputHeight, "VHS_LoadVideo.custom_height");
   assertEqual(videoNode.inputs.skip_first_frames, 0, "VHS_LoadVideo.skip_first_frames");
   assertEqual(videoNode.inputs.select_every_nth, 1, "VHS_LoadVideo.select_every_nth");
   assertEqual(videoNode.inputs.format, "Wan", "VHS_LoadVideo.format");
@@ -128,7 +130,8 @@ async function main() {
   }
 
   const scaledImageNode = requireNode(prompt, "154", "LayerUtility: ImageScaleByAspectRatio V2");
-  assertEqual(scaledImageNode.inputs.scale_to_length, 720, "ImageScaleByAspectRatio.scale_to_length");
+  assertEqual(scaledImageNode.inputs.scale_to_side, "width", "ImageScaleByAspectRatio.scale_to_side");
+  assertEqual(scaledImageNode.inputs.scale_to_length, expectedOutputWidth, "ImageScaleByAspectRatio.scale_to_length");
   const contextNode = requireNode(prompt, "172", "WanVideoContextOptions");
   assertEqual(contextNode.inputs.context_frames, 241, "WanVideoContextOptions.context_frames");
 

@@ -13,6 +13,10 @@ param(
     [ValidateSet("sdpa", "sageattn", "comfy")]
     [string]$AttentionMode = "sdpa",
 
+    [int]$OutputWidth = 720,
+
+    [int]$OutputHeight = 1280,
+
     [switch]$UploadToR2,
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd("/") + "/wan22_kj_30s" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX.TrimEnd("/") + "/wan22_kj_30s" } else { "runcomfy-inputs/wan22_kj_30s" }),
@@ -52,11 +56,27 @@ if (Get-Command Resolve-R2AccountId -ErrorAction SilentlyContinue) {
 
 $ffprobeCandidates = @(
     (Join-Path $repoRoot "node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe"),
-    "D:\code\KuangJia\ffmpeg\ffprobe.exe"
+    "D:\code\KuangJia\ffmpeg\ffprobe.exe",
+    "D:\code\KuangJia\ffmpeg\bin\ffprobe.exe"
+)
+$ffmpegCandidates = @(
+    (Join-Path $repoRoot "node_modules\ffmpeg-static\ffmpeg.exe"),
+    "D:\code\KuangJia\ffmpeg\ffmpeg.exe",
+    "D:\code\KuangJia\ffmpeg\bin\ffmpeg.exe"
 )
 $ffprobePath = $ffprobeCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+$ffmpegPath = $ffmpegCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($ffprobePath)) {
     throw "Missing ffprobe. Checked: $($ffprobeCandidates -join ', ')"
+}
+if ([string]::IsNullOrWhiteSpace($ffmpegPath)) {
+    throw "Missing ffmpeg. Checked: $($ffmpegCandidates -join ', ')"
+}
+if ($OutputWidth -lt 64 -or $OutputWidth % 8 -ne 0) {
+    throw "OutputWidth must be >= 64 and divisible by 8."
+}
+if ($OutputHeight -lt 64 -or $OutputHeight % 8 -ne 0) {
+    throw "OutputHeight must be >= 64 and divisible by 8."
 }
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_kj_30s_prompt.mjs"
 $validateScript = Join-Path $repoRoot "scripts\validate_wan22_kj_30s_runtime.mjs"
@@ -84,6 +104,21 @@ $videoDurationSeconds = [double]$videoDurationRaw
 $videoFrameRate = 16
 $frameLoadCap = ([math]::Max(1, [int][math]::Ceiling($videoDurationSeconds * $videoFrameRate))) + 1
 
+function New-VerticalCanvasImage {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputPath,
+        [Parameter(Mandatory = $true)][string]$OutputPath,
+        [Parameter(Mandatory = $true)][int]$Width,
+        [Parameter(Mandatory = $true)][int]$Height
+    )
+
+    $filter = "[0:v]split=2[base][fgsrc];[base]scale=${Width}:${Height}:force_original_aspect_ratio=increase,crop=${Width}:${Height},boxblur=20:1[bg];[fgsrc]scale=${Width}:${Height}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto,setsar=1,format=rgba"
+    & $ffmpegPath -y -hide_banner -loglevel error -i $InputPath -filter_complex $filter -frames:v 1 $OutputPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create ${Width}x${Height} IP canvas image: $OutputPath"
+    }
+}
+
 $jobDir = Join-Path $repoRoot ("output\wan22_kj_30s\" + $JobName)
 $inputDir = Join-Path $jobDir "input"
 New-Item -ItemType Directory -Force -Path $inputDir | Out-Null
@@ -99,7 +134,7 @@ $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_kj_30s.sh"
 $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_kj_30s.sh"
 $warmstartInspectorOut = Join-Path $jobDir "inspect_wan22_kj_30s_warmstart.py"
 
-Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
+New-VerticalCanvasImage -InputPath $resolvedImage -OutputPath $stagedImage -Width $OutputWidth -Height $OutputHeight
 Copy-Item -LiteralPath $resolvedVideo -Destination $stagedVideo -Force
 Copy-Item -LiteralPath $resolvedWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
@@ -113,6 +148,8 @@ Copy-Item -LiteralPath $warmstartInspectorScript -Destination $warmstartInspecto
     --video-name $stagedVideoName `
     --prompt $Prompt `
     --frame-load-cap "$frameLoadCap" `
+    --output-width "$OutputWidth" `
+    --output-height "$OutputHeight" `
     --attention-mode $AttentionMode `
     --output-prefix ("wan22_kj_30s-" + $JobName)
 
@@ -120,7 +157,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed to prepare KJ 30s workflow runtime json."
 }
 
-& node $validateScript --input $runtimeOut
+& node $validateScript --input $runtimeOut --output-width "$OutputWidth" --output-height "$OutputHeight"
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to validate KJ 30s workflow runtime json."
 }
@@ -136,6 +173,10 @@ $manifest = [ordered]@{
         source_video_duration_seconds = [math]::Round($videoDurationSeconds, 3)
         force_rate = $videoFrameRate
         frame_load_cap = $frameLoadCap
+        output_width = $OutputWidth
+        output_height = $OutputHeight
+        output_resolution = "${OutputWidth}x${OutputHeight}"
+        image_canvas_strategy = "ffmpeg blurred cover background + contained foreground"
         attention_mode = $AttentionMode
         final_video_node_id = "156"
         prompt_node_id = "164"
@@ -196,6 +237,7 @@ Write-Host "image_name=$stagedImageName"
 Write-Host "video_name=$stagedVideoName"
 Write-Host "video_duration_seconds=$([math]::Round($videoDurationSeconds, 3))"
 Write-Host "frame_load_cap=$frameLoadCap"
+Write-Host "output_resolution=${OutputWidth}x${OutputHeight}"
 Write-Host "attention_mode=$AttentionMode"
 if ($UploadToR2) {
     Write-Host "r2_prefix=$($R2Prefix.TrimEnd('/'))/$JobName"

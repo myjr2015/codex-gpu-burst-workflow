@@ -35,6 +35,8 @@ function patchPrompt(prompt, {
   frameLoadCap,
   attentionMode,
   seed,
+  outputWidth,
+  outputHeight,
   backgroundImageName,
   backgroundRepeatAmount,
   maskGrow,
@@ -68,8 +70,8 @@ function patchPrompt(prompt, {
       node.inputs.video = videoName;
       node.inputs.force_rate = 16;
       node.inputs.force_size = "Disabled";
-      node.inputs.custom_width = 0;
-      node.inputs.custom_height = 0;
+      node.inputs.custom_width = outputWidth;
+      node.inputs.custom_height = outputHeight;
       if (Number.isInteger(frameLoadCap) && frameLoadCap > 0) {
         node.inputs.frame_load_cap = frameLoadCap;
       }
@@ -99,7 +101,8 @@ function patchPrompt(prompt, {
     }
 
     if (nodeId === "154" && node.class_type === "LayerUtility: ImageScaleByAspectRatio V2") {
-      node.inputs.scale_to_length = 720;
+      node.inputs.scale_to_side = "width";
+      node.inputs.scale_to_length = outputWidth;
     }
 
     if (nodeId === "172" && node.class_type === "WanVideoContextOptions") {
@@ -217,11 +220,19 @@ function patchPrompt(prompt, {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.input || !options.output || !options["image-name"] || !options["video-name"] || !options.prompt) {
-    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--negative-prompt <text>] [--seed <number>] [--output-prefix <prefix>] [--frame-load-cap <frames>] [--attention-mode <sdpa|sageattn|comfy>] [--background-image-name <name>] [--background-repeat-amount <frames>] [--mask-grow <pixels>]");
+    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--negative-prompt <text>] [--seed <number>] [--output-prefix <prefix>] [--frame-load-cap <frames>] [--output-width <720>] [--output-height <1280>] [--attention-mode <sdpa|sageattn|comfy>] [--background-image-name <name>] [--background-repeat-amount <frames>] [--mask-grow <pixels>]");
   }
 
   const inputPath = path.resolve(process.cwd(), options.input);
   const outputPath = path.resolve(process.cwd(), options.output);
+  const outputWidth = options["output-width"] ? Number.parseInt(options["output-width"], 10) : 720;
+  const outputHeight = options["output-height"] ? Number.parseInt(options["output-height"], 10) : 1280;
+  if (!Number.isInteger(outputWidth) || outputWidth < 64 || outputWidth % 8 !== 0) {
+    throw new Error(`--output-width must be an integer >= 64 and divisible by 8, got ${JSON.stringify(options["output-width"])}`);
+  }
+  if (!Number.isInteger(outputHeight) || outputHeight < 64 || outputHeight % 8 !== 0) {
+    throw new Error(`--output-height must be an integer >= 64 and divisible by 8, got ${JSON.stringify(options["output-height"])}`);
+  }
   const workflow = JSON.parse(await fs.readFile(inputPath, "utf8"));
   const converted = convertCanvasWorkflow(workflow);
   const patched = patchPrompt(converted, {
@@ -233,6 +244,8 @@ async function main() {
     frameLoadCap: options["frame-load-cap"] ? Number.parseInt(options["frame-load-cap"], 10) : undefined,
     attentionMode: options["attention-mode"] || "sdpa",
     seed: options.seed ? Number.parseInt(options.seed, 10) : undefined,
+    outputWidth,
+    outputHeight,
     backgroundImageName: options["background-image-name"],
     backgroundRepeatAmount: options["background-repeat-amount"] ? Number.parseInt(options["background-repeat-amount"], 10) : undefined,
     maskGrow: options["mask-grow"] ? Number.parseInt(options["mask-grow"], 10) : undefined,

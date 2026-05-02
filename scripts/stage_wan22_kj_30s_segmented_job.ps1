@@ -21,6 +21,10 @@ param(
     [ValidateSet("sdpa", "sageattn", "comfy")]
     [string]$AttentionMode = "sdpa",
 
+    [int]$OutputWidth = 720,
+
+    [int]$OutputHeight = 1280,
+
     [int]$SegmentSeconds = 30,
 
     [int]$MaxSegments = 0,
@@ -67,11 +71,13 @@ if (Get-Command Resolve-R2AccountId -ErrorAction SilentlyContinue) {
 
 $ffmpegCandidates = @(
     (Join-Path $repoRoot "node_modules\ffmpeg-static\ffmpeg.exe"),
-    "D:\code\KuangJia\ffmpeg\ffmpeg.exe"
+    "D:\code\KuangJia\ffmpeg\ffmpeg.exe",
+    "D:\code\KuangJia\ffmpeg\bin\ffmpeg.exe"
 )
 $ffprobeCandidates = @(
     (Join-Path $repoRoot "node_modules\ffprobe-static\bin\win32\x64\ffprobe.exe"),
-    "D:\code\KuangJia\ffmpeg\ffprobe.exe"
+    "D:\code\KuangJia\ffmpeg\ffprobe.exe",
+    "D:\code\KuangJia\ffmpeg\bin\ffprobe.exe"
 )
 $ffmpegPath = $ffmpegCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 $ffprobePath = $ffprobeCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
@@ -80,6 +86,12 @@ if ([string]::IsNullOrWhiteSpace($ffmpegPath)) {
 }
 if ([string]::IsNullOrWhiteSpace($ffprobePath)) {
     throw "Missing ffprobe. Checked: $($ffprobeCandidates -join ', ')"
+}
+if ($OutputWidth -lt 64 -or $OutputWidth % 8 -ne 0) {
+    throw "OutputWidth must be >= 64 and divisible by 8."
+}
+if ($OutputHeight -lt 64 -or $OutputHeight % 8 -ne 0) {
+    throw "OutputHeight must be >= 64 and divisible by 8."
 }
 
 $prepareScript = Join-Path $repoRoot "scripts\prepare_wan22_kj_30s_prompt.mjs"
@@ -133,6 +145,21 @@ function New-VideoSegment {
     }
 }
 
+function New-VerticalCanvasImage {
+    param(
+        [Parameter(Mandatory = $true)][string]$InputPath,
+        [Parameter(Mandatory = $true)][string]$OutputPath,
+        [Parameter(Mandatory = $true)][int]$Width,
+        [Parameter(Mandatory = $true)][int]$Height
+    )
+
+    $filter = "[0:v]split=2[base][fgsrc];[base]scale=${Width}:${Height}:force_original_aspect_ratio=increase,crop=${Width}:${Height},boxblur=20:1[bg];[fgsrc]scale=${Width}:${Height}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2:format=auto,setsar=1,format=rgba"
+    & $ffmpegPath -y -hide_banner -loglevel error -i $InputPath -filter_complex $filter -frames:v 1 $OutputPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create ${Width}x${Height} IP canvas image: $OutputPath"
+    }
+}
+
 $resolvedWorkflow = (Resolve-Path -LiteralPath $WorkflowSource).Path
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedVideo = (Resolve-Path -LiteralPath $VideoPath).Path
@@ -164,9 +191,9 @@ $bootstrapOut = Join-Path $jobDir "bootstrap_wan22_kj_30s.sh"
 $remoteSubmitOut = Join-Path $jobDir "remote_submit_wan22_kj_30s.sh"
 $warmstartInspectorOut = Join-Path $jobDir "inspect_wan22_kj_30s_warmstart.py"
 
-Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
+New-VerticalCanvasImage -InputPath $resolvedImage -OutputPath $stagedImage -Width $OutputWidth -Height $OutputHeight
 if ($resolvedBackgroundImage) {
-    Copy-Item -LiteralPath $resolvedBackgroundImage -Destination $stagedBackgroundImage -Force
+    New-VerticalCanvasImage -InputPath $resolvedBackgroundImage -OutputPath $stagedBackgroundImage -Width $OutputWidth -Height $OutputHeight
 }
 Copy-Item -LiteralPath $resolvedWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
@@ -201,6 +228,8 @@ for ($index = 1; $index -le $segmentCount; $index += 1) {
         "--negative-prompt", $NegativePrompt,
         "--seed", "$Seed",
         "--frame-load-cap", "$frameLoadCap",
+        "--output-width", "$OutputWidth",
+        "--output-height", "$OutputHeight",
         "--attention-mode", $AttentionMode,
         "--output-prefix", $outputPrefix
     )
@@ -220,7 +249,9 @@ for ($index = 1; $index -le $segmentCount; $index += 1) {
     $validateArgs = @(
         "--input", $runtimePath,
         "--image-name", $stagedImageName,
-        "--video-name", $segmentVideoName
+        "--video-name", $segmentVideoName,
+        "--output-width", "$OutputWidth",
+        "--output-height", "$OutputHeight"
     )
     if ($resolvedBackgroundImage) {
         $validateArgs += @(
@@ -262,6 +293,10 @@ $manifest = [ordered]@{
         source_video_duration_seconds = [math]::Round($videoDurationSeconds, 3)
         segment_seconds = $SegmentSeconds
         force_rate = $videoFrameRate
+        output_width = $OutputWidth
+        output_height = $OutputHeight
+        output_resolution = "${OutputWidth}x${OutputHeight}"
+        image_canvas_strategy = "ffmpeg blurred cover background + contained foreground"
         attention_mode = $AttentionMode
         seed = $Seed
         background_conditioning = [bool]$resolvedBackgroundImage
@@ -340,6 +375,7 @@ if ($resolvedBackgroundImage) {
 Write-Host "source_video_duration_seconds=$([math]::Round($videoDurationSeconds, 3))"
 Write-Host "segment_seconds=$SegmentSeconds"
 Write-Host "segment_count=$($segments.Count)"
+Write-Host "output_resolution=${OutputWidth}x${OutputHeight}"
 foreach ($segment in $segments) {
     Write-Host ("segment_{0}: start={1}s duration={2}s frame_load_cap={3} video={4}" -f $segment.id, $segment.start_seconds, $segment.duration_seconds, $segment.frame_load_cap, $segment.input_video_name)
 }

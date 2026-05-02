@@ -27,6 +27,10 @@ param(
 
     [int]$MinDriverMajor = 580,
 
+    [int]$OutputWidth = 720,
+
+    [int]$OutputHeight = 1280,
+
     [switch]$DisableHfSpeedTest,
 
     [double]$HfMinMiBps = 15,
@@ -81,7 +85,9 @@ if ($PrepareOnly) {
         -JobName $JobName `
         -ImagePath $ImagePath `
         -VideoPath $VideoPath `
-        -Prompt $Prompt
+        -Prompt $Prompt `
+        -OutputWidth $OutputWidth `
+        -OutputHeight $OutputHeight
     exit $LASTEXITCODE
 }
 
@@ -168,6 +174,8 @@ $stageArgs = @(
     "-ImagePath", $ImagePath,
     "-VideoPath", $VideoPath,
     "-Prompt", $Prompt,
+    "-OutputWidth", "$OutputWidth",
+    "-OutputHeight", "$OutputHeight",
     "-UploadToR2"
 )
 
