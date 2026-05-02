@@ -491,11 +491,13 @@ Same-machine v3 vs base environment-only comparison from 2026-05-02:
   - `bootstrap.python_dependencies=23s`
   - `remote.bootstrap=23s`, `remote.wait_api=10s`, `validate_nodes` passed
 - Conclusion:
-  - v3's useful improvement is clear inside the environment phase: on this same machine, successful base bootstrap was `210s`, while v3 bootstrap was `23s`.
-  - v3 avoids custom-node extraction and avoids a full torch reinstall; it also makes ONNX/CUDA availability deterministic.
+  - Do not use the second same-machine v3 run as proof that v3 is faster. Any image can look fast after its layers are cached.
+  - The fair useful signal from this run is narrower: v3 reduces the environment phase after onstart. Successful base bootstrap was `210s`, while v3 bootstrap was `23s`.
+  - First-use total time must still include DockerHub v3 image pull. In this sample, the first successful v3 run reached onstart about `3m32s` after instance start, then needed `40s` onstart lifecycle; the successful base run reached onstart about `49s` after instance start, then needed `228s` onstart lifecycle.
+  - So the first-use total to `validate_nodes` was only slightly better for v3 on this machine, about `4m12s` versus base about `4m37s`; this is not a large enough margin to claim v3 always wins.
+  - v3's defensible value is dependency determinism and less post-onstart installation work: it avoids custom-node extraction and avoids a full torch reinstall; it also makes ONNX/CUDA availability deterministic.
   - v3 does not include model weights, so it does not reduce the 32.55 GiB HF model cold download.
-  - Cold Docker/container startup can still dominate. The first v3 pull paid about several minutes before onstart, while the later same-machine v3 run reached onstart quickly after image layers were cached.
-  - For "does v3 improve time before inference" reports, separate these lines: Docker/container startup, HF speedtest, dependency/ONNX, model download/cache check, and inference. Do not merge them into one vague cold-start number.
+  - For "does v3 improve time before inference" reports, separate these lines: Docker/container startup, HF speedtest, dependency/ONNX, model download/cache check, and inference. Do not merge them into one vague cold-start number, and do not count cached second runs as cold-start evidence.
 
 Default command:
 
