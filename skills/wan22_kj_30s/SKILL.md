@@ -431,6 +431,31 @@ KJ v3 pending fixes / skill memory:
 - The v3 Docker image is not a model cache. It can save custom-node clone and Python dependency drift, but model downloads still dominate on a fresh host unless the machine already has the files.
 - GHCR is not the default until package visibility/token scope is fixed. Use DockerHub v3 with private registry login and never print the token.
 
+No-inference bootstrap comparison from 2026-05-02:
+
+- Test target: `RemoteStopAfter=bootstrap`, DockerHub v3 image, Vast template `eb3ff9185d9de9a9482c2cffbdfd8f9f`, no `/prompt` submission and no inference.
+- Successful RTX 4090 Estonia sample `kj-v3boot-r1-4090-20260502-0815`:
+  - HF speedtest `98.14 MiB/s`, estimated model download `5.7 min`
+  - Python dependency / ONNX phase about `41s`
+  - real model download stage `319s`
+  - remote bootstrap `360s`, onstart lifecycle `368s`
+- Successful RTX 4090 Hungary sample `kj-v3boot-backup-4090-hu-20260502-0834`:
+  - HF speedtest `62.80 MiB/s`, estimated model download `8.8 min`
+  - Python dependency / ONNX phase about `40s`
+  - real model download stage `235s`
+  - remote bootstrap `275s`, onstart lifecycle `287s`
+- Successful RTX 3090 Bulgaria sample `kj-v3boot-r2b-3090-20260502-0822`:
+  - HF speedtest `123.45 MiB/s`, estimated model download `4.5 min`
+  - Python dependency / ONNX phase about `37s`
+  - real model download stage `153s`
+  - remote bootstrap `190s`, onstart lifecycle `197s`
+- Operational result:
+  - v3 image does reduce the dependency/custom-node part once the container starts; successful runs reused preinstalled custom nodes and avoided full torch reinstall.
+  - v3 image does not guarantee faster total pre-inference time because Docker/container startup varies heavily by host.
+  - Many sampled hosts never reached useful onstart logs: examples included `No such container: C.<id>`, `docker login failed`, create-instance label lookup failure, and a Chile host with DNS failure resolving Ubuntu mirrors.
+  - Treat "image pull/container startup success rate" as a first-class metric. If no onstart/HF speedtest appears within about `5 min`, destroy and move hosts.
+  - Do not select based only on GPU class. In this comparison, one 3090 with excellent HF throughput beat several 4090s on pre-inference cold start, while several 3090s failed before onstart.
+
 Default command:
 
 ```powershell
