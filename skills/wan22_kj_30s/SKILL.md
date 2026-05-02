@@ -365,6 +365,13 @@ Validation signal:
 - if ONNXRuntime CUDA validation fails, destroy the instance and fix the image before any full inference
 - for template speed smoke, use `launch_wan22_kj_30s_vast_job.ps1 -RemoteStopAfter validate_nodes -PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3` after staging; this stops before `/prompt` submission and avoids a full paid inference.
 
+Current smoke-test stop points:
+
+- `RemoteStopAfter=onnx_cuda`: fastest image/ONNX sanity check. It stops before model downloads and before `/prompt`.
+- `RemoteStopAfter=validate_nodes`: validates ComfyUI API and node availability, but current bootstrap intentionally skips model downloads for this stop point. Treat it as environment-only smoke, not full cold-start timing.
+- `RemoteStopAfter=bootstrap`: preferred no-inference cold-start timing test. It includes HF speed gate, v3 image startup, dependency/ONNX checks, and configured model downloads or model cache checks, then stops before ComfyUI restart and before `/prompt`.
+- If the operator asks whether the image method improves "time before inference", report Docker/container startup, HF speedtest estimate, dependency/ONNX time, and real model download/cache-check time separately. Do not merge a skipped-model `validate_nodes` smoke with a full cold-start comparison.
+
 Fast ONNX CUDA smoke:
 
 ```powershell
@@ -415,6 +422,14 @@ Latest v3 smoke:
   - ONNXRuntime `CUDAExecutionProvider` loaded `libcublasLt.so.12`, `libcublas.so.12`, `libcudart.so.12`, and `libcudnn.so.9`
   - tiny ONNX Identity session ran on `CUDAExecutionProvider`
   - local bug fixed before the passing smoke: both staged ONNX smoke Python blocks now set `output_path = sys.argv[1]`
+
+KJ v3 pending fixes / skill memory:
+
+- `download_wan22_kj_30s_segmented_result.ps1` must keep a deterministic fallback for segmented jobs: if ComfyUI restarts and early segment `/history` is gone, verify the predicted `output_prefix_00001-audio.mp4` through `/view` after logs show `remote.segment_XX end`.
+- `summarize_vast_job_timing.ps1 -FetchLog` must force UTF-8 around `vastai logs`; Windows GBK can fail when remote logs contain non-GBK characters and should not block timing reports.
+- HF 256MiB speedtest can be optimistic. Record the speedtest value and the actual large-file model download stage separately whenever `RemoteStopAfter=bootstrap` or a real run downloads models.
+- The v3 Docker image is not a model cache. It can save custom-node clone and Python dependency drift, but model downloads still dominate on a fresh host unless the machine already has the files.
+- GHCR is not the default until package visibility/token scope is fixed. Use DockerHub v3 with private registry login and never print the token.
 
 Default command:
 

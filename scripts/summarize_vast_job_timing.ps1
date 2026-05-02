@@ -319,9 +319,32 @@ if ($FetchLog) {
     if (-not $instance -or -not $instance.id) {
         throw "FetchLog requires a valid instance id."
     }
-    $rawLog = & vastai logs $instance.id --tail $LogTail 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to fetch Vast logs for instance $($instance.id): $($rawLog | Out-String)"
+    $previousPythonUtf8 = $env:PYTHONUTF8
+    $previousPythonIoEncoding = $env:PYTHONIOENCODING
+    $previousConsoleOutputEncoding = [Console]::OutputEncoding
+    $env:PYTHONUTF8 = "1"
+    $env:PYTHONIOENCODING = "utf-8"
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    try {
+        $rawLog = @(& vastai logs $instance.id --tail $LogTail 2>&1 | ForEach-Object { "$_" })
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to fetch Vast logs for instance $($instance.id): $($rawLog | Out-String)"
+        }
+    }
+    finally {
+        [Console]::OutputEncoding = $previousConsoleOutputEncoding
+        if ($null -eq $previousPythonUtf8) {
+            Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONUTF8 = $previousPythonUtf8
+        }
+        if ($null -eq $previousPythonIoEncoding) {
+            Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONIOENCODING = $previousPythonIoEncoding
+        }
     }
     ($rawLog | Out-String) | Set-Content -LiteralPath $LogPath -Encoding UTF8
 }
