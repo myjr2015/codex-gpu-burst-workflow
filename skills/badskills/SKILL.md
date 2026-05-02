@@ -297,6 +297,10 @@ These failures were observed on the same branch:
     - after cleaning the hand-risk banner window, the hand/multi-hand issue was improved
     - final `26s-30s` review still found a short-lived red point near the leg/chair area around `29.6s`
     - corresponding reference frames contain red UI elements such as a checkmark and location bubble, which can leak as tiny artifacts even when body motion is acceptable
+  - Evidence from the 2026-05-02 RTX 4090 / RTX 3090 v3 DockerHub comparison:
+    - both runs used the same seed `387956277078883`, same prompt / negative prompt, same `ip_image.png`, and same `reference_segment_02.mp4`
+    - the 4090 output was reported to have multi-hand / hand abnormality around final `48s-51s`, while the 3090 output did not visibly amplify it the same way
+    - the matching reference window contains subtitles, location pin / red marker, and large white banner text, so classify the issue as reference-overlay contamination plus generation nondeterminism, not as a pure GPU-brand failure
   - Action:
     - treat this as reference-video preprocessing debt, not a prompt, merge, or Vast machine issue
     - before paid reruns, run `scripts/analyze_reference_overlay_risk.py` on the source/reference video and inspect its contact sheet

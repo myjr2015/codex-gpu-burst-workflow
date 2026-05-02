@@ -201,6 +201,17 @@ RTX 4090 comparison run:
   - KJ conditioning can leak those non-human tokens as small artifacts even if it does not reproduce the full sticker
   - this behavior is probabilistic: the first 30s may pass even when the same class of overlay exists, while another run/segment leaks it
 
+60s RTX 4090 / RTX 3090 DockerHub v3 comparison:
+
+- jobs:
+  - `kj60-4090-v3-dhub-bg-20260502-0426`
+  - `kj60-3090-v3-dhub-bg-20260502-004207`
+- both runs used the same seed `387956277078883`, same prompt / negative prompt, same `ip_image.png`, and same `reference_segment_02.mp4`
+- output hashes differed, so the generated result is not bit-identical across GPU/runtime paths
+- user review found the 4090 version had multi-hand / hand abnormality around final `48s-51s`, while the 3090 version did not obviously show the same failure
+- the reference frames for that window contain subtitles, location pin / red marker, and a large white banner, matching the known overlay-contamination failure mode
+- conclusion: treat this as reference-video overlay pollution amplified by model nondeterminism. Do not conclude "4090 bad / 3090 good" from one sample; clean or avoid the polluted reference window, then rerun only the affected `30s` segment if hand/body structure is wrong.
+
 Important lesson:
 
 - The 30s KJ workflow can hallucinate a second standing person when the fixed IP image is a full-body standing figure but the reference action video is seated.
