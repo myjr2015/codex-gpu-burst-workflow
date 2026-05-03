@@ -111,7 +111,7 @@ Status:
 
 - `10s` validation passed and was accepted by the user.
 - It is the current recommended `480p` portrait test/production candidate.
-- `60s=30s+30s` reuse validation `kj60-kj3p0-480p-4090-reuse-20260503-01` generated successfully on the same Michigan RTX 4090 instance and passed quick self-review; final acceptance still requires the user to watch the video.
+- `60s=30s+30s` reuse validation `kj60-kj3p0-480p-4090-reuse-20260503-01` generated successfully on the same Michigan RTX 4090 instance but failed user review because `28s-31s` shows multi-hand / hand-structure artifacts and `43s-45s` shows short flicker.
 - For future `30s` or `60s`, still split by the normal KJ segmented runner and inspect the generated output before accepting.
 
 Latest 60s reuse validation:
@@ -129,7 +129,7 @@ Latest 60s reuse validation:
 - merge: local `ffmpeg concat_copy`, no quality transcode
 - local result: `output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/downloads/wan22_kj_30s_segmented-kj60-kj3p0-480p-4090-reuse-20260503-01.mp4`
 - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/output/wan22_kj_30s_segmented-kj60-kj3p0-480p-4090-reuse-20260503-01.mp4`
-- review: quick sheets did not show obvious double person, double head, multi-hand, flicker, or seam break. Generated-artifact scanner reported 11 high candidate windows, but spot-checked peak frames were mostly normal red shoes, lips, hand/finger edges, and chair areas, so keep this as `self_review_passed_pending_user_review`.
+- review: failed after user inspection. The `28s-31s` window crosses the 30s segment seam and shows multi-hand / hand-structure instability; the corresponding reference window contains heavy subtitles, location bubble, checkmark, and sticker overlays near the body/hand zones. The `43s-45s` window is inside segment 2 and shows short flicker; the corresponding reference window contains large red/black caption overlays across the torso/hand area. Treat these as structural/temporal failures, not small color-dot artifacts.
 
 Command shape:
 
@@ -378,7 +378,7 @@ Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
 - `KJ 2.0 同图锚定版` (`B1.1 same-frame anchor`): current fixed-scene accepted validation path. Use one complete anchor image as `ip_image.png` for all segments and do not connect `bg_images` / `mask`.
-- `KJ 3.0 480p竖屏同图锚定版` (`KJ3.0-480p-portrait-anchor`): accepted lower-cost portrait path. Use `480x848`, stable portrait context `121/16`, and text/image embed offload. `10s` is accepted; `60s=30s+30s` self-review passed in `kj60-kj3p0-480p-4090-reuse-20260503-01`, but user video review is still the final gate.
+- `KJ 3.0 480p竖屏同图锚定版` (`KJ3.0-480p-portrait-anchor`): accepted lower-cost portrait path. Use `480x848`, stable portrait context `121/16`, and text/image embed offload. `10s` is accepted; `60s=30s+30s` sample `kj60-kj3p0-480p-4090-reuse-20260503-01` failed user review due to localized multi-hand and flicker artifacts, so future 60s runs need cleanup/rerun before acceptance.
 - `KJ 2.0 背景/Mask失败版` (`B2 bg_images/mask`): failed background/mask experiment. It suppressed mouth/body motion and must not be used as the default path.
 - `2.1`: local rule-based preprocessor exists, but the 2026-05-01 `光伏60s.mp4` conservative_v9 validation failed. It can generate `cleanup_plan`, `cleaned_reference.mp4`, `cleaning-report.json`, and before/after sheets, but it must not be treated as a passed cleaner when near-body text/labels remain or turn into gray blocks. If risk-after is still high or the before/after sheet shows residual UI, stop before stage/inference.
 - `2.1-next`: local samples also failed after OCR glyph masks + OpenCV Telea/NS variants and `simple-lama-inpainting` single-frame probes. OCR can detect the text, and LaMa can remove some text, but when subtitles or location bubbles touch the body, hands, legs, or clothing, the repaired frame gets text remnants, white/orange/gray blocks, photovoltaic-panel hallucination, or semi-transparent body/clothing distortion. Do not run full cleaned-reference generation or Vast inference from this source unless a new sample sheet is visibly clean and preserves face/hands/body.

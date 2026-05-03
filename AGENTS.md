@@ -222,7 +222,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `KJ 3.0 480p竖屏同图锚定版`
   - 内部：`wan22_kj_30s_segmented` / `KJ3.0-480p-portrait-anchor`
   - 入口：`scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
-  - 状态：可跑，当前 480p 竖屏推荐方案；`480x848`、`10s` 已由用户验收合格，`60s=30s+30s` 已在 `kj60-kj3p0-480p-4090-reuse-20260503-01` 生成并通过快速自检，最终仍以用户验片为准。
+  - 状态：候选可跑，当前 480p 竖屏推荐方案；`480x848`、`10s` 已由用户验收合格，但 `60s=30s+30s` 样本 `kj60-kj3p0-480p-4090-reuse-20260503-01` 被用户发现 `28s-31s` 多手、`43s-45s` 闪屏，不能作为 60s 验收通过样本。
   - 关键参数：`-OutputWidth 480 -OutputHeight 848`，保持 `context_frames=121`、`context_overlap=16`、`offload_img_emb/offload_txt_emb=true`，推荐走 DockerHub v3 Vast template。
 - `KJ 2.0 环境镜像模板版`
   - 内部：`1.2-docker-env-template`

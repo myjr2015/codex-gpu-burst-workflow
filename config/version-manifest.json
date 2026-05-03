@@ -282,7 +282,7 @@
       "kj_3_0_480p_portrait_anchor": {
         "friendly_name": "KJ 3.0 480p竖屏同图锚定版",
         "internal_trace_name": "KJ3.0-480p-portrait-anchor",
-        "status": "accepted_10s_60s_self_review_passed_pending_user_acceptance",
+        "status": "accepted_10s_60s_failed_user_review_localized_artifacts",
         "workflow_branch": "wan22_kj_30s_segmented",
         "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
         "runtime_strategy": "1.2-docker-env-template",
@@ -296,7 +296,7 @@
         "anchor_rule": "Use one complete person+background anchor image as ip_image.png and do not connect bg_images or mask.",
         "accepted_validation_job": "kj10-4090-480x848-anchor-20260503-try1",
         "user_acceptance": "10s_accepted_60s_pending_user_review",
-        "notes": "This is a named solution version, not a Git release and not a new workflow branch. It promotes the accepted 480x848 portrait preset for lower-cost KJ runs. The 2026-05-03 60s 30+30 reuse run generated successfully and passed quick self-review; final acceptance still depends on the user watching the result."
+        "notes": "This is a named solution version, not a Git release and not a new workflow branch. It promotes the accepted 480x848 portrait preset for lower-cost KJ runs. The 2026-05-03 60s 30+30 reuse run generated successfully but failed user review because of localized multi-hand artifacts around 28s-31s and flicker around 43s-45s."
       },
       "latest_10s_context_validation": {
         "validated_at": "2026-05-03T12:52:30+08:00",
@@ -401,9 +401,14 @@
           "risk_windows": 11,
           "manual_interpretation": "The scanner flagged red/color candidates, but spot-checked peak frames were mostly normal red shoes, lips, fingers, and chair areas. Quick self-review did not find obvious double person, double head, multi-hand, or seam break."
         },
-        "visual_acceptance": "self_review_passed_pending_user_review",
+        "visual_acceptance": "failed_user_review_localized_artifacts",
         "destroyed": false,
-        "conclusion": "The current live 4090 instance can reuse the installed 480x848 KJ 3.0 environment to generate 60s as 30s+30s. Output is ready for user review; keep the instance alive unless the user asks to destroy it."
+        "user_reported_issues": [
+          "28s-31s shows multi-hand / hand-structure artifacts near the 30s segment boundary.",
+          "43s-45s shows short flicker / frame instability."
+        ],
+        "diagnosis": "The 28s-31s window crosses the 30s segment seam and the reference video around this window contains heavy subtitle, location bubble, checkmark, and sticker overlays near the body and hand zones. The 43s-45s window is inside segment 2 and the reference contains large red/black caption overlays across the torso/hand region. These are structural/temporal generation failures, not small colored-dot artifacts; they should be fixed by reference cleanup, seam-aware rerun, or affected-segment rerun rather than by simple local color inpaint.",
+        "conclusion": "The current live 4090 instance can reuse the installed 480x848 KJ 3.0 environment to generate 60s as 30s+30s, but this specific 60s sample is not accepted. Keep 10s as accepted; treat 60s as pending further cleanup/rerun."
       },
       "b2_background_conditioning": {
         "status": "failed_abandoned",
