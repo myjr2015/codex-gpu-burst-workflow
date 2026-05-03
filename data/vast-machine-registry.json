@@ -260,7 +260,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-05-03T12:52:36"
+    },
+    {
+      "machine_id": 51751,
+      "host_id": 213498,
+      "offer_id": 32131331,
+      "gpu_name": "RTX 4090",
+      "gpu_ram": 24564,
+      "driver_version": "580.95.05",
+      "geolocation": "Netherlands, NL",
+      "verification": "verified",
+      "dph_total": 0.37333333333333335,
+      "job_name": "kj10-4090-newimg-seated-20260503-try1",
+      "instance_id": 36047931,
+      "result": "succeeded",
+      "last_success_at": "2026-05-03T13:52:40",
+      "total_until_download_seconds": 2304.0,
+      "instance_started_to_submit_seconds": 706.0,
+      "prompt_execution": "00:25:47",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": true,
+      "updated_at": "2026-05-03T13:52:53"
     }
   ],
-  "updated_at": "2026-05-03T12:52:36"
+  "updated_at": "2026-05-03T13:52:53"
 }
