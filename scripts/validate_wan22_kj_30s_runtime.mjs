@@ -47,7 +47,8 @@ function requireNode(prompt, nodeId, classType) {
 
 function getDefaultContextSettings(outputWidth, outputHeight) {
   const pixelCount = outputWidth * outputHeight;
-  if (pixelCount > 720 * 720) {
+  const isPortraitOutput = outputHeight > outputWidth;
+  if (isPortraitOutput || pixelCount > 720 * 720) {
     return {
       contextFrames: 121,
       contextOverlap: 16,

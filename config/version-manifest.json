@@ -282,7 +282,7 @@
       "kj_3_0_480p_portrait_anchor": {
         "friendly_name": "KJ 3.0 480p竖屏同图锚定版",
         "internal_trace_name": "KJ3.0-480p-portrait-anchor",
-        "status": "accepted_10s_candidate_for_longer_runs",
+        "status": "accepted_10s_60s_self_review_passed_pending_user_acceptance",
         "workflow_branch": "wan22_kj_30s_segmented",
         "entry": "scripts/run_wan22_kj_30s_segmented_end_to_end.ps1",
         "runtime_strategy": "1.2-docker-env-template",
@@ -295,8 +295,8 @@
         "offload_txt_emb": true,
         "anchor_rule": "Use one complete person+background anchor image as ip_image.png and do not connect bg_images or mask.",
         "accepted_validation_job": "kj10-4090-480x848-anchor-20260503-try1",
-        "user_acceptance": "accepted",
-        "notes": "This is a named solution version, not a Git release and not a new workflow branch. It promotes the accepted 480x848 portrait preset for lower-cost KJ runs; 30s/60s outputs still require visual review after generation."
+        "user_acceptance": "10s_accepted_60s_pending_user_review",
+        "notes": "This is a named solution version, not a Git release and not a new workflow branch. It promotes the accepted 480x848 portrait preset for lower-cost KJ runs. The 2026-05-03 60s 30+30 reuse run generated successfully and passed quick self-review; final acceptance still depends on the user watching the result."
       },
       "latest_10s_context_validation": {
         "validated_at": "2026-05-03T12:52:30+08:00",
@@ -356,6 +356,54 @@
         "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj10-4090-480x848-anchor-20260503-try1/output/wan22_kj_30s_segmented-kj10-4090-480x848-anchor-20260503-try1.mp4",
         "destroyed": false,
         "conclusion": "480x848 portrait output is valid when using the same stable portrait context policy as 720x1280. Do not default 480x848 back to context_frames=241/context_overlap=32; that setting was killed during a 3090 sampling attempt."
+      },
+      "latest_480p_portrait_60s_validation": {
+        "validated_at": "2026-05-03T18:02:00+08:00",
+        "job_name": "kj60-kj3p0-480p-4090-reuse-20260503-01",
+        "runtime_strategy": "1.2-docker-env-template",
+        "instance_id": 36053412,
+        "machine_id": 56169,
+        "host_id": 65203,
+        "gpu": "RTX 4090",
+        "geolocation": "Michigan, US",
+        "dph_total": 0.30666666666666664,
+        "template_hash": "eb3ff9185d9de9a9482c2cffbdfd8f9f",
+        "segment_count": 2,
+        "segment_seconds": 30,
+        "frame_load_cap": 481,
+        "output_resolution": "480x848",
+        "output_fps": 16,
+        "context_frames": 121,
+        "context_overlap": 16,
+        "offload_img_emb": true,
+        "offload_txt_emb": true,
+        "segment_prompt_execution_seconds": {
+          "segment_1": 1049,
+          "segment_2": 955
+        },
+        "segment_sampling_seconds": {
+          "segment_1": 841,
+          "segment_2": 840
+        },
+        "reuse_inference_wall_seconds": 2019,
+        "merge_mode": "concat_copy",
+        "merged_duration_seconds": 59.648,
+        "has_audio": true,
+        "local_result_path": "output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/downloads/wan22_kj_30s_segmented-kj60-kj3p0-480p-4090-reuse-20260503-01.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/output/wan22_kj_30s_segmented-kj60-kj3p0-480p-4090-reuse-20260503-01.mp4",
+        "frame_review_paths": [
+          "output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/frame_review/quick/contact-1fps.jpg",
+          "output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/frame_review/quick/seam-28-34s-2fps.jpg",
+          "output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/frame_review/quick/window-48-54s-2fps.jpg",
+          "output/wan22_kj_30s_segmented/kj60-kj3p0-480p-4090-reuse-20260503-01/frame_review/generated_artifact_risk/generated-artifact-contact-sheet.jpg"
+        ],
+        "artifact_scan": {
+          "risk_windows": 11,
+          "manual_interpretation": "The scanner flagged red/color candidates, but spot-checked peak frames were mostly normal red shoes, lips, fingers, and chair areas. Quick self-review did not find obvious double person, double head, multi-hand, or seam break."
+        },
+        "visual_acceptance": "self_review_passed_pending_user_review",
+        "destroyed": false,
+        "conclusion": "The current live 4090 instance can reuse the installed 480x848 KJ 3.0 environment to generate 60s as 30s+30s. Output is ready for user review; keep the instance alive unless the user asks to destroy it."
       },
       "b2_background_conditioning": {
         "status": "failed_abandoned",
