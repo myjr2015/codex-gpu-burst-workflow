@@ -45,6 +45,7 @@ Rules:
 - Stage that anchor as `ip_image.png` for every segment.
 - 2026-05-02 起默认输出 `720x1280` 抖音 9:16 竖屏。Stage 阶段会把方形 IP/同图锚定图用 FFmpeg 转成 `720x1280` 画布：背景用同图放大模糊铺满，前景图等比居中保留。
 - Runtime workflow 必须设置 `VHS_LoadVideo.custom_width=720`、`custom_height=1280`，并让 `LayerUtility: ImageScaleByAspectRatio V2` 按 `scale_to_side="width"`、`scale_to_length=720` 缩放锚定图。
+- 2026-05-03 起，竖屏 `720x1280` 的质量测试必须使用 `WanVideoContextOptions.context_frames=121`、`context_overlap=16`，并保持 `WanVideoBlockSwap.offload_img_emb=true`、`offload_txt_emb=true`。`context_frames=41/context_overlap=8` 只允许作为速度/成本 smoke，不允许拿来判断背景闪烁、画质或生产可用性。
 - Do not add or connect `WanVideoAnimateEmbeds.bg_images`.
 - Do not add or connect `WanVideoAnimateEmbeds.mask`.
 - Runtime node `171` (`WanVideoAnimateEmbeds`) stays on the original KJ inputs for image, pose, face, and audio/video conditioning.
@@ -65,6 +66,16 @@ Validation result:
   - metrics: `body mean 8.254`, `mouth mean 10.239`, `background mean 0.366`
   - visual acceptance: `pass` after keyframes, `26-30s`, `28-33s` seam, `48-52s`, and generated-artifact review
   - local result: `output/wan22_kj_30s_segmented/kj60-b11-sameframe-30x2-20260501/downloads/wan22_kj_30s_segmented-kj60-b11-sameframe-30x2-20260501.mp4`
+- 4090 10s flicker diagnosis: `kj10-4090-repro-20260503-121023`
+  - machine / host: `17049 / 96607`
+  - GPU/location: `RTX 4090`, `California, US`
+  - runtime: DockerHub v3 template `eb3ff9185d9de9a9482c2cffbdfd8f9f`
+  - output: `9.836s`, `720x1280`, one `10s` segment, `frame_load_cap=161`
+  - workflow context: `context_frames=121`, `context_overlap=16`, `offload_img_emb=true`, `offload_txt_emb=true`
+  - prompt execution: about `00:25:17`; total until local download about `2244s`
+  - local result: `output/wan22_kj_30s_segmented/kj10-4090-repro-20260503-121023/downloads/wan22_kj_30s_segmented-kj10-4090-repro-20260503-121023.mp4`
+  - flicker metric: top-background absdiff mean `1.085`, close to stable 4090 30s sample `1.024`; bad `cf41` 10s samples were `5.767` to `10.943`
+  - conclusion: the observed low-resolution/short-test flicker was caused by using non-production `context_frames=41/context_overlap=8` speed-test workflows, not by 4090 itself or final playback scale. Fix is to keep production context defaults for visual tests and only use `cf41` for timing smoke.
 
 Segmented example:
 

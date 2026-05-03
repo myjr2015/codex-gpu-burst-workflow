@@ -26,6 +26,23 @@ function parseArgs(argv) {
 const defaultNegativePrompt =
   "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走";
 
+function getDefaultContextSettings(outputWidth, outputHeight) {
+  const pixelCount = outputWidth * outputHeight;
+  if (pixelCount > 720 * 720) {
+    return {
+      contextFrames: 121,
+      contextOverlap: 16,
+      offloadTextImageEmbeds: true,
+    };
+  }
+
+  return {
+    contextFrames: 241,
+    contextOverlap: 32,
+    offloadTextImageEmbeds: false,
+  };
+}
+
 function patchPrompt(prompt, {
   imageName,
   videoName,
@@ -37,11 +54,20 @@ function patchPrompt(prompt, {
   seed,
   outputWidth,
   outputHeight,
+  contextFrames,
+  contextOverlap,
   backgroundImageName,
   backgroundRepeatAmount,
   maskGrow,
 }) {
   const prepared = JSON.parse(JSON.stringify(prompt));
+  const contextSettings = getDefaultContextSettings(outputWidth, outputHeight);
+  const resolvedContextFrames = Number.isInteger(contextFrames) && contextFrames > 0
+    ? contextFrames
+    : contextSettings.contextFrames;
+  const resolvedContextOverlap = Number.isInteger(contextOverlap) && contextOverlap >= 0
+    ? contextOverlap
+    : contextSettings.contextOverlap;
 
   delete prepared["137"];
   delete prepared["143"];
@@ -106,7 +132,13 @@ function patchPrompt(prompt, {
     }
 
     if (nodeId === "172" && node.class_type === "WanVideoContextOptions") {
-      node.inputs.context_frames = 241;
+      node.inputs.context_frames = resolvedContextFrames;
+      node.inputs.context_overlap = resolvedContextOverlap;
+    }
+
+    if (nodeId === "167" && node.class_type === "WanVideoBlockSwap" && contextSettings.offloadTextImageEmbeds) {
+      node.inputs.offload_img_emb = true;
+      node.inputs.offload_txt_emb = true;
     }
 
     if (nodeId === "168" && node.class_type === "WanVideoSampler") {
@@ -220,7 +252,7 @@ function patchPrompt(prompt, {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.input || !options.output || !options["image-name"] || !options["video-name"] || !options.prompt) {
-    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--negative-prompt <text>] [--seed <number>] [--output-prefix <prefix>] [--frame-load-cap <frames>] [--output-width <720>] [--output-height <1280>] [--attention-mode <sdpa|sageattn|comfy>] [--background-image-name <name>] [--background-repeat-amount <frames>] [--mask-grow <pixels>]");
+    throw new Error("Usage: node scripts/prepare_wan22_kj_30s_prompt.mjs --input <canvas.json> --output <workflow_api.json> --image-name <name> --video-name <name> --prompt <text> [--negative-prompt <text>] [--seed <number>] [--output-prefix <prefix>] [--frame-load-cap <frames>] [--output-width <720>] [--output-height <1280>] [--context-frames <frames>] [--context-overlap <frames>] [--attention-mode <sdpa|sageattn|comfy>] [--background-image-name <name>] [--background-repeat-amount <frames>] [--mask-grow <pixels>]");
   }
 
   const inputPath = path.resolve(process.cwd(), options.input);
@@ -246,6 +278,8 @@ async function main() {
     seed: options.seed ? Number.parseInt(options.seed, 10) : undefined,
     outputWidth,
     outputHeight,
+    contextFrames: options["context-frames"] ? Number.parseInt(options["context-frames"], 10) : undefined,
+    contextOverlap: options["context-overlap"] ? Number.parseInt(options["context-overlap"], 10) : undefined,
     backgroundImageName: options["background-image-name"],
     backgroundRepeatAmount: options["background-repeat-amount"] ? Number.parseInt(options["background-repeat-amount"], 10) : undefined,
     maskGrow: options["mask-grow"] ? Number.parseInt(options["mask-grow"], 10) : undefined,

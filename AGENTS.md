@@ -186,6 +186,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - KJ 2.0 长视频分段版。
   - 固定每段最多 `30s`，本地用 `ffmpeg concat` 合并。
   - 2026-05-02 起默认每段和合并成片都按 `720x1280` 9:16 竖屏生成。
+  - 2026-05-03 起，`720x1280` 竖屏质量测试必须保持 `context_frames=121`、`context_overlap=16`、`offload_img_emb=true`、`offload_txt_emb=true`；`context_frames=41/context_overlap=8` 只能作为速度实验，不能作为画质/闪烁验收依据。
   - 当前固定场景可用方案叫 `KJ 2.0 同图锚定版`，内部追踪名 `B1.1 same-frame anchor`。
   - 成片合并后如果只剩孤立小红点/贴纸色块，使用 `scripts/polish_generated_artifacts.py` 做本地一条龙精修；这不是纯 FFmpeg，FFmpeg 只负责抽帧/编码/音频封装，局部修复由 OpenCV inpaint 完成。
 

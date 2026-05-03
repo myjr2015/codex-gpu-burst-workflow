@@ -45,6 +45,23 @@ function requireNode(prompt, nodeId, classType) {
   return node;
 }
 
+function getDefaultContextSettings(outputWidth, outputHeight) {
+  const pixelCount = outputWidth * outputHeight;
+  if (pixelCount > 720 * 720) {
+    return {
+      contextFrames: 121,
+      contextOverlap: 16,
+      offloadTextImageEmbeds: true,
+    };
+  }
+
+  return {
+    contextFrames: 241,
+    contextOverlap: 32,
+    offloadTextImageEmbeds: false,
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.input) {
@@ -59,6 +76,7 @@ async function main() {
   const expectedMaskGrow = options["mask-grow"] ? Number.parseInt(options["mask-grow"], 10) : 12;
   const expectedOutputWidth = options["output-width"] ? Number.parseInt(options["output-width"], 10) : 720;
   const expectedOutputHeight = options["output-height"] ? Number.parseInt(options["output-height"], 10) : 1280;
+  const expectedContext = getDefaultContextSettings(expectedOutputWidth, expectedOutputHeight);
 
   const imageNode = requireNode(prompt, "163", "LoadImage");
   assertEqual(imageNode.inputs.image, expectedImageName, "LoadImage.image");
@@ -133,7 +151,14 @@ async function main() {
   assertEqual(scaledImageNode.inputs.scale_to_side, "width", "ImageScaleByAspectRatio.scale_to_side");
   assertEqual(scaledImageNode.inputs.scale_to_length, expectedOutputWidth, "ImageScaleByAspectRatio.scale_to_length");
   const contextNode = requireNode(prompt, "172", "WanVideoContextOptions");
-  assertEqual(contextNode.inputs.context_frames, 241, "WanVideoContextOptions.context_frames");
+  assertEqual(contextNode.inputs.context_frames, expectedContext.contextFrames, "WanVideoContextOptions.context_frames");
+  assertEqual(contextNode.inputs.context_overlap, expectedContext.contextOverlap, "WanVideoContextOptions.context_overlap");
+
+  const blockSwapNode = requireNode(prompt, "167", "WanVideoBlockSwap");
+  if (expectedContext.offloadTextImageEmbeds) {
+    assertEqual(blockSwapNode.inputs.offload_img_emb, true, "WanVideoBlockSwap.offload_img_emb");
+    assertEqual(blockSwapNode.inputs.offload_txt_emb, true, "WanVideoBlockSwap.offload_txt_emb");
+  }
 
   if (expectedBackgroundImageName) {
     const bgImageNode = requireNode(prompt, "901", "LoadImage");

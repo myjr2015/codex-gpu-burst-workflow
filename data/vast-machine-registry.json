@@ -238,7 +238,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-04-30T13:01:59"
+    },
+    {
+      "machine_id": 17049,
+      "host_id": 96607,
+      "offer_id": 34998923,
+      "gpu_name": "RTX 4090",
+      "gpu_ram": 24564,
+      "driver_version": "590.48.01",
+      "geolocation": "California, US",
+      "verification": "verified",
+      "dph_total": 0.3688888888888889,
+      "job_name": "kj10-4090-repro-20260503-121023",
+      "instance_id": 36046355,
+      "result": "succeeded",
+      "last_success_at": "2026-05-03T12:52:25",
+      "total_until_download_seconds": 2244.0,
+      "instance_started_to_submit_seconds": 699.0,
+      "prompt_execution": "00:25:17",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-05-03T12:52:36"
     }
   ],
-  "updated_at": "2026-04-30T13:01:59"
+  "updated_at": "2026-05-03T12:52:36"
 }

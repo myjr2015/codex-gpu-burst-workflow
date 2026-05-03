@@ -267,6 +267,17 @@ These failures were observed on the same branch:
     - blacklist `machine_id=47075` and `host_id=74292`
     - remember that `warm_start=True` is only a machine-selection mode; it does not prove custom nodes, models, or torch cache hit
 
+- Symptom: KJ 2.0 vertical 10s tests flicker or the background changes, while the previously accepted `720x1280` 30s 4090 sample is stable
+  - Root cause: the failing 10s speed-test workflows used `context_frames=41` / `context_overlap=8`, which is not equivalent to the production vertical setting. That short context can destabilize background consistency, especially in prompt-guided same-frame anchor tests.
+  - Evidence from 2026-05-03:
+    - accepted 4090 30s sample `kj60-vert-4090-v3-dhub-20260502-151759` used `context_frames=121`, `context_overlap=16`, and had top-background flicker metric about `1.024`
+    - failed/visibly unstable `cf41` 10s samples measured about `5.767` to `10.943`
+    - rerun `kj10-4090-repro-20260503-121023` on RTX 4090 with `720x1280`, `frame_load_cap=161`, `context_frames=121`, `context_overlap=16`, `offload_img_emb=true`, `offload_txt_emb=true` measured `1.085`, matching the stable sample
+  - Action:
+    - do not use `cf41` workflows for visual quality, flicker, or production acceptance
+    - use `scripts/prepare_wan22_kj_30s_prompt.mjs` defaults for vertical quality tests, or explicitly set `context_frames=121` and `context_overlap=16`
+    - if a speed smoke must use `cf41`, label it as timing-only and do not compare its visual output to production runs
+
 - Symptom: a cheap 4090 still wastes a cold start because HuggingFace is slow from that host
   - Root cause: Vast offer price and GPU name do not measure real throughput to HuggingFace
   - Action:
