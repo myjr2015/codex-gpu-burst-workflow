@@ -259,6 +259,34 @@ These failures were observed on the same branch:
     - let timing summary fall back to `history.api.json` for prompt execution time
     - check `manifest.json.result`, `history.api.json`, and the downloaded file before calling the generation failed
 
+- Symptom: `MultiTalk / InfiniteTalk` 10s smoke technically outputs an MP4, but the last seconds stop talking or the mouth no longer follows the audio
+  - Evidence from `multitalk10-smoke-20260504-001`:
+    - output: `output/multitalk_smoke/multitalk10-smoke-20260504-001/downloads/multitalk_smoke_multitalk10-smoke-20260504-001_00001-audio.mp4`
+    - contact sheet: `output/multitalk_smoke/multitalk10-smoke-20260504-001/downloads/contact-sheet.jpg`
+    - generated `480x848`, `25fps`, about `11.88s`, with audio
+    - user rejected it because the final seconds do not speak and lip sync is wrong
+  - Likely root cause:
+    - `WanVideoImageToVideoMultiTalk` generated in multiple windows and the last window needed more audio embedding than available
+    - remote log showed audio padding behavior similar to: audio embedding length `241`, need `297`, padding
+  - Action:
+    - do not promote this smoke as a usable route
+    - do not continue this branch just because ComfyUI execution succeeded
+    - only revisit after redesigning audio segmentation / padding / frame-count handling or switching to a different dedicated lip-sync workflow
+
+- Symptom: `MultiTalk / InfiniteTalk` nodes fail to import on the KJ DockerHub v3 image
+  - Root cause: the current KJ v3 image was built for KJ Wan2.2 Animate, not for MultiTalk; it can miss auxiliary packages such as `torchaudio`
+  - Evidence: `ComfyUI-WanVideoWrapper` import recovered only after installing `torchaudio==2.11.0+cu130` on the live machine
+  - Action:
+    - treat MultiTalk as a separate experiment image/profile, not an extension of the KJ v3 production template
+    - if revisiting, build a dedicated environment smoke that validates `MultiTalkModelLoader`, `MultiTalkWav2VecEmbeds`, `WanVideoImageToVideoMultiTalk`, and audio-length behavior before downloading all models or running a paid prompt
+
+- Symptom: a KJ "clean motion / 自己做动作" test has cleaner body motion but mouth does not match speech
+  - Root cause: the KJ branch is primarily reference-motion / image-to-video conditioning; the final audio is muxed into the MP4, but it is not a reliable dense Mandarin lip-sync driver
+  - Action:
+    - do not use KJ alone as the final口型方案
+    - if narration mouth accuracy is required, separate the problem into a dedicated口型/数字人 module plus optional background/B-roll generation
+    - do not accept a result only because the body motion looks natural
+
 - Symptom: KJ 30s keeps choosing an expensive previously successful machine with no useful cache
   - Root cause: machine registry preference can overrule cost unless the selector has an explicit price gate and blacklist
   - Action:

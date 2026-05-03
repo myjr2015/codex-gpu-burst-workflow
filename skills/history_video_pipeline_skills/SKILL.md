@@ -1,6 +1,6 @@
 ---
 name: history_video_pipeline_skills
-description: Historical lessons for reviewing, switching, or debugging older AI talking-head video pipelines with lip sync, background replacement, segmented generation, Vast or RunningHub migration, or text-heavy source footage that may reintroduce old quality failures.
+description: Historical lessons for pausing, resuming, reviewing, switching, or debugging older AI talking-head video pipelines with lip sync, background replacement, segmented generation, Vast/RunningHub migration, MultiTalk/InfiniteTalk tests, LTX2.3 route planning, or text-heavy source footage that may reintroduce old quality failures.
 ---
 
 # history_video_pipeline_skills
@@ -40,6 +40,47 @@ A pipeline is only production-usable if it survives all of:
 - segment transitions
 - duration control
 - reproducible deployment
+
+## 2026-05-04 Project Pause Archive
+
+Use this section first when the project is resumed after a break.
+
+Current decision:
+
+- Pause the current Wan2.2/KJ/MultiTalk experiments instead of spending more Vast time immediately.
+- The latest `MultiTalk / InfiniteTalk` 10s smoke is rejected. It produced a video, but the final seconds stopped speaking and lip sync failed.
+- Wan2.2/KJ at `720x1280` is too expensive and slow for the current budget/iteration loop.
+- `480x848` KJ is usable for fast tests, but too low-resolution to call final delivery.
+- The next likely route is `LTX2.3`, but it must be a new isolated profile/skill, not a patch on top of the KJ profile.
+
+Important archived outcomes:
+
+- `Wan2.2 固定图口播主线`: stable old branch for fixed-image talking output, but not the new pure-IP/background-redraw segmented solution.
+- `Wan2.2 10秒分段续接版 / segmented v3_single_instance`: technically can generate 30s/60s from 10s chunks, but long-video identity and continuity still need careful frame review.
+- `KJ 2.0 同图锚定版`: best fixed-scene KJ archive; one complete person+background anchor reused across segments. It can produce acceptable fixed-scene 60s output after local v5 polish, but it does not solve general口型 or arbitrary scenes.
+- `KJ 2.0 背景/Mask失败版`: rejected because `bg_images/mask` suppressed mouth and body motion.
+- `KJ 2.1 通用清理版`: paused; current local overlay cleaning fails on text/stickers close to the body.
+- `KJ 3.0 480p竖屏同图锚定版`: `480x848` 10s accepted; 60s `30s+30s` sample failed detailed user review due to localized multi-hand and flicker artifacts.
+- `KJ clean-motion / 自己做动作`: body motion may be pleasant, but mouth sync is not reliable and motion can repeat from the short template.
+- `MultiTalk / InfiniteTalk 10s smoke`: rejected despite successful ComfyUI execution because final seconds did not speak / mouth did not match audio. Do not confuse this with older `MultiTalk Single` clean-anchor experiments from `docs/workflow-combos.md`; those remain historical short-video records, but they do not validate this newer InfiniteTalk smoke as a current long-video/mainline solution.
+
+MultiTalk / InfiniteTalk smoke details:
+
+- job: `multitalk10-smoke-20260504-001`
+- local output: `output/multitalk_smoke/multitalk10-smoke-20260504-001/downloads/multitalk_smoke_multitalk10-smoke-20260504-001_00001-audio.mp4`
+- review sheet: `output/multitalk_smoke/multitalk10-smoke-20260504-001/downloads/contact-sheet.jpg`
+- output shape: about `11.88s`, `480x848`, `25fps`, with audio
+- setup time: DockerHub v3 to port about `4m17s`, model download about `6m19s`, dependency fix/restart about `1m`, inference about `8m12s`, full open-to-destroy about `28.1m`, cost about `$0.25`
+- technical warning: the final MultiTalk window needed audio embeddings beyond the available audio frames and padded the tail, which likely explains the final口型 failure
+- action: do not rerun this exact setup; only revisit with a dedicated profile after fixing audio segmentation, frame count, padding, and node dependency validation
+
+Suggested LTX2.3 restart rules:
+
+- Create a new workflow branch/profile/skill such as `ltx23_video_recreation`; do not pollute `wan22_kj_30s` or old `wan_2_2_animate`.
+- First smoke should be `10s`, `480p` or `540p`, one subject, one clean background, and one short audio/text case.
+- Validate LTX2.3 on five axes before promotion:口型, identity, background replacement, duration control, and API/Vast reproducibility.
+- Do not assume LTX2.3 alone solves Chinese口型. If it is strong for motion/background but weak for mouth, pair it with a dedicated lip-sync/digital-human module.
+- Keep source video responsibilities separated: extract script/audio/background intent first; do not feed subtitle/sticker-heavy reference footage directly as the main motion condition unless the overlays are removed.
 
 ## Failure Modes
 

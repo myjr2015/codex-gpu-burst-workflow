@@ -1,6 +1,6 @@
 # 项目运行规则
 
-本项目的长期记忆分四层：
+本项目的长期记忆分六层：
 
 1. `AGENTS.md`
    - 项目级默认规则。
@@ -22,6 +22,10 @@
 5. `skills/wan22_kj_30s/SKILL.md`
    - KJ 30s / 60s 分段经验。
    - 跑 `wan22_kj_30s` / `wan22_kj_30s_segmented` / KJ 2.0 同图锚定版前必须加载。
+
+6. `skills/history_video_pipeline_skills/SKILL.md`
+   - 历史方案归档、暂停后恢复入口、路线切换经验。
+   - 用户问“之前做过哪些方案”“现在该走哪条路线”“LTX2.3 要不要试”时必须加载。
 
 ## 中文优先规则
 
@@ -48,6 +52,7 @@
 - `skills/okskills/SKILL.md`
 - `skills/badskills/SKILL.md`
 - 如果跑分段流程，再读取 `skills/wan_2_2_animate_segmented/SKILL.md`
+- 如果是项目暂停后恢复、路线复盘、或准备切到 `LTX2.3`，再读取 `skills/history_video_pipeline_skills/SKILL.md`
 
 然后明确说明本次走哪个版本：
 
@@ -236,6 +241,13 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `KJ 2.1 通用清理版`
   - 内部：`reference cleaning 2.1 / 2.1-next`
   - 状态：暂不跑；本地清理闸门未通过，不能进入 Vast 付费推理。
+- `MultiTalk / InfiniteTalk 10秒口型实验`
+  - 内部：`multitalk10-smoke-20260504-001`
+  - 入口：仅为 `scripts/_test` 临时 smoke，不是生产 profile
+  - 状态：失败不要跑；虽然生成了 `480x848`、约 `11.88s` MP4，但最后几秒不说话/口型对不上，用户已否决。
+- `LTX2.3 候选新路线`
+  - 内部：暂未建 profile
+  - 状态：暂不跑；后续要作为独立 workflow branch / profile / skill 评估，不要混进 KJ 或老 Wan2.2 主线。
 
 规则：
 
@@ -245,6 +257,8 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 用户说“背景mask版”“B2”时，必须提醒该方案已失败，不要直接开跑。
 - 用户说“红点修理”“成片精修”“一条龙修复”时，默认指 `scripts/polish_generated_artifacts.py` 的本地后处理：检测风险、定位候选彩色组件，v5 默认自动处理 `red/yellow/green/magenta`，目标前后默认补 `2` 帧处理不足 1 秒的边缘漏帧，围绕已确认目标尝试清理银白高光/细线残留，跳过皮肤/脸/脚等高误伤区域，OpenCV 局部 inpaint，重封装音频，复检并输出 before/after 拼图；`cyan/blue` 支持显式开启但默认关闭，避免误伤天空和光伏板。
 - `kj60-b11-sameframe-30x2-20260501` 的 `polished-auto-v5.mp4` 已被用户暂时验收为可接受，作为本次 60s 推荐精修输出；后续同类 KJ 2.0 同图锚定版默认先跑 v5 精修再人工确认。
+- 用户说“MultiTalk”“InfiniteTalk”“最后几秒不说话那个方案”时，默认指 `multitalk10-smoke-20260504-001`，必须先说明该方案已被否决，不要直接复跑。
+- 用户说“LTX2.3”时，默认是新路线讨论/新 profile 设计，不是继续改 KJ 2.0/3.0。
 - 最新可跑状态仍以 `config/version-manifest.json` 为准；如果 AGENTS 和 manifest 冲突，以 manifest 为准，并同步修正 AGENTS。
 
 ## 版本管理规则
@@ -357,6 +371,8 @@ pwsh -File .\scripts\run_wan_2_2_animate_end_to_end.ps1
 - 不要把 `validate_nodes` 当成 KJ 环境镜像通过标准；它只能证明节点存在，不能证明 ONNXRuntime GPU 前处理可用。v3 必须看 `[onnx-cuda-smoke] tiny inference ok`。
 - 不要把已放弃的 Docker / 缓存镜像实验重新写回 `wan_2_2_animate` 的生产记忆。
 - 新模型或新工作流必须新增独立 profile / skill，不要污染当前 Wan2.2 固定流程。
+- 不要把 `MultiTalk / InfiniteTalk` 10s smoke 当成可用口型路线；`multitalk10-smoke-20260504-001` 已被用户否决，原因是最后几秒不说话且口型不对。
+- 不要把 KJ clean-motion / 自己做动作当成口型解决方案；KJ 音频主要是封装到成片，不能稳定驱动中文密集口播嘴型。
 
 ## 收尾同步规则
 

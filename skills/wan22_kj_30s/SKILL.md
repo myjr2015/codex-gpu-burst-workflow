@@ -29,6 +29,20 @@ For videos longer than 30s, use the experimental wrapper:
 
 This wrapper does not add a ComfyUI merge plugin. It reuses the existing KJ 30s workflow per segment and merges downloaded MP4 files locally. The KJ workflow does not expose `continue_motion`, so cross-segment continuity is not guaranteed until visually verified.
 
+## 2026-05-04 Pause Summary
+
+The current project pause state is:
+
+- `KJ 2.0 同图锚定版` remains the best archived fixed-scene 60s sample, but it is not a general final口型 solution.
+- `KJ 3.0 480p竖屏同图锚定版` is the practical low-cost portrait branch: `480x848` 10s passed user review, while the 60s `30s+30s` sample failed detailed review at `28s-31s` and `43s-45s`.
+- `720x1280` is the correct Douyin/TikTok 9:16 target, but Wan2.2/KJ is currently too heavy at this resolution: slower inference, OOM/low-memory fallback risk, and high Vast cost.
+- `480x848` reduces cost and generation pressure enough to test ideas, but the resolution is visibly low for final delivery.
+- KJ reference-video motion can be polluted by subtitles, red pins, banners, sticker text, and UI glyphs. The symptom can be multi-hand, hand drift, flicker, red dots, or structural errors. Local `polish_generated_artifacts.py` only handles small isolated color artifacts; it cannot repair wrong hands, wrong face, or time-structure failure.
+- KJ "clean motion / 自己做动作" experiments can look cleaner but are not audio-driven lip-sync. The mouth may not follow speech, and motion can loop from the short template.
+- `MultiTalk / InfiniteTalk` 10s smoke from 2026-05-04 is rejected: it generated an MP4, but the final seconds stopped speaking / lip sync failed. Do not treat it as the next mainline.
+
+If work resumes after several days, first read `skills/history_video_pipeline_skills/SKILL.md` and this section before renting Vast. The next likely direction is a new `LTX2.3` route, but it must be isolated as a new profile/skill and must be tested against口型, background replacement, identity, duration, and deployment reproducibility separately.
+
 ## KJ 2.0 同图锚定版
 
 Friendly name: `KJ 2.0 同图锚定版`.
