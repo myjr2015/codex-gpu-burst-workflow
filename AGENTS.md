@@ -186,8 +186,9 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - KJ 2.0 长视频分段版。
   - 固定每段最多 `30s`，本地用 `ffmpeg concat` 合并。
   - 2026-05-02 起默认每段和合并成片都按 `720x1280` 9:16 竖屏生成。
-  - 2026-05-03 起，`720x1280` 竖屏质量测试必须保持 `context_frames=121`、`context_overlap=16`、`offload_img_emb=true`、`offload_txt_emb=true`；`context_frames=41/context_overlap=8` 只能作为速度实验，不能作为画质/闪烁验收依据。
+  - 2026-05-03 起，所有 9:16 竖屏质量测试都必须保持 `context_frames=121`、`context_overlap=16`、`offload_img_emb=true`、`offload_txt_emb=true`；这包括 `480x848`、`544x960`、`720x1280`。`context_frames=41/context_overlap=8` 只能作为速度实验，不能作为画质/闪烁验收依据。
   - 当前固定场景可用方案叫 `KJ 2.0 同图锚定版`，内部追踪名 `B1.1 same-frame anchor`。
+  - 当前 480p 竖屏可用方案叫 `KJ 3.0 480p竖屏同图锚定版`，内部追踪名 `KJ3.0-480p-portrait-anchor`。
   - 成片合并后如果只剩孤立小红点/贴纸色块，使用 `scripts/polish_generated_artifacts.py` 做本地一条龙精修；这不是纯 FFmpeg，FFmpeg 只负责抽帧/编码/音频封装，局部修复由 OpenCV inpaint 完成。
 
 ### 可跑版本友好命名
@@ -218,6 +219,11 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 内部：`wan22_kj_30s_segmented` / `B1.1 same-frame anchor`
   - 入口：`scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
   - 状态：当前 KJ 固定场景 60s 可用方案；用同一张完整人物+背景 anchor 图作为每段 `ip_image.png`，不接 `bg_images` / `mask`。
+- `KJ 3.0 480p竖屏同图锚定版`
+  - 内部：`wan22_kj_30s_segmented` / `KJ3.0-480p-portrait-anchor`
+  - 入口：`scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
+  - 状态：可跑，当前 480p 竖屏推荐方案；`480x848`、`10s` 已由用户验收合格，后续 `30s/60s` 仍按分段出片后验片。
+  - 关键参数：`-OutputWidth 480 -OutputHeight 848`，保持 `context_frames=121`、`context_overlap=16`、`offload_img_emb/offload_txt_emb=true`，推荐走 DockerHub v3 Vast template。
 - `KJ 2.0 环境镜像模板版`
   - 内部：`1.2-docker-env-template`
   - 镜像：`j1c2k3/codex-wan22-kj-comfy:cuda129-py312-kj-v3`
@@ -235,6 +241,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 
 - `B1.1`、`B2` 只作为内部追踪名，不作为对用户的主称呼。
 - 用户说“同图版”“同图锚定”“当前KJ固定场景版”时，默认指 `KJ 2.0 同图锚定版`。
+- 用户说“3.0”“480p版”“低成本竖屏版”时，默认指 `KJ 3.0 480p竖屏同图锚定版`。
 - 用户说“背景mask版”“B2”时，必须提醒该方案已失败，不要直接开跑。
 - 用户说“红点修理”“成片精修”“一条龙修复”时，默认指 `scripts/polish_generated_artifacts.py` 的本地后处理：检测风险、定位候选彩色组件，v5 默认自动处理 `red/yellow/green/magenta`，目标前后默认补 `2` 帧处理不足 1 秒的边缘漏帧，围绕已确认目标尝试清理银白高光/细线残留，跳过皮肤/脸/脚等高误伤区域，OpenCV 局部 inpaint，重封装音频，复检并输出 before/after 拼图；`cyan/blue` 支持显式开启但默认关闭，避免误伤天空和光伏板。
 - `kj60-b11-sameframe-30x2-20260501` 的 `polished-auto-v5.mp4` 已被用户暂时验收为可接受，作为本次 60s 推荐精修输出；后续同类 KJ 2.0 同图锚定版默认先跑 v5 精修再人工确认。

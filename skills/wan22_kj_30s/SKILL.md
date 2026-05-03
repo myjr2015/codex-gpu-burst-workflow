@@ -88,6 +88,48 @@ Validation result:
   - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj10-4090-480x848-anchor-20260503-try1/output/wan22_kj_30s_segmented-kj10-4090-480x848-anchor-20260503-try1.mp4`
   - conclusion: `480x848` 竖屏可以跑通，但也应走稳定竖屏 context。不要再让 `480x848` 默认回落到 `context_frames=241/context_overlap=32`；该组合已在 3090 上导致采样阶段被 `Killed`。
 
+## KJ 3.0 480p竖屏同图锚定版
+
+Friendly name: `KJ 3.0 480p竖屏同图锚定版`.
+
+Internal trace name: `KJ3.0-480p-portrait-anchor`.
+
+Use this when the user wants the accepted lower-cost portrait path after the 2026-05-03 `480x848` 4090 smoke passed.
+
+This is not a separate ComfyUI workflow. It is the same KJ segmented entry with a stricter portrait runtime preset:
+
+- profile: `wan22_kj_30s_segmented`
+- entry: `scripts/run_wan22_kj_30s_segmented_end_to_end.ps1`
+- recommended runtime strategy: `1.2-docker-env-template`
+- recommended template: DockerHub v3 `eb3ff9185d9de9a9482c2cffbdfd8f9f`
+- resolution: `480x848`
+- context: `context_frames=121`, `context_overlap=16`
+- block swap: `offload_img_emb=true`, `offload_txt_emb=true`
+- anchor rule: use one complete person+background anchor image as `ip_image.png`; do not connect `bg_images` or `mask`
+
+Status:
+
+- `10s` validation passed and was accepted by the user.
+- It is the current recommended `480p` portrait test/production candidate.
+- For `30s` or `60s`, still split by the normal KJ segmented runner and inspect the generated output before accepting.
+
+Command shape:
+
+```powershell
+pwsh -File .\scripts\run_wan22_kj_30s_segmented_end_to_end.ps1 `
+  -JobName <job_name> `
+  -ImagePath .\output\wan22_kj_30s_segmented\_native_anchors\kj10-newimg-seated-clean-frame-0p50.png `
+  -VideoPath <reference_video.mp4> `
+  -SegmentSeconds 10 `
+  -MaxSegments 1 `
+  -OutputWidth 480 `
+  -OutputHeight 848 `
+  -RuntimeVersion 1.2-docker-env-template `
+  -VastTemplateHash eb3ff9185d9de9a9482c2cffbdfd8f9f
+```
+
+For a longer input, set `-SegmentSeconds 30` and let the runner split and merge normally.
+
 Segmented example:
 
 ```powershell
@@ -318,6 +360,7 @@ Cleanup roadmap:
 
 - `2.0`: current path. Use rule-based overlay detection, small targeted local cleaning, and rerun only the affected 30s segment. Do not add new ComfyUI cleaning plugins to the production KJ workflow yet.
 - `KJ 2.0 同图锚定版` (`B1.1 same-frame anchor`): current fixed-scene accepted validation path. Use one complete anchor image as `ip_image.png` for all segments and do not connect `bg_images` / `mask`.
+- `KJ 3.0 480p竖屏同图锚定版` (`KJ3.0-480p-portrait-anchor`): accepted lower-cost portrait path. Use `480x848`, stable portrait context `121/16`, and text/image embed offload. `10s` is accepted; longer outputs still need visual review.
 - `KJ 2.0 背景/Mask失败版` (`B2 bg_images/mask`): failed background/mask experiment. It suppressed mouth/body motion and must not be used as the default path.
 - `2.1`: local rule-based preprocessor exists, but the 2026-05-01 `光伏60s.mp4` conservative_v9 validation failed. It can generate `cleanup_plan`, `cleaned_reference.mp4`, `cleaning-report.json`, and before/after sheets, but it must not be treated as a passed cleaner when near-body text/labels remain or turn into gray blocks. If risk-after is still high or the before/after sheet shows residual UI, stop before stage/inference.
 - `2.1-next`: local samples also failed after OCR glyph masks + OpenCV Telea/NS variants and `simple-lama-inpainting` single-frame probes. OCR can detect the text, and LaMa can remove some text, but when subtitles or location bubbles touch the body, hands, legs, or clothing, the repaired frame gets text remnants, white/orange/gray blocks, photovoltaic-panel hallucination, or semi-transparent body/clothing distortion. Do not run full cleaned-reference generation or Vast inference from this source unless a new sample sheet is visibly clean and preserves face/hands/body.
