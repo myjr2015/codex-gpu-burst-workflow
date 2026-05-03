@@ -28,7 +28,8 @@ const defaultNegativePrompt =
 
 function getDefaultContextSettings(outputWidth, outputHeight) {
   const pixelCount = outputWidth * outputHeight;
-  if (pixelCount > 720 * 720) {
+  const isPortraitOutput = outputHeight > outputWidth;
+  if (isPortraitOutput || pixelCount > 720 * 720) {
     return {
       contextFrames: 121,
       contextOverlap: 16,
@@ -68,6 +69,7 @@ function patchPrompt(prompt, {
   const resolvedContextOverlap = Number.isInteger(contextOverlap) && contextOverlap >= 0
     ? contextOverlap
     : contextSettings.contextOverlap;
+  const shouldOffloadTextImageEmbeds = contextSettings.offloadTextImageEmbeds || resolvedContextFrames <= 121;
 
   delete prepared["137"];
   delete prepared["143"];
@@ -136,7 +138,7 @@ function patchPrompt(prompt, {
       node.inputs.context_overlap = resolvedContextOverlap;
     }
 
-    if (nodeId === "167" && node.class_type === "WanVideoBlockSwap" && contextSettings.offloadTextImageEmbeds) {
+    if (nodeId === "167" && node.class_type === "WanVideoBlockSwap" && shouldOffloadTextImageEmbeds) {
       node.inputs.offload_img_emb = true;
       node.inputs.offload_txt_emb = true;
     }

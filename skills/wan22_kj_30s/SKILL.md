@@ -45,7 +45,7 @@ Rules:
 - Stage that anchor as `ip_image.png` for every segment.
 - 2026-05-02 起默认输出 `720x1280` 抖音 9:16 竖屏。Stage 阶段会把方形 IP/同图锚定图用 FFmpeg 转成 `720x1280` 画布：背景用同图放大模糊铺满，前景图等比居中保留。
 - Runtime workflow 必须设置 `VHS_LoadVideo.custom_width=720`、`custom_height=1280`，并让 `LayerUtility: ImageScaleByAspectRatio V2` 按 `scale_to_side="width"`、`scale_to_length=720` 缩放锚定图。
-- 2026-05-03 起，竖屏 `720x1280` 的质量测试必须使用 `WanVideoContextOptions.context_frames=121`、`context_overlap=16`，并保持 `WanVideoBlockSwap.offload_img_emb=true`、`offload_txt_emb=true`。`context_frames=41/context_overlap=8` 只允许作为速度/成本 smoke，不允许拿来判断背景闪烁、画质或生产可用性。
+- 2026-05-03 起，所有 9:16 竖屏质量测试都必须使用 `WanVideoContextOptions.context_frames=121`、`context_overlap=16`，并保持 `WanVideoBlockSwap.offload_img_emb=true`、`offload_txt_emb=true`；这包括 `480x848`、`544x960`、`720x1280`。`context_frames=41/context_overlap=8` 只允许作为速度/成本 smoke，不允许拿来判断背景闪烁、画质或生产可用性。
 - Do not add or connect `WanVideoAnimateEmbeds.bg_images`.
 - Do not add or connect `WanVideoAnimateEmbeds.mask`.
 - Runtime node `171` (`WanVideoAnimateEmbeds`) stays on the original KJ inputs for image, pose, face, and audio/video conditioning.
@@ -76,6 +76,17 @@ Validation result:
   - local result: `output/wan22_kj_30s_segmented/kj10-4090-repro-20260503-121023/downloads/wan22_kj_30s_segmented-kj10-4090-repro-20260503-121023.mp4`
   - flicker metric: top-background absdiff mean `1.085`, close to stable 4090 30s sample `1.024`; bad `cf41` 10s samples were `5.767` to `10.943`
   - conclusion: the observed low-resolution/short-test flicker was caused by using non-production `context_frames=41/context_overlap=8` speed-test workflows, not by 4090 itself or final playback scale. Fix is to keep production context defaults for visual tests and only use `cf41` for timing smoke.
+- 480p portrait smoke: `kj10-4090-480x848-anchor-20260503-try1`
+  - machine / host: `56169 / 65203`
+  - GPU/location: `RTX 4090`, `Michigan, US`
+  - runtime: DockerHub v3 template `eb3ff9185d9de9a9482c2cffbdfd8f9f`
+  - output: `9.836s`, `480x848`, one `10s` segment, `16fps`, with audio
+  - workflow context: `context_frames=121`, `context_overlap=16`, `offload_img_emb=true`, `offload_txt_emb=true`
+  - prompt execution: `400.00s`; sampling progress `6/6` took about `5m57s`; total from Vast start to local download about `13m04s`
+  - HF speedtest: `93.32 MiB/s`; model downloads: about `5m11s`
+  - local result: `output/wan22_kj_30s_segmented/kj10-4090-480x848-anchor-20260503-try1/downloads/wan22_kj_30s_segmented-kj10-4090-480x848-anchor-20260503-try1.mp4`
+  - public result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/wan22_kj_30s_segmented/kj10-4090-480x848-anchor-20260503-try1/output/wan22_kj_30s_segmented-kj10-4090-480x848-anchor-20260503-try1.mp4`
+  - conclusion: `480x848` 竖屏可以跑通，但也应走稳定竖屏 context。不要再让 `480x848` 默认回落到 `context_frames=241/context_overlap=32`；该组合已在 3090 上导致采样阶段被 `Killed`。
 
 Segmented example:
 
