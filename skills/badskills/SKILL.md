@@ -280,6 +280,15 @@ These failures were observed on the same branch:
     - treat MultiTalk as a separate experiment image/profile, not an extension of the KJ v3 production template
     - if revisiting, build a dedicated environment smoke that validates `MultiTalkModelLoader`, `MultiTalkWav2VecEmbeds`, `WanVideoImageToVideoMultiTalk`, and audio-length behavior before downloading all models or running a paid prompt
 
+- Symptom: LTX2.3 ComfyUI startup exits with `Fatal Python error: Illegal instruction`, stack points to `kornia_rs/__init__.py`
+  - Root cause: `kornia 0.8.x` pulls `kornia_rs`, whose wheel can require CPU instructions missing on old but otherwise usable 3090 hosts such as `Core i7-3770`
+  - Evidence from `ltx23-vbvr-motion-s06-20260504-01`: host `96250`, machine `36223`, driver `590.48.01`, ComfyUI crashed before API; pinning `kornia==0.7.1` and uninstalling `kornia_rs` let the same staged workflow finish
+  - Action:
+    - do not classify this as a workflow, LTX2.3, or VBVR LoRA failure
+    - keep LTX2.3 bootstrap pinned to `kornia==0.7.1`
+    - skip floating `kornia>=0.7.1` from ComfyUI requirements
+    - after the fix, restart ComfyUI and submit the same staged workflow before destroying the instance
+
 - Symptom: a KJ "clean motion / 自己做动作" test has cleaner body motion but mouth does not match speech
   - Root cause: the KJ branch is primarily reference-motion / image-to-video conditioning; the final audio is muxed into the MP4, but it is not a reliable dense Mandarin lip-sync driver
   - Action:

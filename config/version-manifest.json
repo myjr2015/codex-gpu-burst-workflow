@@ -79,14 +79,14 @@
     },
     {
       "id": "ltx23_talking_head_smoke",
-      "status": "experimental",
+      "status": "candidate",
       "source_workflow": "workflows/LTX2.3单图音频对口型-无字幕候选.json",
       "source_workflow_id": "2040333916862685186",
       "default_entry": "scripts/run_ltx23_talking_head_smoke_end_to_end.ps1",
       "supported_runtime_strategies": [
         "1.0-cold"
       ],
-      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, and installs ComfyUI-KJNodes during bootstrap. The latest smoke has no visible pseudo subtitles/text in contact sheets but still needs user mouth-sync acceptance before production promotion.",
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset.",
       "latest_smoke": {
         "job_name": "ltx23-nosub-nag-20260504-01",
         "validated_at": "2026-05-04T14:42:31+08:00",
@@ -113,6 +113,44 @@
           "output/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/review/contact-1fps.jpg",
           "output/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/review/tail-8s-10s-4fps.jpg"
         ]
+      },
+      "latest_motion_smoke": {
+        "job_name": "ltx23-vbvr-motion-s06-20260504-01",
+        "validated_at": "2026-05-04T17:54:00+08:00",
+        "source_workflow_id": "2040333916862685186",
+        "instance_id": 36106501,
+        "machine_id": 36223,
+        "host_id": 96250,
+        "gpu": "RTX 3090",
+        "driver_version": "590.48.01",
+        "dph_total": 0.19333333333333333,
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "frame_count": 241,
+        "video_duration_seconds": 10.041667,
+        "audio_duration_seconds": 10.0,
+        "prompt_execution_seconds": 297.227,
+        "nag_enabled": true,
+        "motion_lora_enabled": true,
+        "motion_lora_name": "Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors",
+        "motion_lora_strength": 0.6,
+        "kornia_compat_fix": "pinned kornia==0.7.1 and removed kornia_rs after kornia_rs illegal-instruction crash",
+        "visible_text_artifacts": "none_seen_in_1fps_and_tail_contact_sheets",
+        "tail_mouth_motion": "visible_in_tail_contact_sheet",
+        "hand_motion": "right_hand_mid_clip_gesture_seen_in_contact_sheets",
+        "destroyed": true,
+        "local_result_path": "output/ltx23_talking_head_smoke/ltx23-vbvr-motion-s06-20260504-01/downloads/ltx23_talking_head_smoke-ltx23-vbvr-motion-s06-20260504-01_00001_.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-vbvr-motion-s06-20260504-01/output/ltx23_talking_head_smoke-ltx23-vbvr-motion-s06-20260504-01_00001_.mp4",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-vbvr-motion-s06-20260504-01/review/contact-1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-vbvr-motion-s06-20260504-01/review/tail-8s-10s-4fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-vbvr-motion-s06-20260504-01/review/motion-2fps.jpg"
+        ],
+        "motion_metrics_absdiff": {
+          "mouth_face_mean": 5.927,
+          "hands_sleeves_mean": 2.422,
+          "full_body_mean": 2.269
+        }
       }
     }
   ],

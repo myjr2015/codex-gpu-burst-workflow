@@ -34,6 +34,10 @@ param(
 
     [int64]$Seed = -1,
 
+    [string]$MotionLoraName = "",
+
+    [double]$MotionLoraStrength = 0.35,
+
     [string[]]$MountArgs = @(),
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/ltx23_talking_head_smoke" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/ltx23_talking_head_smoke" }),
@@ -104,6 +108,10 @@ Write-Host "runtime_image=$Image"
 Write-Host "resolution=${OutputWidth}x${OutputHeight}"
 Write-Host "duration_seconds=$DurationSeconds"
 Write-Host "fps=$Fps"
+if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
+    Write-Host "motion_lora=$MotionLoraName"
+    Write-Host "motion_lora_strength=$MotionLoraStrength"
+}
 
 $stageArgs = @()
 if (-not $SkipStage) {
@@ -122,6 +130,12 @@ if (-not $SkipStage) {
     )
     if ($Seed -ge 0) {
         $stageArgs += @("-Seed", "$Seed")
+    }
+    if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
+        $stageArgs += @(
+            "-MotionLoraName", $MotionLoraName,
+            "-MotionLoraStrength", $MotionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+        )
     }
     if (-not [string]::IsNullOrWhiteSpace($R2AccountId)) {
         $stageArgs += @("-R2AccountId", $R2AccountId)
@@ -168,6 +182,13 @@ if (-not $SkipLaunch) {
     )
     if ($CancelUnavail) {
         $launchArgs += "-CancelUnavail"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
+        $launchArgs += @(
+            "-ExtraEnv",
+            "LTX23_DOWNLOAD_VBVR=1",
+            "LTX23_MOTION_LORA_NAME=$MotionLoraName"
+        )
     }
     if ($MountArgs.Count -gt 0) {
         $launchArgs += @("-MountArgs", $MountArgs)

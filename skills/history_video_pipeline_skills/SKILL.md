@@ -76,10 +76,12 @@ MultiTalk / InfiniteTalk smoke details:
 
 Suggested LTX2.3 restart rules:
 
-- Create a new workflow branch/profile/skill such as `ltx23_video_recreation`; do not pollute `wan22_kj_30s` or old `wan_2_2_animate`.
+- Use the existing isolated workflow branch/profile/skill `ltx23_talking_head_smoke`; do not pollute `wan22_kj_30s` or old `wan_2_2_animate`.
 - First smoke should be `10s`, `480p` or `540p`, one subject, one clean background, and one short audio/text case.
-- Validate LTX2.3 on five axes before promotion:口型, identity, background replacement, duration control, and API/Vast reproducibility.
-- Do not assume LTX2.3 alone solves Chinese口型. If it is strong for motion/background but weak for mouth, pair it with a dedicated lip-sync/digital-human module.
+- Current self-hosted LTX2.3 candidate is `2040333916862685186`; the older `2043593704170070018` route produced pseudo subtitles/text and should not be used as a base.
+- VBVR strength `0.60` with `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors` is the current low-risk motion preset after `ltx23-vbvr-motion-s06-20260504-01`.
+- Validate LTX2.3 on five axes before production promotion:口型, identity, background replacement, duration control, and API/Vast reproducibility.
+- Do not assume stronger VBVR alone solves all body motion. If口型 passes but gestures still need choreography, add IC-LoRA / reference-motion control instead of only increasing VBVR strength.
 - Keep source video responsibilities separated: extract script/audio/background intent first; do not feed subtitle/sticker-heavy reference footage directly as the main motion condition unless the overlays are removed.
 
 ## Failure Modes

@@ -165,15 +165,15 @@ function removeNagNodes(prompt) {
   }
 }
 
-function ensureLtxNag(prompt) {
+function ensureLtxNag(prompt, modelNodeId = null) {
   const conditioning = findNodes(prompt, "LTXVConditioning")[0];
   const loraModel = findNodes(prompt, "LoraLoaderModelOnly")[0];
-  if (!conditioning || !loraModel) {
+  if (!conditioning || (!loraModel && !modelNodeId)) {
     return false;
   }
 
   const [conditioningId] = conditioning;
-  const [loraModelId] = loraModel;
+  const loraModelId = modelNodeId || loraModel[0];
   let nagId = findNodes(prompt, "LTX2_NAG")[0]?.[0] || null;
   if (!nagId) {
     nagId = allocateNodeId(prompt);
@@ -205,6 +205,38 @@ function ensureLtxNag(prompt) {
 
   replaceModelReferences(prompt, loraModelId, [nagId, 0], new Set([String(nagId)]));
   return true;
+}
+
+function insertMotionLora(prompt, motionLoraName, motionLoraStrength) {
+  if (!motionLoraName) {
+    return null;
+  }
+
+  const baseLora = findNodes(prompt, "LoraLoaderModelOnly")[0];
+  if (!baseLora) {
+    throw new Error("Cannot insert motion LoRA because no LoraLoaderModelOnly node exists.");
+  }
+
+  const [baseLoraId] = baseLora;
+  const motionLoraId = createNode(
+    prompt,
+    "LoraLoaderModelOnly",
+    {
+      model: [baseLoraId, 0],
+      lora_name: motionLoraName,
+      strength_model: motionLoraStrength,
+    },
+    "Motion LoRA",
+  );
+
+  replaceModelReferences(
+    prompt,
+    baseLoraId,
+    [motionLoraId, 0],
+    new Set([String(baseLoraId), String(motionLoraId)]),
+  );
+
+  return motionLoraId;
 }
 
 function patchConditioningText(prompt, positivePrompt, negativePrompt) {
@@ -346,6 +378,8 @@ function patchPrompt(
     enableNag,
     disableNag,
     preserveAudioCleanup,
+    motionLoraName,
+    motionLoraStrength,
   },
 ) {
   const prepared = cloneJson(prompt);
@@ -432,10 +466,12 @@ function patchPrompt(
     node.inputs.strength_model = 0.5;
   }
 
+  const motionLoraId = insertMotionLora(prepared, motionLoraName, motionLoraStrength);
+
   if (disableNag) {
     removeNagNodes(prepared);
   } else if (enableNag) {
-    ensureLtxNag(prepared);
+    ensureLtxNag(prepared, motionLoraId);
   }
   const nagEnabled = findNodes(prepared, "LTX2_NAG").length > 0;
 
@@ -489,6 +525,9 @@ function patchPrompt(
       seed: Number.isSafeInteger(seed) ? seed : null,
       nag_enabled: nagEnabled,
       preserve_audio_cleanup: preserveAudioCleanup,
+      motion_lora_enabled: Boolean(motionLoraId),
+      motion_lora_name: motionLoraId ? motionLoraName : null,
+      motion_lora_strength: motionLoraId ? motionLoraStrength : null,
       patched_positive_text_nodes: textPatch.positivePatched,
       patched_negative_text_nodes: textPatch.negativePatched,
     },
@@ -522,6 +561,8 @@ async function main() {
     enableNag: options["enable-nag"] === true,
     disableNag: options["disable-nag"] === true,
     preserveAudioCleanup: options["preserve-audio-cleanup"] === true,
+    motionLoraName: options["motion-lora-name"] || "",
+    motionLoraStrength: toNumber(options["motion-lora-strength"], 0.35),
   });
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

@@ -132,6 +132,11 @@ skip_prefixes = (
     "cuda-",
     "cuda_",
 )
+managed_prefixes = (
+    "kornia",
+    "kornia-rs",
+    "kornia_rs",
+)
 
 lines = []
 for raw in src.read_text(encoding="utf-8").splitlines():
@@ -142,6 +147,9 @@ for raw in src.read_text(encoding="utf-8").splitlines():
     normalized = (match.group(0) if match else line).lower()
     if normalized.startswith(skip_prefixes):
         print(f"[bootstrap-ltx23] skip CUDA/torch requirement: {line}")
+        continue
+    if normalized.startswith(managed_prefixes):
+        print(f"[bootstrap-ltx23] skip managed requirement: {line}")
         continue
     lines.append(line)
 
@@ -156,6 +164,29 @@ PY
 
   echo "[bootstrap-ltx23] installing filtered requirements for $label"
   pip_install --upgrade-strategy only-if-needed -r "$filtered_path"
+}
+
+ensure_kornia_compat() {
+  if python3 <<'PY' >/dev/null 2>&1
+import kornia
+import kornia.filters
+
+raise SystemExit(0 if getattr(kornia, "__version__", "") == "0.7.1" else 1)
+PY
+  then
+    echo "[bootstrap-ltx23] kornia compatibility pin exists: 0.7.1"
+    return 0
+  fi
+
+  echo "[bootstrap-ltx23] installing kornia compatibility pin: 0.7.1"
+  pip_install --force-reinstall --no-deps "kornia==0.7.1"
+  python3 -m pip uninstall -y kornia-rs kornia_rs >/dev/null 2>&1 || true
+  python3 <<'PY'
+import kornia
+import kornia.filters
+
+print(f"[bootstrap-ltx23] kornia ready: {kornia.__version__}")
+PY
 }
 
 download_if_missing() {
@@ -178,6 +209,33 @@ download_if_missing() {
     -C - -o "$tmp" "$url"
   mv "$tmp" "$target"
   stage_event "$stage_name" "end"
+}
+
+download_motion_lora_if_requested() {
+  local requested_name="${LTX23_MOTION_LORA_NAME:-}"
+  local requested_url="${LTX23_MOTION_LORA_URL:-}"
+
+  if [ -z "$requested_name" ] && [ "${LTX23_DOWNLOAD_VBVR:-0}" != "1" ]; then
+    return 0
+  fi
+
+  if [ -z "$requested_name" ]; then
+    requested_name="Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors"
+  fi
+
+  case "$requested_name" in
+    "Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors"|"Ltx2.3-Licon-VBVR-I2V-390K-R32.safetensors"|"Ltx2.3-Licon-VBVR-I2V-96000-R32.safetensors")
+      requested_url="https://huggingface.co/LiconStudio/Ltx2.3-VBVR-lora-I2V/resolve/main/$requested_name"
+      ;;
+  esac
+
+  if [ -z "$requested_url" ]; then
+    echo "[bootstrap-ltx23] LTX23_MOTION_LORA_NAME is set but no known URL is available: $requested_name" >&2
+    echo "[bootstrap-ltx23] Set LTX23_MOTION_LORA_URL or use a known LiconStudio VBVR LoRA filename." >&2
+    exit 2
+  fi
+
+  download_if_missing "$requested_url" "$MODELS_DIR/loras/$requested_name"
 }
 
 install_custom_node_repo() {
@@ -210,6 +268,7 @@ echo "[bootstrap-ltx23] installing python dependencies"
 stage_event "bootstrap.python_dependencies" "start"
 ensure_torch_stack
 install_filtered_requirements_file "$COMFY_APP_ROOT/requirements.txt" "comfyui-core-requirements"
+ensure_kornia_compat
 ensure_python_package "huggingface_hub[hf_xet]>=0.31.0" "huggingface_hub"
 ensure_python_package "safetensors" "safetensors"
 ensure_python_package "transformers>=4.53.0" "transformers"
@@ -257,6 +316,8 @@ download_if_missing \
 download_if_missing \
   "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.0.safetensors" \
   "$MODELS_DIR/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.0.safetensors"
+
+download_motion_lora_if_requested
 
 stage_event "bootstrap.model_downloads" "end"
 

@@ -57,6 +57,51 @@ Conclusion:
 - The local prepare path folds RunningHub helper nodes, replaces `VHS_VideoCombine` with `CreateVideo + SaveVideo`, bypasses nonessential MelBand/KJ resize helpers, trims staged audio to the requested duration, and keeps `LTX2_NAG`.
 - `LTX2_NAG` requires KJNodes on self-hosted ComfyUI; if object validation reports `LTX2_NAG` missing, fix custom node installation before spending a full inference.
 
+## 2026-05-04 VBVR Motion Smoke
+
+The first motion add-on should stay on the same no-subtitle LTX2.3 base:
+
+- motion LoRA: `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors`
+- source: `LiconStudio/Ltx2.3-VBVR-lora-I2V`
+- runtime chain: distilled LoRA -> VBVR motion LoRA -> `LTX2_NAG` -> sampler
+
+Test results:
+
+- `ltx23-vbvr-motion-20260504-01`, strength `0.35`: generated successfully, no visible pseudo subtitles, mouth still moved near the tail, but hand/body motion remained too weak.
+- `ltx23-vbvr-motion-s06-20260504-01`, strength `0.60`: generated successfully after the `kornia_rs` fix below; output is `512x896`, `24fps`, `241` frames, video `10.041667s`, audio `10.000000s`; contact sheets show a real mid-clip right-hand gesture and no visible bottom subtitle/text artifacts. Prompt execution was `297.23s`.
+
+Current recommendation:
+
+- Use VBVR strength `0.60` as the current low-risk talking-head motion preset.
+- Do not jump to VBVR `1.0` just to force bigger gestures; RunningHub notes and the local result both suggest higher strength can destabilize the person.
+- If the user wants richer choreographed hand/pose motion after accepting lip sync, move to IC-LoRA / reference-motion control instead of only increasing VBVR.
+
+Motion metric note:
+
+- Compared with the base and `0.35`, the `0.60` run raised the hands/sleeves frame-diff mean from about `1.50` to `2.42`, while mouth/face motion stayed in the same band.
+
+## Kornia CPU Compatibility Trap
+
+Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:
+
+- instance `36106501`
+- host `96250`
+- machine `36223`
+- CPU `Core i7-3770`
+- driver `590.48.01`
+
+Symptom:
+
+- ComfyUI exits during startup with `Fatal Python error: Illegal instruction`
+- stack points to `/usr/local/lib/python3.12/dist-packages/kornia_rs/__init__.py`
+- import path comes through ComfyUI builtin `comfy_extras/nodes_canny.py`
+
+Action:
+
+- Do not treat this as an LTX workflow or VBVR LoRA failure.
+- Pin `kornia==0.7.1` and uninstall `kornia-rs` / `kornia_rs`; this allows ComfyUI to load `nodes_canny.py` on old CPUs.
+- Keep this fix in `scripts/bootstrap_ltx23_talking_head.sh`, because ComfyUI requirements currently allow floating `kornia>=0.7.1`, which can install `kornia 0.8.x` plus incompatible `kornia_rs`.
+
 ## Model and Runtime Notes
 
 The current candidate starts from a RunningHub no-subtitle workflow, but the runtime JSON is simplified for self-hosting.

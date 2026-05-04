@@ -22,6 +22,10 @@ param(
 
     [int64]$Seed = -1,
 
+    [string]$MotionLoraName = "",
+
+    [double]$MotionLoraStrength = 0.35,
+
     [switch]$NoTrimAudio,
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/ltx23_talking_head_smoke" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/ltx23_talking_head_smoke" }),
@@ -172,6 +176,12 @@ $prepareArgs = @(
 if ($Seed -ge 0) {
     $prepareArgs += @("--seed", "$Seed")
 }
+if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
+    $prepareArgs += @(
+        "--motion-lora-name", $MotionLoraName,
+        "--motion-lora-strength", $MotionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+    )
+}
 
 & node @prepareArgs
 if ($LASTEXITCODE -ne 0) {
@@ -203,6 +213,9 @@ $manifest = [ordered]@{
         expected_video_seconds = $runtimeMetadata.expected_video_seconds
         output_container = $runtimeMetadata.output_container
         nag_enabled = $runtimeMetadata.nag_enabled
+        motion_lora_enabled = $runtimeMetadata.motion_lora_enabled
+        motion_lora_name = $runtimeMetadata.motion_lora_name
+        motion_lora_strength = $runtimeMetadata.motion_lora_strength
         positive_prompt = $PositivePrompt
         negative_prompt = $NegativePrompt
         bootstrap_template = $bootstrapScript
