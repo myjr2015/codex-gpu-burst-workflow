@@ -8,6 +8,7 @@ WORKFLOW_PATH="${WORKFLOW_PATH:-$RUN_DIR/workflow_runtime.json}"
 BOOTSTRAP_PATH="${BOOTSTRAP_PATH:-$RUN_DIR/bootstrap_ltx23_talking_head.sh}"
 INPUT_IMAGE_NAME="${INPUT_IMAGE_NAME:-speaker.png}"
 INPUT_AUDIO_NAME="${INPUT_AUDIO_NAME:-speech.wav}"
+INPUT_REFERENCE_VIDEO_NAME="${INPUT_REFERENCE_VIDEO_NAME:-}"
 COMFY_LOG_PATH="${COMFY_LOG_PATH:-$RUN_DIR/comfyui.log}"
 COMFY_PID_PATH="${COMFY_PID_PATH:-$RUN_DIR/comfyui.pid}"
 
@@ -42,6 +43,11 @@ fi
 
 if [ ! -f "$COMFY_ROOT/input/$INPUT_AUDIO_NAME" ]; then
   echo "[remote-ltx23] missing input audio: $COMFY_ROOT/input/$INPUT_AUDIO_NAME" >&2
+  exit 1
+fi
+
+if [ -n "$INPUT_REFERENCE_VIDEO_NAME" ] && [ ! -f "$COMFY_ROOT/input/$INPUT_REFERENCE_VIDEO_NAME" ]; then
+  echo "[remote-ltx23] missing input reference video: $COMFY_ROOT/input/$INPUT_REFERENCE_VIDEO_NAME" >&2
   exit 1
 fi
 

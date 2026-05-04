@@ -8,6 +8,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$AudioPath,
 
+    [string]$ReferenceVideoPath = "",
+
+    [switch]$ActionMimic,
+
     [int]$OutputWidth = 512,
 
     [int]$OutputHeight = 896,
@@ -33,6 +37,16 @@ param(
     [string]$MotionLoraName = "",
 
     [double]$MotionLoraStrength = 0.35,
+
+    [double]$ActionGuideStrength = 0.55,
+
+    [double]$ActionLoraStrength = 0.75,
+
+    [double]$IdentityLoraStrength = 0.75,
+
+    [double]$IdentityGuidanceScale = 2.5,
+
+    [int]$DwposeResolution = 512,
 
     [switch]$NoTrimAudio,
 
@@ -88,14 +102,24 @@ if ([string]::IsNullOrWhiteSpace($sourceWorkflowId)) {
     $sourceWorkflowId = "2043593704170070018"
 }
 
+if ($ActionMimic -or -not [string]::IsNullOrWhiteSpace($ReferenceVideoPath)) {
+    $ActionMimic = $true
+    $workflowSourceRel = "workflows\LTX2.3动作模仿+音频对口型-V3候选.json"
+    $sourceWorkflowId = "2044017351640748034"
+    if ([string]::IsNullOrWhiteSpace($ReferenceVideoPath)) {
+        throw "ReferenceVideoPath is required when ActionMimic is enabled."
+    }
+}
+
 $sourceWorkflow = Join-Path $repoRoot $workflowSourceRel
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_ltx23_talking_head.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_ltx23_talking_head.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_ltx23_talking_head_prompt.mjs"
+$actionPrepareScript = Join-Path $repoRoot "scripts\prepare_ltx23_action_mimic_prompt.mjs"
 $generateOnstartScript = Join-Path $repoRoot "scripts\generate_ltx23_talking_head_onstart.mjs"
 $r2UploadScript = Join-Path $repoRoot "scripts\r2_upload.py"
 
-foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $generateOnstartScript, $r2UploadScript)) {
+foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, $prepareScript, $actionPrepareScript, $generateOnstartScript, $r2UploadScript)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Missing required file: $required"
     }
@@ -103,14 +127,26 @@ foreach ($required in @($sourceWorkflow, $bootstrapScript, $remoteSubmitScript, 
 
 $resolvedImage = (Resolve-Path -LiteralPath $ImagePath).Path
 $resolvedAudio = (Resolve-Path -LiteralPath $AudioPath).Path
+$resolvedReferenceVideo = $null
+if ($ActionMimic) {
+    $resolvedReferenceVideo = (Resolve-Path -LiteralPath $ReferenceVideoPath).Path
+}
 $imageExt = [System.IO.Path]::GetExtension($resolvedImage).ToLowerInvariant()
 $audioExt = [System.IO.Path]::GetExtension($resolvedAudio).ToLowerInvariant()
 if ([string]::IsNullOrWhiteSpace($imageExt)) {
     $imageExt = ".png"
 }
+$referenceExt = ".mp4"
+if ($ActionMimic) {
+    $candidateExt = [System.IO.Path]::GetExtension($resolvedReferenceVideo).ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($candidateExt)) {
+        $referenceExt = $candidateExt
+    }
+}
 
 $inputImageName = "speaker$imageExt"
 $inputAudioName = "speech.wav"
+$inputReferenceVideoName = "reference_video$referenceExt"
 
 $ffmpegPath = $null
 if (-not $NoTrimAudio) {
@@ -138,6 +174,7 @@ foreach ($staleFile in @("onstart_ltx23_talking_head.sh", "vast-create-response.
 
 $stagedImage = Join-Path $inputDir $inputImageName
 $stagedAudio = Join-Path $inputDir $inputAudioName
+$stagedReferenceVideo = Join-Path $inputDir $inputReferenceVideoName
 $canvasOut = Join-Path $jobDir "workflow_canvas.json"
 $runtimeOut = Join-Path $jobDir "workflow_runtime.json"
 $runtimeMetadataOut = Join-Path $jobDir "workflow_runtime.metadata.json"
@@ -147,6 +184,9 @@ $manifestOut = Join-Path $jobDir "manifest.json"
 $onstartOut = Join-Path $jobDir "onstart_ltx23_talking_head.sh"
 
 Copy-Item -LiteralPath $resolvedImage -Destination $stagedImage -Force
+if ($ActionMimic) {
+    Copy-Item -LiteralPath $resolvedReferenceVideo -Destination $stagedReferenceVideo -Force
+}
 if ($NoTrimAudio) {
     Copy-Item -LiteralPath $resolvedAudio -Destination $stagedAudio -Force
 }
@@ -166,8 +206,10 @@ Copy-Item -LiteralPath $sourceWorkflow -Destination $canvasOut -Force
 Copy-Item -LiteralPath $bootstrapScript -Destination $bootstrapOut -Force
 Copy-Item -LiteralPath $remoteSubmitScript -Destination $remoteSubmitOut -Force
 
+$selectedPrepareScript = if ($ActionMimic) { $actionPrepareScript } else { $prepareScript }
+
 $prepareArgs = @(
-    $prepareScript,
+    $selectedPrepareScript,
     "--input", $canvasOut,
     "--output", $runtimeOut,
     "--metadata-output", $runtimeMetadataOut,
@@ -180,6 +222,16 @@ $prepareArgs = @(
     "--fps", "$Fps",
     "--negative-prompt", $NegativePrompt
 )
+if ($ActionMimic) {
+    $prepareArgs += @(
+        "--reference-video-name", $inputReferenceVideoName,
+        "--action-guide-strength", $ActionGuideStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+        "--action-lora-strength", $ActionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+        "--identity-lora-strength", $IdentityLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+        "--identity-guidance-scale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+        "--dwpose-resolution", "$DwposeResolution"
+    )
+}
 if (-not [string]::IsNullOrWhiteSpace($PositivePrompt)) {
     $prepareArgs += @("--positive-prompt", $PositivePrompt)
 }
@@ -214,17 +266,19 @@ $manifest = [ordered]@{
     job_name = $JobName
     created_at = (Get-Date).ToString("s")
     workflow = [ordered]@{
+        mode = $(if ($ActionMimic) { "action_mimic" } else { "talking_head" })
         canvas_source = $sourceWorkflow
         canvas_name = [System.IO.Path]::GetFileName($sourceWorkflow)
         source_workflow_id = $sourceWorkflowId
-        prepare_script = $prepareScript
+        prepare_script = $selectedPrepareScript
         input_image_name = $inputImageName
         input_audio_name = $inputAudioName
+        input_reference_video_name = $(if ($ActionMimic) { $inputReferenceVideoName } else { $null })
         audio_trimmed_to_duration = -not [bool]$NoTrimAudio
         output_width = $runtimeMetadata.output_width
         output_height = $runtimeMetadata.output_height
-        base_width = $runtimeMetadata.base_width
-        base_height = $runtimeMetadata.base_height
+        base_width = $(if ($runtimeMetadata.base_width) { $runtimeMetadata.base_width } else { $runtimeMetadata.output_width })
+        base_height = $(if ($runtimeMetadata.base_height) { $runtimeMetadata.base_height } else { $runtimeMetadata.output_height })
         duration_seconds = $runtimeMetadata.requested_duration_seconds
         fps = $runtimeMetadata.fps
         frame_count = $runtimeMetadata.frame_count
@@ -234,6 +288,14 @@ $manifest = [ordered]@{
         motion_lora_enabled = $runtimeMetadata.motion_lora_enabled
         motion_lora_name = $runtimeMetadata.motion_lora_name
         motion_lora_strength = $runtimeMetadata.motion_lora_strength
+        action_mimic_enabled = [bool]$ActionMimic
+        action_guide_strength = $(if ($ActionMimic) { $runtimeMetadata.action_guide_strength } else { $null })
+        action_lora_name = $(if ($ActionMimic) { $runtimeMetadata.action_lora_name } else { $null })
+        action_lora_strength = $(if ($ActionMimic) { $runtimeMetadata.action_lora_strength } else { $null })
+        identity_lora_name = $(if ($ActionMimic) { $runtimeMetadata.identity_lora_name } else { $null })
+        identity_lora_strength = $(if ($ActionMimic) { $runtimeMetadata.identity_lora_strength } else { $null })
+        identity_guidance_scale = $(if ($ActionMimic) { $runtimeMetadata.identity_guidance_scale } else { $null })
+        dwpose_resolution = $(if ($ActionMimic) { $runtimeMetadata.dwpose_resolution } else { $null })
         positive_prompt_source = $runtimeMetadata.positive_prompt_source
         positive_prompt = $runtimeMetadata.positive_prompt
         speaker_prompt = $runtimeMetadata.speaker_prompt
@@ -249,6 +311,7 @@ $manifest = [ordered]@{
         job_dir = $jobDir
         input_image = $stagedImage
         input_audio = $stagedAudio
+        input_reference_video = $(if ($ActionMimic) { $stagedReferenceVideo } else { $null })
         workflow_canvas = $canvasOut
         workflow_runtime = $runtimeOut
         workflow_runtime_metadata = $runtimeMetadataOut
@@ -266,6 +329,7 @@ $manifest = [ordered]@{
     remote = [ordered]@{
         comfy_input_image = "/workspace/ComfyUI/input/$inputImageName"
         comfy_input_audio = "/workspace/ComfyUI/input/$inputAudioName"
+        comfy_input_reference_video = $(if ($ActionMimic) { "/workspace/ComfyUI/input/$inputReferenceVideoName" } else { $null })
         run_dir = "/workspace/ltx23-talking-head-run"
     }
     automation = [ordered]@{

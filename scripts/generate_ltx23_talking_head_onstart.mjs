@@ -39,6 +39,7 @@ async function main() {
   const prefix = String(r2.prefix || "").replace(/^\/+|\/+$/g, "");
   const inputImageName = manifest?.workflow?.input_image_name || "speaker.png";
   const inputAudioName = manifest?.workflow?.input_audio_name || "speech.wav";
+  const inputReferenceVideoName = manifest?.workflow?.input_reference_video_name || "";
 
   if (!publicBase || !prefix) {
     throw new Error("Manifest missing r2.public_base_url or r2.prefix");
@@ -51,6 +52,9 @@ async function main() {
     inputImage: `${prefix}/input/${inputImageName}`,
     inputAudio: `${prefix}/input/${inputAudioName}`,
   };
+  if (inputReferenceVideoName) {
+    files.inputReferenceVideo = `${prefix}/input/${inputReferenceVideoName}`;
+  }
 
   const url = (key) => `${publicBase}/${encodePath(key)}`;
 
@@ -79,9 +83,10 @@ fetch "${url(files.bootstrap)}" "$RUN_DIR/bootstrap_ltx23_talking_head.sh"
 fetch "${url(files.remoteSubmit)}" "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
 fetch "${url(files.inputImage)}" "$COMFY_ROOT/input/${inputImageName}"
 fetch "${url(files.inputAudio)}" "$COMFY_ROOT/input/${inputAudioName}"
+${inputReferenceVideoName ? `fetch "${url(files.inputReferenceVideo)}" "$COMFY_ROOT/input/${inputReferenceVideoName}"` : ""}
 
 chmod +x "$RUN_DIR/bootstrap_ltx23_talking_head.sh" "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
-INPUT_IMAGE_NAME="${inputImageName}" INPUT_AUDIO_NAME="${inputAudioName}" bash "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
+INPUT_IMAGE_NAME="${inputImageName}" INPUT_AUDIO_NAME="${inputAudioName}" INPUT_REFERENCE_VIDEO_NAME="${inputReferenceVideoName}" bash "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
 echo "[onstart-ltx23] finished at $(date -Iseconds)"
 `;
 

@@ -9,6 +9,7 @@ PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
 LTX_UPDATE_COMFYUI="${LTX_UPDATE_COMFYUI:-1}"
+LTX23_ENABLE_ACTION_MIMIC="${LTX23_ENABLE_ACTION_MIMIC:-0}"
 
 mkdir -p "$MODELS_DIR" "$RUN_DIR" "$COMFY_ROOT/input" "$COMFY_ROOT/output" "$COMFY_ROOT/custom_nodes"
 
@@ -238,6 +239,56 @@ download_motion_lora_if_requested() {
   download_if_missing "$requested_url" "$MODELS_DIR/loras/$requested_name"
 }
 
+download_action_mimic_models_if_requested() {
+  if [ "$LTX23_ENABLE_ACTION_MIMIC" != "1" ]; then
+    return 0
+  fi
+
+  mkdir -p \
+    "$MODELS_DIR/diffusion_models" \
+    "$MODELS_DIR/vae" \
+    "$MODELS_DIR/text_encoders" \
+    "$MODELS_DIR/loras" \
+    "$MODELS_DIR/ultralytics/bbox" \
+    "$MODELS_DIR/dwpose"
+
+  download_if_missing \
+    "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_input_scaled_v3.safetensors" \
+    "$MODELS_DIR/diffusion_models/ltx-2.3-22b-distilled_transformer_only_fp8_input_scaled_v3.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/vae/LTX23_video_vae_bf16.safetensors" \
+    "$MODELS_DIR/vae/LTX23_video_vae_bf16.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/vae/LTX23_audio_vae_bf16.safetensors" \
+    "$MODELS_DIR/vae/LTX23_audio_vae_bf16.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors" \
+    "$MODELS_DIR/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/text_encoders/ltx-2.3_text_projection_bf16.safetensors" \
+    "$MODELS_DIR/text_encoders/ltx-2.3_text_projection_bf16.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control/resolve/main/ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors" \
+    "$MODELS_DIR/loras/ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/ltx-2.3/resolve/main/split_files/loras/ltx-2.3-id-lora-talkvid-3k.safetensors" \
+    "$MODELS_DIR/loras/ltx-2.3-id-lora-talkvid-3k.safetensors"
+
+  download_if_missing \
+    "https://huggingface.co/hr16/yolox-onnx/resolve/main/yolox_l.torchscript.pt" \
+    "$MODELS_DIR/ultralytics/bbox/yolox_l.torchscript.pt"
+
+  download_if_missing \
+    "https://huggingface.co/hr16/DWPose-TorchScript-BatchSize5/resolve/main/dw-ll_ucoco_384_bs5.torchscript.pt" \
+    "$MODELS_DIR/dwpose/dw-ll_ucoco_384_bs5.torchscript.pt"
+}
+
 install_custom_node_repo() {
   local repo_url="$1"
   local target_dir="$2"
@@ -291,6 +342,20 @@ install_custom_node_repo \
   "https://github.com/kijai/ComfyUI-KJNodes.git" \
   "$COMFY_ROOT/custom_nodes/ComfyUI-KJNodes" \
   "ComfyUI-KJNodes"
+if [ "$LTX23_ENABLE_ACTION_MIMIC" = "1" ]; then
+  install_custom_node_repo \
+    "https://github.com/Lightricks/ComfyUI-LTXVideo.git" \
+    "$COMFY_ROOT/custom_nodes/ComfyUI-LTXVideo" \
+    "ComfyUI-LTXVideo"
+  install_custom_node_repo \
+    "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git" \
+    "$COMFY_ROOT/custom_nodes/ComfyUI-VideoHelperSuite" \
+    "ComfyUI-VideoHelperSuite"
+  install_custom_node_repo \
+    "https://github.com/Fannovel16/comfyui_controlnet_aux.git" \
+    "$COMFY_ROOT/custom_nodes/comfyui_controlnet_aux" \
+    "comfyui_controlnet_aux"
+fi
 stage_event "bootstrap.custom_nodes" "end"
 
 echo "[bootstrap-ltx23] downloading models"
@@ -301,23 +366,27 @@ mkdir -p \
   "$MODELS_DIR/loras" \
   "$MODELS_DIR/latent_upscale_models"
 
-download_if_missing \
-  "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors" \
-  "$MODELS_DIR/checkpoints/ltx-2.3-22b-dev-fp8.safetensors"
+if [ "$LTX23_ENABLE_ACTION_MIMIC" = "1" ]; then
+  download_action_mimic_models_if_requested
+else
+  download_if_missing \
+    "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors" \
+    "$MODELS_DIR/checkpoints/ltx-2.3-22b-dev-fp8.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors" \
-  "$MODELS_DIR/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors" \
+    "$MODELS_DIR/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384.safetensors" \
-  "$MODELS_DIR/loras/ltx-2.3-22b-distilled-lora-384.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384.safetensors" \
+    "$MODELS_DIR/loras/ltx-2.3-22b-distilled-lora-384.safetensors"
 
-download_if_missing \
-  "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.0.safetensors" \
-  "$MODELS_DIR/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.0.safetensors"
+  download_if_missing \
+    "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.0.safetensors" \
+    "$MODELS_DIR/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.0.safetensors"
 
-download_motion_lora_if_requested
+  download_motion_lora_if_requested
+fi
 
 stage_event "bootstrap.model_downloads" "end"
 

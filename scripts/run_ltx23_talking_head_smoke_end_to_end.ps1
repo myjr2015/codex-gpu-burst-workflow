@@ -6,6 +6,10 @@ param(
 
     [string]$AudioPath = ".\output\ltx23_runninghub\_inputs\audio_30s.wav",
 
+    [string]$ReferenceVideoPath = "",
+
+    [switch]$ActionMimic,
+
     [string]$OfferId,
 
     [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.8 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
@@ -45,6 +49,16 @@ param(
     [string]$MotionLoraName = "",
 
     [double]$MotionLoraStrength = 0.35,
+
+    [double]$ActionGuideStrength = 0.55,
+
+    [double]$ActionLoraStrength = 0.75,
+
+    [double]$IdentityLoraStrength = 0.75,
+
+    [double]$IdentityGuidanceScale = 2.5,
+
+    [int]$DwposeResolution = 512,
 
     [string[]]$MountArgs = @(),
 
@@ -111,6 +125,14 @@ if ([string]::IsNullOrWhiteSpace($ImagePath)) {
     $ImagePath = $defaultImage
 }
 
+if ($ActionMimic -and [string]::IsNullOrWhiteSpace($ReferenceVideoPath)) {
+    $defaultReferenceVideo = Join-Path $repoRoot "素材资产\原视频\光伏10s.mp4"
+    if (-not (Test-Path -LiteralPath $defaultReferenceVideo)) {
+        throw "ReferenceVideoPath is required because default reference video was not found: $defaultReferenceVideo"
+    }
+    $ReferenceVideoPath = $defaultReferenceVideo
+}
+
 Write-Host "profile=ltx23_talking_head_smoke"
 Write-Host "runtime_image=$Image"
 Write-Host "resolution=${OutputWidth}x${OutputHeight}"
@@ -126,6 +148,12 @@ else {
 if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
     Write-Host "motion_lora=$MotionLoraName"
     Write-Host "motion_lora_strength=$MotionLoraStrength"
+}
+if ($ActionMimic) {
+    Write-Host "mode=action_mimic"
+    Write-Host "reference_video=$ReferenceVideoPath"
+    Write-Host "action_guide_strength=$ActionGuideStrength"
+    Write-Host "action_lora_strength=$ActionLoraStrength"
 }
 
 $stageArgs = @()
@@ -162,6 +190,17 @@ if (-not $SkipStage) {
             "-MotionLoraStrength", $MotionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture)
         )
     }
+    if ($ActionMimic) {
+        $stageArgs += @(
+            "-ActionMimic",
+            "-ReferenceVideoPath", (Resolve-Path -LiteralPath $ReferenceVideoPath).Path,
+            "-ActionGuideStrength", $ActionGuideStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+            "-ActionLoraStrength", $ActionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+            "-IdentityLoraStrength", $IdentityLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+            "-IdentityGuidanceScale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+            "-DwposeResolution", "$DwposeResolution"
+        )
+    }
     if (-not [string]::IsNullOrWhiteSpace($R2AccountId)) {
         $stageArgs += @("-R2AccountId", $R2AccountId)
     }
@@ -176,6 +215,7 @@ if (-not $SkipStage) {
 
 $launchArgs = @()
 if (-not $SkipLaunch) {
+    $extraEnvItems = @()
     if ([string]::IsNullOrWhiteSpace($OfferId)) {
         $selectionJson = & pwsh -File $selectorPath `
             -SearchQuery $SearchQuery `
@@ -209,11 +249,16 @@ if (-not $SkipLaunch) {
         $launchArgs += "-CancelUnavail"
     }
     if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
-        $launchArgs += @(
-            "-ExtraEnv",
+        $extraEnvItems += @(
             "LTX23_DOWNLOAD_VBVR=1",
             "LTX23_MOTION_LORA_NAME=$MotionLoraName"
         )
+    }
+    if ($ActionMimic) {
+        $extraEnvItems += "LTX23_ENABLE_ACTION_MIMIC=1"
+    }
+    if ($extraEnvItems.Count -gt 0) {
+        $launchArgs += @("-ExtraEnv") + $extraEnvItems
     }
     if ($MountArgs.Count -gt 0) {
         $launchArgs += @("-MountArgs", $MountArgs)

@@ -1,6 +1,6 @@
 ---
 name: ltx23_talking_head
-description: Use when testing or running the isolated LTX2.3 single-image plus audio talking-head route on Vast/ComfyUI, before adding VBVR, IC-LoRA motion transfer, PromptRelay, or long-video segmentation.
+description: Use when testing or running the isolated LTX2.3 single-image plus audio talking-head route on Vast/ComfyUI, including the current V3 reference-action plus audio lip-sync candidate, before adding PromptRelay or long-video segmentation.
 ---
 
 # ltx23_talking_head
@@ -21,6 +21,8 @@ Current branch:
 - profile: `ltx23_talking_head_smoke`
 - current candidate workflow: `workflows/LTX2.3单图音频对口型-无字幕候选.json`
 - current candidate RunningHub workflow id: `2040333916862685186`
+- current action-mimic workflow: `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`
+- current action-mimic RunningHub workflow id: `2044017351640748034`
 - rejected baseline workflow: `workflows/LTX2.3单图音频对口型-smoke.json`
 - rejected baseline RunningHub workflow id: `2043593704170070018`
 - default entry: `scripts/run_ltx23_talking_head_smoke_end_to_end.ps1`
@@ -30,18 +32,27 @@ Current branch:
 
 ## Current Strategy
 
-The current low-risk stack is:
+The current low-risk stack for plain talking-head checks is:
 
 1. One composed speaker image.
 2. One short audio file.
 3. LTX2.3 no-subtitle audio/video latent workflow.
 4. VBVR motion LoRA at strength `0.60`.
 5. Prompt-only background module.
-6. No IC-LoRA motion transfer yet.
-7. No PromptRelay / Qwen / Gemini workflow nodes in the self-host runtime.
-8. No 1080p or upscale-first production run.
+6. No PromptRelay / Qwen / Gemini workflow nodes in the self-host runtime.
+7. No 1080p or upscale-first production run.
 
-Only add the next module after this base route passes lip-sync and tail behavior review.
+The current user-target stack for action mimic is:
+
+1. One composed RGB speaker/background anchor image.
+2. One short audio file.
+3. One short reference video for body/hand rhythm.
+4. V3 action-mimic workflow `2044017351640748034`.
+5. `DWPreprocessor -> LTXAddVideoICLoRAGuide` for reference action.
+6. `LTXVAudioVAEEncode -> LTXVConcatAVLatent -> LTXVReferenceAudio` for lip-sync/identity audio conditioning.
+7. Union Control IC-LoRA at guide strength `0.55`, action LoRA strength `0.75`, ID LoRA strength `0.75`, identity guidance `2.5`.
+
+Only move to 30s/60s after the 10s V3 action-mimic sample passes playback review.
 
 ## 2026-05-04 Smoke Results
 
@@ -125,12 +136,62 @@ Review result:
 - Background generation worked: clean rooftop photovoltaic scene, blue panels, utility building, sky, and distant ridge.
 - Mouth still appears active in the tail contact sheet.
 - The output is rejected because pseudo English subtitle fragments reappeared across the lower frame and over the subject.
+- The output is also rejected for motion: VBVR `0.60` did not produce useful hand gestures in this configuration, so the body reads too static for the user's target.
 
 Conclusion:
 
 - Do not feed the transparent RGBA character image directly into this LTX2.3 route and rely on the prompt to synthesize the full background.
 - The next background route should first build a clean RGB anchor image: transparent character composited onto a no-text photovoltaic background plate. Then feed that composed image into LTX2.3 with the existing no-subtitle workflow and VBVR `0.60`.
 - Keep the background prompt module, but treat it as anchor/background generation guidance, not as permission for LTX2.3 to hallucinate a full scene around raw alpha.
+- Do not claim the current VBVR-only route solves gesture/action. After the clean RGB anchor passes the no-subtitle and full-body checks, add IC-LoRA / reference-motion control for real hand/body action.
+
+## 2026-05-05 Action-Mimic V3 Smoke
+
+This is the first self-hosted route that should be called action mimic.
+
+Workflow:
+
+- RunningHub id: `2044017351640748034`
+- source file: `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`
+- prepare script: `scripts/prepare_ltx23_action_mimic_prompt.mjs`
+- local entry: `scripts/run_ltx23_talking_head_smoke_end_to_end.ps1 -ActionMimic`
+
+Core chain:
+
+- reference action: `VHS_LoadVideo -> DWPreprocessor -> ResizeImageMaskNode -> LTXAddVideoICLoRAGuide`
+- action LoRA: `LTXICLoRALoaderModelOnly` with `ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors`
+- lip-sync audio: `LoadAudio -> LTXVAudioVAEEncode -> SetLatentNoiseMask -> LTXVConcatAVLatent`
+- identity/audio guidance: `LTXVReferenceAudio` plus `ltx-2.3-id-lora-talkvid-3k.safetensors`
+
+Paid smoke:
+
+- job: `ltx23-action-mimic-v3-20260505-01`
+- final instance: `36137864`, Czechia RTX 3090, host `151822`, machine `81287`, driver `590.48.01`, `dph_total=0.212`
+- output: `512x896`, `24fps`, `241` frames, video `10.041667s`, audio `10.000000s`
+- prompt execution: `284.11s`
+- remote lifecycle: `708s`; remote bootstrap `401s`; wait history `291s`
+- required node validation passed, including `DWPreprocessor`, `LTXAddVideoICLoRAGuide`, `LTXICLoRALoaderModelOnly`, `LTXVReferenceAudio`, `LTXVAudioVAEEncode`, and `LTXVConcatAVLatent`
+- DWPose logs detected `1 people` on the reference frames and sampling reached `8/8`
+- local result: `output/ltx23_talking_head_smoke/ltx23-action-mimic-v3-20260505-01/downloads/ltx23_talking_head_smoke-ltx23-action-mimic-v3-20260505-01_00001_.mp4`
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-action-mimic-v3-20260505-01/output/ltx23_talking_head_smoke-ltx23-action-mimic-v3-20260505-01_00001_.mp4`
+- review sheets:
+  - `output/ltx23_talking_head_smoke/ltx23-action-mimic-v3-20260505-01/frame_review/output_contact_1fps.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-action-mimic-v3-20260505-01/frame_review/output_tail_8s_10s.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-action-mimic-v3-20260505-01/frame_review/reference_vs_output_1fps.jpg`
+
+Review result:
+
+- No pseudo English/Chinese subtitles were visible in the 1fps and tail contact sheets.
+- No duplicate person or first-frame two-person issue was visible in the contact sheets.
+- Tail frames still show mouth motion.
+- Hand/body action is clearly stronger than VBVR-only: pointing and two-hand open gestures line up with the reference-video rhythm in the side-by-side sheet.
+- Final lip-sync acceptance still requires normal playback with audio; contact sheets only prove mouth activity, not phoneme-level sync.
+
+Startup notes:
+
+- `36136873` was destroyed before inference because Vast startup stopped before `8188` port mapping and no onstart logs appeared.
+- `36137290` was destroyed before inference because ports were mapped but HTTP/SSH timed out externally.
+- These were host/startup failures, not LTX workflow failures.
 
 ## Kornia CPU Compatibility Trap
 
@@ -204,11 +265,11 @@ After the base route passes:
 
 - Background prompt generation is now connected as a prompt-only module.
 - VBVR strength `0.60` is now the current motion preset.
-- Add IC-LoRA / reference-motion only if the body is too stiff, and test at low guide strength first.
+- The first IC-LoRA / reference-motion route is now V3 action mimic `2044017351640748034`; keep it as a separate `-ActionMimic` mode, not as the default talking-head mode.
 - Add first/last-frame continuity only when moving beyond 10s smoke.
 - Add PromptRelay timeline only when a multi-shot timeline is needed; do not add it just for fixed-scene talking-head output.
 
-Do not combine all modules in one first run.
+Do not combine PromptRelay, VL prompt generation, transparent raw alpha, and 30s/60s segmentation into the same next run.
 
 ## 2026-05-05 Action-Mimic Todo
 
@@ -222,7 +283,7 @@ Important distinction:
 
 - The current self-host route uses `2040333916862685186` as the no-subtitle audio/lip-sync base, with VBVR `0.60` for light natural motion.
 - VBVR is not strict original-video action mimic. It can add natural body/hand motion, but it does not read and reproduce the user's source-video gestures.
-- Do not call the current route "action mimic" until IC-LoRA / reference-motion / Union Control has been connected and tested.
+- The V3 route `2044017351640748034` has now connected IC-LoRA / reference-motion / Union Control and passed a 10s visual smoke, so it can be called the current action-mimic candidate.
 
 Downloaded RunningHub analysis to reuse:
 
@@ -243,7 +304,7 @@ For the next action/reference experiment, inspect these P1 candidates first inst
 
 Recommended sequence:
 
-1. Fix the no-subtitle background anchor problem first. The direct-transparent-image `ltx23-vlbg-transparent-vbvr-20260505-03` sample failed because pseudo English subtitles reappeared.
-2. After a clean RGB anchor + LTX2.3 + VBVR `0.60` smoke passes mouth/tail/text review, add low-strength IC-LoRA / reference-motion control.
-3. Keep audio/lip sync as the acceptance gate. Reject action-mimic variants if they suppress mouth movement, change identity, or create extra hands.
-4. Only after a 10s action-mimic smoke passes, consider 30s/60s segmentation and first/last-frame continuity.
+1. Ask for playback review of `ltx23-action-mimic-v3-20260505-01`; contact sheets passed text/person/action checks, but phoneme-level lip sync still needs audio playback.
+2. If accepted, run a longer V3 action-mimic clip before designing segmentation.
+3. If background needs the transparent-character route, create a clean RGB photovoltaic anchor first; do not feed raw transparent RGBA into LTX2.3.
+4. Keep audio/lip sync as the acceptance gate. Reject action-mimic variants if they suppress mouth movement, change identity, or create extra hands.
