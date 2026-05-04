@@ -101,6 +101,37 @@ Local prepare-only validation:
 - motion LoRA: `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors`, strength `0.60`
 - no paid Vast machine was launched for this validation.
 
+## 2026-05-05 Transparent Image Background Smoke
+
+Do not promote the direct-transparent-image background route.
+
+Paid smoke:
+
+- job: `ltx23-vlbg-transparent-vbvr-20260505-03`
+- input image: `素材资产/美女图无背景纯色/纯色站着.png`
+- background prompt source: sampled `素材资产/原视频/光伏10s.mp4` frames and manually distilled the photovoltaic rooftop scene
+- motion LoRA: `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors`
+- motion LoRA strength: `0.60`
+- output: `512x896`, `24fps`, `241` frames, video `10.041667s`, audio `10.000000s`
+- prompt execution: `263.44s`
+- total until download: about `24m`
+- instance: `36131696`, Spain RTX 3090, host `96250`, machine `51970`, driver `580.95.05`, `dph_total=0.19333333333333333`
+- local result: `output/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/downloads/ltx23_talking_head_smoke-ltx23-vlbg-transparent-vbvr-20260505-03_00001_.mp4`
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/output/ltx23_talking_head_smoke-ltx23-vlbg-transparent-vbvr-20260505-03_00001_.mp4`
+- instance destroyed and `vastai show instances --raw` returned `[]`
+
+Review result:
+
+- Background generation worked: clean rooftop photovoltaic scene, blue panels, utility building, sky, and distant ridge.
+- Mouth still appears active in the tail contact sheet.
+- The output is rejected because pseudo English subtitle fragments reappeared across the lower frame and over the subject.
+
+Conclusion:
+
+- Do not feed the transparent RGBA character image directly into this LTX2.3 route and rely on the prompt to synthesize the full background.
+- The next background route should first build a clean RGB anchor image: transparent character composited onto a no-text photovoltaic background plate. Then feed that composed image into LTX2.3 with the existing no-subtitle workflow and VBVR `0.60`.
+- Keep the background prompt module, but treat it as anchor/background generation guidance, not as permission for LTX2.3 to hallucinate a full scene around raw alpha.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:
@@ -178,3 +209,41 @@ After the base route passes:
 - Add PromptRelay timeline only when a multi-shot timeline is needed; do not add it just for fixed-scene talking-head output.
 
 Do not combine all modules in one first run.
+
+## 2026-05-05 Action-Mimic Todo
+
+Current user target is not only lip sync. The desired final route is:
+
+1. Extract/use the original video speech content for lip-sync talking-head output.
+2. Mimic the original video's body motion / hand gestures / camera movement.
+3. Use a transparent female subject image plus regenerated photovoltaic background prompt.
+
+Important distinction:
+
+- The current self-host route uses `2040333916862685186` as the no-subtitle audio/lip-sync base, with VBVR `0.60` for light natural motion.
+- VBVR is not strict original-video action mimic. It can add natural body/hand motion, but it does not read and reproduce the user's source-video gestures.
+- Do not call the current route "action mimic" until IC-LoRA / reference-motion / Union Control has been connected and tested.
+
+Downloaded RunningHub analysis to reuse:
+
+- Directory: `workflows/temp/runninghub_ltx23_exact/`
+- Search keywords: `ltx2.3`, `ltx 2.3`
+- Unique workflows downloaded/exported: `1124`
+- Key candidate table: `workflows/temp/runninghub_ltx23_exact/重点候选_workflows.csv`
+- Report: `workflows/temp/runninghub_ltx23_exact/LTX2.3工作流下载与组合方案报告.md`
+- Counts from analysis: `1108` workflows have LTX audio nodes, `112` have audio + VBVR, about `194` have explicit action/reference/control signals by title or model keywords.
+
+For the next action/reference experiment, inspect these P1 candidates first instead of downloading everything again:
+
+- `2044017351640748034`: `LTX2.3_自定义音频+人物动作迁移V3（单采IDLoRA）`
+- `2044022005221036033`: `LTX2.3_自定义音频+人物动作迁移V4（三采IDLoRA）`
+- `2047612025181835265`: `LTX-2.3_ICLoRA_Union_Control_Distilled_controlnet`
+- `2046118754756595713`: `LTX2.3 图生视频｜+参考视频运镜（仅参考运镜） IC LoRA`
+- `2048694979278671873`: `LTX-2.3_动作参考并保持脸部一致性`
+
+Recommended sequence:
+
+1. Fix the no-subtitle background anchor problem first. The direct-transparent-image `ltx23-vlbg-transparent-vbvr-20260505-03` sample failed because pseudo English subtitles reappeared.
+2. After a clean RGB anchor + LTX2.3 + VBVR `0.60` smoke passes mouth/tail/text review, add low-strength IC-LoRA / reference-motion control.
+3. Keep audio/lip sync as the acceptance gate. Reject action-mimic variants if they suppress mouth movement, change identity, or create extra hands.
+4. Only after a 10s action-mimic smoke passes, consider 30s/60s segmentation and first/last-frame continuity.

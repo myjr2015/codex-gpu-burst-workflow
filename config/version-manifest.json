@@ -86,7 +86,7 @@
       "supported_runtime_strategies": [
         "1.0-cold"
       ],
-      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch now supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime.",
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime. Direct transparent RGBA input plus background prompt is rejected after ltx23-vlbg-transparent-vbvr-20260505-03 because pseudo English subtitles reappeared; use a clean RGB anchor composed from the transparent subject and no-text background plate before the next paid smoke.",
       "latest_smoke": {
         "job_name": "ltx23-nosub-nag-20260504-01",
         "validated_at": "2026-05-04T14:42:31+08:00",
@@ -167,6 +167,44 @@
         "motion_lora_strength": 0.6,
         "local_manifest_path": "output/ltx23_talking_head_smoke/_test-ltx23-bgprompt-prepare/manifest.json",
         "local_metadata_path": "output/ltx23_talking_head_smoke/_test-ltx23-bgprompt-prepare/workflow_runtime.metadata.json"
+      },
+      "latest_transparent_background_smoke": {
+        "job_name": "ltx23-vlbg-transparent-vbvr-20260505-03",
+        "validated_at": "2026-05-05T01:41:43+08:00",
+        "status": "rejected",
+        "rejection_reason": "pseudo English subtitle fragments reappeared across the lower frame and over the subject",
+        "input_image": "素材资产/美女图无背景纯色/纯色站着.png",
+        "background_prompt_source": "sampled frames from 素材资产/原视频/光伏10s.mp4, manually distilled into an English rooftop photovoltaic scene prompt",
+        "instance_id": 36131696,
+        "machine_id": 51970,
+        "host_id": 96250,
+        "gpu": "RTX 3090",
+        "geolocation": "Spain, ES",
+        "driver_version": "580.95.05",
+        "dph_total": 0.19333333333333333,
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "frame_count": 241,
+        "video_duration_seconds": 10.041667,
+        "audio_duration_seconds": 10.0,
+        "prompt_execution_seconds": 263.44,
+        "total_until_download_seconds": 1440.0,
+        "nag_enabled": true,
+        "motion_lora_enabled": true,
+        "motion_lora_name": "Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors",
+        "motion_lora_strength": 0.6,
+        "background_generation": "photovoltaic rooftop scene was generated successfully",
+        "tail_mouth_motion": "visible_in_tail_contact_sheet",
+        "visible_text_artifacts": "pseudo_english_subtitles_seen_in_1fps_and_tail_contact_sheets",
+        "next_action": "compose the transparent subject onto a no-text RGB photovoltaic background anchor before feeding LTX2.3",
+        "destroyed": true,
+        "instances_after_destroy": "[]",
+        "local_result_path": "output/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/downloads/ltx23_talking_head_smoke-ltx23-vlbg-transparent-vbvr-20260505-03_00001_.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/output/ltx23_talking_head_smoke-ltx23-vlbg-transparent-vbvr-20260505-03_00001_.mp4",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/downloads/contact-sheet-1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-vlbg-transparent-vbvr-20260505-03/downloads/contact-sheet-tail.jpg"
+        ]
       }
     }
   ],
