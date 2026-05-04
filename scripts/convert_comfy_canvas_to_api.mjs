@@ -1,11 +1,20 @@
 const PASSTHROUGH_NODE_TYPES = new Set([
   "easy cleanGpuUsed",
   "easy sleep",
+  "LayerUtility: PurgeVRAM",
+  "LayerUtility: PurgeVRAM V2",
+  "LTX2SamplingPreviewOverride",
 ]);
 
 const LOCAL_HELPER_NODE_TYPES = new Set([
   "DF_Integer",
+  "DF_Int_to_Float",
   "Int",
+  "JoinStrings",
+  "PrimitiveBoolean",
+  "PrimitiveFloat",
+  "PrimitiveInt",
+  "PrimitiveStringMultiline",
   "SimpleMath+",
   "StringToInt",
   "easy showAnything",
@@ -159,12 +168,51 @@ function createLinkResolver(index) {
       return getLocalInputValue(node, "Value", seen);
     }
 
+    if (node.type === "DF_Int_to_Float") {
+      const value = getLocalInputValue(node, "Value", seen);
+      if (value === undefined || value === null || value === "") {
+        return undefined;
+      }
+      return Number.parseFloat(String(value));
+    }
+
+    if (node.type === "PrimitiveBoolean") {
+      return Boolean(getLocalInputValue(node, "value", seen));
+    }
+
+    if (node.type === "PrimitiveFloat") {
+      const value = getLocalInputValue(node, "value", seen);
+      if (value === undefined || value === null || value === "") {
+        return undefined;
+      }
+      return Number.parseFloat(String(value));
+    }
+
+    if (node.type === "PrimitiveInt") {
+      const value = getLocalInputValue(node, "value", seen);
+      if (value === undefined || value === null || value === "") {
+        return undefined;
+      }
+      return Number.parseInt(String(value), 10);
+    }
+
+    if (node.type === "PrimitiveStringMultiline") {
+      return getLocalInputValue(node, "value", seen) ?? "";
+    }
+
     if (node.type === "SimpleMath+") {
       return evaluateExpression(getLocalInputValue(node, "value", seen), {
         a: getLocalInputValue(node, "a", seen),
         b: getLocalInputValue(node, "b", seen),
         c: getLocalInputValue(node, "c", seen),
       });
+    }
+
+    if (node.type === "JoinStrings") {
+      const string1 = getLocalInputValue(node, "string1", seen) ?? "";
+      const string2 = getLocalInputValue(node, "string2", seen) ?? "";
+      const delimiter = getLocalInputValue(node, "delimiter", seen) ?? "";
+      return [string1, string2].filter((value) => value !== undefined && value !== null).join(delimiter);
     }
 
     if (node.type === "easy showAnything") {

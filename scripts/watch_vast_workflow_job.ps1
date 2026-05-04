@@ -78,10 +78,13 @@ function Get-RelevantLogLines {
 
     $patterns = @(
         '^\[onstart\]'
+        '^\[onstart-ltx23\]'
         '^\[remote-run\]'
+        '^\[remote-ltx23\]'
         '^\[remote-kj30s\]'
         '^\[hf-speedtest\]'
         '^\[bootstrap\]'
+        '^\[bootstrap-ltx23\]'
         '^\[stage\]'
         '^Prompt executed in'
         'history-ready'
@@ -109,6 +112,15 @@ function Get-RelevantLogLines {
         Select-Object -Last 20
 }
 
+function Get-SanitizedVastText {
+    param(
+        [AllowEmptyString()]
+        [string]$Text = ""
+    )
+
+    $Text -replace 'api_key=[^&\s]+', 'api_key=<redacted>'
+}
+
 $profileDef = Get-ProfileDefinition -Profile $Profile -ProfileConfigPath $ProfileConfigPath
 $paths = Get-JobPaths -ProfileDefinition $profileDef -JobName $JobName
 $instanceMeta = Get-Content -Raw $paths.InstancePath | ConvertFrom-Json
@@ -116,8 +128,26 @@ $instanceId = $instanceMeta.id
 
 for ($check = 1; $check -le $MaxChecks; $check += 1) {
     $now = Get-Date -Format s
-    $instance = & vastai show instance $instanceId --raw | ConvertFrom-Json
-    $rawLog = @(& vastai logs $instanceId --tail $LogTail 2>&1 | ForEach-Object { "$_" })
+    $instanceWarning = $null
+    $instanceRaw = @(& vastai show instance $instanceId --raw 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -eq 0) {
+        try {
+            $instance = ($instanceRaw | Out-String) | ConvertFrom-Json
+        }
+        catch {
+            $instance = $instanceMeta
+            $instanceWarning = "vast show instance returned non-JSON output: $(Get-SanitizedVastText -Text (($instanceRaw | Select-Object -Last 3) -join ' '))"
+        }
+    }
+    else {
+        $instance = $instanceMeta
+        $instanceWarning = "vast show instance failed: $(Get-SanitizedVastText -Text (($instanceRaw | Select-Object -Last 3) -join ' '))"
+    }
+
+    $rawLog = @(& vastai logs $instanceId --tail $LogTail 2>&1 | ForEach-Object { Get-SanitizedVastText -Text "$_" })
+    if ($LASTEXITCODE -ne 0) {
+        $rawLog = @("vast logs failed: $((($rawLog | Select-Object -Last 3) -join ' '))")
+    }
     $relevantLines = Get-RelevantLogLines -Lines $rawLog
 
     $runReport = $null
@@ -139,6 +169,9 @@ for ($check = 1; $check -le $MaxChecks; $check += 1) {
     Write-Host "[$now] check=$check job=$JobName"
     Write-Host "1. instance_id=$instanceId actual_status=$($instance.actual_status) cur_state=$($instance.cur_state) status_msg=$($instance.status_msg)"
     Write-Host "2. host=$($instance.host_id) machine=$($instance.machine_id) driver=$($instance.driver_version) public_ip=$($instance.public_ipaddr) port8188=$port8188"
+    if ($instanceWarning) {
+        Write-Host "   warning=$instanceWarning"
+    }
     if ($latestStep) {
         Write-Host "3. latest_step=$($latestStep.name) status=$($latestStep.status) started_at=$($latestStep.started_at)"
     } else {

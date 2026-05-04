@@ -116,7 +116,7 @@ function Get-StageEventsFromLog {
             continue
         }
 
-        if ($line -match '^\[onstart\]\s+started at\s+(?<ts>\S+)$') {
+        if ($line -match '^\[(?:onstart|onstart-ltx23)\]\s+started at\s+(?<ts>\S+)$') {
             $events += [pscustomobject]@{
                 source = "log_line"
                 stage = "onstart.lifecycle"
@@ -128,7 +128,7 @@ function Get-StageEventsFromLog {
             continue
         }
 
-        if ($line -match '^\[onstart\]\s+finished at\s+(?<ts>\S+)$') {
+        if ($line -match '^\[(?:onstart|onstart-ltx23)\]\s+finished at\s+(?<ts>\S+)$') {
             $events += [pscustomobject]@{
                 source = "log_line"
                 stage = "onstart.lifecycle"
@@ -140,7 +140,7 @@ function Get-StageEventsFromLog {
             continue
         }
 
-        if ($line -match '^\[remote-run\]\s+started at\s+(?<ts>\S+)$') {
+        if ($line -match '^\[(?:remote-run|remote-ltx23)\]\s+started at\s+(?<ts>\S+)$') {
             $events += [pscustomobject]@{
                 source = "log_line"
                 stage = "remote.lifecycle"
@@ -152,7 +152,7 @@ function Get-StageEventsFromLog {
             continue
         }
 
-        if ($line -match '^\[remote-run\]\s+finished at\s+(?<ts>\S+)$') {
+        if ($line -match '^\[(?:remote-run|remote-ltx23)\]\s+finished at\s+(?<ts>\S+)$') {
             $events += [pscustomobject]@{
                 source = "log_line"
                 stage = "remote.lifecycle"
@@ -369,8 +369,9 @@ $promptExecution = $null
 $promptExecutionSeconds = $null
 $promptExecutionSource = $null
 foreach ($line in $lines) {
-    if ($line -match '^Prompt executed in\s+(?<duration>\S+)$') {
-        $promptExecution = $matches.duration
+    if ($line -match '^Prompt executed in\s+(?<seconds>[0-9]+(?:\.[0-9]+)?)\s+seconds?$') {
+        $promptExecutionSeconds = [math]::Round([double]::Parse($matches.seconds, [System.Globalization.CultureInfo]::InvariantCulture), 3)
+        $promptExecution = ([timespan]::FromSeconds($promptExecutionSeconds)).ToString("c")
         $promptExecutionSource = "log"
     }
 }

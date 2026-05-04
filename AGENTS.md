@@ -246,8 +246,9 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 入口：仅为 `scripts/_test` 临时 smoke，不是生产 profile
   - 状态：失败不要跑；虽然生成了 `480x848`、约 `11.88s` MP4，但最后几秒不说话/口型对不上，用户已否决。
 - `LTX2.3 候选新路线`
-  - 内部：暂未建 profile
-  - 状态：暂不跑；后续要作为独立 workflow branch / profile / skill 评估，不要混进 KJ 或老 Wan2.2 主线。
+  - 内部：`ltx23_talking_head_smoke`
+  - 入口：`scripts/run_ltx23_talking_head_smoke_end_to_end.ps1`
+  - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前候选 `2040333916862685186` 无字幕底座已由 `ltx23-nosub-nag-20260504-01` 跑通，抽帧未见伪字幕/伪文字，尾部仍有嘴部动作；仍需用户人工确认口型后，才能接 VBVR / IC-LoRA / 背景提示词。
 
 规则：
 

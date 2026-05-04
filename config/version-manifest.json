@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-03",
+  "updated_at": "2026-05-04",
   "git_releases": [
     {
       "tag": "v1.1.0",
@@ -76,6 +76,44 @@
         "1.2-docker-env-template"
       ],
       "notes": "Experimental KJ long-duration wrapper. It splits input video into 30s chunks, runs the existing KJ 30s workflow sequentially on one Vast instance, downloads each segment, and merges with local ffmpeg concat. It does not add a ComfyUI merge plugin and does not provide continue_motion continuity because this KJ workflow has no continue_motion input."
+    },
+    {
+      "id": "ltx23_talking_head_smoke",
+      "status": "experimental",
+      "source_workflow": "workflows/LTX2.3单图音频对口型-无字幕候选.json",
+      "source_workflow_id": "2040333916862685186",
+      "default_entry": "scripts/run_ltx23_talking_head_smoke_end_to_end.ps1",
+      "supported_runtime_strategies": [
+        "1.0-cold"
+      ],
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, and installs ComfyUI-KJNodes during bootstrap. The latest smoke has no visible pseudo subtitles/text in contact sheets but still needs user mouth-sync acceptance before production promotion.",
+      "latest_smoke": {
+        "job_name": "ltx23-nosub-nag-20260504-01",
+        "validated_at": "2026-05-04T14:42:31+08:00",
+        "source_workflow_id": "2040333916862685186",
+        "instance_id": 36102434,
+        "machine_id": 49903,
+        "host_id": 203531,
+        "gpu": "RTX 3090",
+        "driver_version": "580.95.05",
+        "dph_total": 0.18333333333333335,
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "video_duration_seconds": 10.042,
+        "audio_duration_seconds": 10.0,
+        "prompt_execution_seconds": 125.28,
+        "total_until_download_seconds": 922.0,
+        "nag_enabled": true,
+        "visible_text_artifacts": "none_seen_in_1fps_and_tail_contact_sheets",
+        "tail_mouth_motion": "visible_in_tail_contact_sheet",
+        "destroyed": true,
+        "local_result_path": "output/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/downloads/ltx23_talking_head_smoke-ltx23-nosub-nag-20260504-01_00001_.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/output/ltx23_talking_head_smoke-ltx23-nosub-nag-20260504-01_00001_.mp4",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/review/contact-1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-nosub-nag-20260504-01/review/tail-8s-10s-4fps.jpg"
+        ]
+      }
     }
   ],
   "implementation_variants": [

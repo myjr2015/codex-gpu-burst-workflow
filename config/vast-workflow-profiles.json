@@ -104,6 +104,34 @@
       "default_r2_public_base_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev",
       "machine_registry_path": "data/vast-machine-registry.json",
       "machine_registry_update_script": "scripts/update_vast_machine_registry.ps1"
+    },
+    "ltx23_talking_head_smoke": {
+      "skill": "ltx23_talking_head",
+      "job_root": "output/ltx23_talking_head_smoke",
+      "workflow_source": "workflows/LTX2.3单图音频对口型-无字幕候选.json",
+      "source_workflow_id": "2040333916862685186",
+      "default_image_asset": "素材资产/美女图带光伏/美女带背景.png",
+      "default_audio_asset": "output/ltx23_runninghub/_inputs/audio_30s.wav",
+      "stage_script": "scripts/stage_ltx23_talking_head_job.ps1",
+      "launch_script": "scripts/launch_ltx23_talking_head_vast_job.ps1",
+      "download_script": "scripts/download_ltx23_talking_head_result.ps1",
+      "publish_script": "scripts/publish_ltx23_talking_head_result.ps1",
+      "destroy_script": "scripts/destroy_vast_instance.ps1",
+      "manifest_file": "manifest.json",
+      "instance_file": "vast-instance.json",
+      "default_label": "ltx23-talking-head-smoke-job",
+      "default_image": "vastai/comfy:v0.19.3-cuda-12.9-py312",
+      "default_disk_gb": 180,
+      "default_output_width": 512,
+      "default_output_height": 896,
+      "default_duration_seconds": 10,
+      "default_fps": 24,
+      "default_max_dph_total": 0.2,
+      "default_min_driver_major": 580,
+      "default_search_query": "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.8 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+      "default_r2_prefix": "runcomfy-inputs/ltx23_talking_head_smoke",
+      "default_r2_bucket": "runcomfy",
+      "default_r2_public_base_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev"
     }
   }
 }
