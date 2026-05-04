@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-04",
+  "updated_at": "2026-05-05",
   "git_releases": [
     {
       "tag": "v1.1.0",
@@ -86,7 +86,7 @@
       "supported_runtime_strategies": [
         "1.0-cold"
       ],
-      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset.",
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch now supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime.",
       "latest_smoke": {
         "job_name": "ltx23-nosub-nag-20260504-01",
         "validated_at": "2026-05-04T14:42:31+08:00",
@@ -151,6 +151,22 @@
           "hands_sleeves_mean": 2.422,
           "full_body_mean": 2.269
         }
+      },
+      "latest_prompt_module_check": {
+        "job_name": "_test-ltx23-bgprompt-prepare",
+        "validated_at": "2026-05-05T00:47:17+08:00",
+        "paid_gpu_launched": false,
+        "positive_prompt_source": "composed_prompt_only",
+        "default_background_prompt": "modern photovoltaic technology scene, clean solar panel field or rooftop solar installation, bright professional product-demo environment, no readable signs or background text",
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "frame_count": 241,
+        "expected_video_seconds": 10.041667,
+        "motion_lora_enabled": true,
+        "motion_lora_name": "Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors",
+        "motion_lora_strength": 0.6,
+        "local_manifest_path": "output/ltx23_talking_head_smoke/_test-ltx23-bgprompt-prepare/manifest.json",
+        "local_metadata_path": "output/ltx23_talking_head_smoke/_test-ltx23-bgprompt-prepare/workflow_runtime.metadata.json"
       }
     }
   ],

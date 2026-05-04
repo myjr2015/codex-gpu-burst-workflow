@@ -30,15 +30,16 @@ Current branch:
 
 ## Current Strategy
 
-First prove the smallest useful self-hosted path:
+The current low-risk stack is:
 
 1. One composed speaker image.
 2. One short audio file.
-3. LTX2.3 audio/video latent workflow.
-4. No VBVR.
-5. No IC-LoRA motion transfer.
-6. No PromptRelay.
-7. No 1080p or upscale-first production run.
+3. LTX2.3 no-subtitle audio/video latent workflow.
+4. VBVR motion LoRA at strength `0.60`.
+5. Prompt-only background module.
+6. No IC-LoRA motion transfer yet.
+7. No PromptRelay / Qwen / Gemini workflow nodes in the self-host runtime.
+8. No 1080p or upscale-first production run.
 
 Only add the next module after this base route passes lip-sync and tail behavior review.
 
@@ -80,6 +81,26 @@ Motion metric note:
 
 - Compared with the base and `0.35`, the `0.60` run raised the hands/sleeves frame-diff mean from about `1.50` to `2.42`, while mouth/face motion stayed in the same band.
 
+## 2026-05-05 Background Prompt Module
+
+The background prompt path is now implemented as a prompt-only module:
+
+- `scripts/prepare_ltx23_talking_head_prompt.mjs` composes the positive prompt from `speaker_prompt`, `background_prompt`, `camera_prompt`, and `prompt_guardrails`.
+- `scripts/stage_ltx23_talking_head_job.ps1` and `scripts/run_ltx23_talking_head_smoke_end_to_end.ps1` expose `-BackgroundPrompt`, `-SpeakerPrompt`, `-CameraPrompt`, and `-PromptGuardrails`.
+- `-PositivePrompt` still exists as a full override. If it is provided, the composed module is bypassed and metadata records `positive_prompt_source=full_override`.
+- The default `background_prompt` is a clean photovoltaic technology scene with no readable signs or background text.
+- The staged metadata and manifest record the final positive prompt plus the separate background prompt fields.
+
+This module deliberately does not load PromptRelay, Qwen3-VL, Gemini, or RunningHub wrapper nodes into the self-hosted runtime. Downloaded RunningHub workflows with `AILab_QwenVL_Advanced`, `TextGenerateLTX2Prompt`, Gemini, or PromptRelay are reference material only unless a later branch explicitly validates their dependencies.
+
+Local prepare-only validation:
+
+- job: `_test-ltx23-bgprompt-prepare`
+- validated_at: `2026-05-05T00:47:17+08:00`
+- output: `512x896`, `24fps`, `241` frames, expected video `10.0417s`
+- motion LoRA: `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors`, strength `0.60`
+- no paid Vast machine was launched for this validation.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:
@@ -117,6 +138,12 @@ The bootstrap uses PyTorch CUDA `cu128` because LTX2.3 FP8 expects a newer CUDA/
 
 The bootstrap also installs `ComfyUI-KJNodes` for `LTX2_NAG`. Avoid adding VideoHelperSuite or MelBand nodes unless the simplified runtime fails quality review and the added dependency has a clear purpose.
 
+Prompt generation model note:
+
+- The current self-host branch does not download a separate prompt-generation LLM.
+- If using cloud LLM/API prompt generation later, the local file size is effectively zero, but it depends on the API key and provider billing.
+- If copying RunningHub Qwen3-VL prompt workflows locally, expect a multi-GB model dependency such as Qwen3-VL 4B FP8 plus custom nodes; keep that as a separate experiment, not the default LTX smoke path.
+
 ## Vast Rules
 
 For paid 3090 smoke runs:
@@ -144,9 +171,10 @@ Do not promote the branch until the downloaded MP4 is reviewed for:
 
 After the base route passes:
 
-- Add PromptRelay / previous Wan2.2 background prompt generation as a prompt-only module.
-- Add VBVR only if the base route has jitter, tail instability, or weak digital-human motion.
+- Background prompt generation is now connected as a prompt-only module.
+- VBVR strength `0.60` is now the current motion preset.
 - Add IC-LoRA / reference-motion only if the body is too stiff, and test at low guide strength first.
 - Add first/last-frame continuity only when moving beyond 10s smoke.
+- Add PromptRelay timeline only when a multi-shot timeline is needed; do not add it just for fixed-scene talking-head output.
 
 Do not combine all modules in one first run.

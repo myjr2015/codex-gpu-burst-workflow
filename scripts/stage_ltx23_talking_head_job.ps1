@@ -16,7 +16,15 @@ param(
 
     [int]$Fps = 24,
 
-    [string]$PositivePrompt = "A woman is speaking naturally to the camera. Stable face identity, natural lip sync, clean photovoltaic technology background. Clean camera frame, natural professional lighting, no on-screen graphics.",
+    [string]$PositivePrompt = "",
+
+    [string]$SpeakerPrompt = "A woman is speaking naturally to the camera. Stable face identity, natural lip sync, subtle natural upper-body motion.",
+
+    [string]$BackgroundPrompt = "modern photovoltaic technology scene, clean solar panel field or rooftop solar installation, bright professional product-demo environment, no readable signs or background text",
+
+    [string]$CameraPrompt = "portrait vertical talking-head framing, natural professional lighting, clean camera frame, realistic digital human video",
+
+    [string]$PromptGuardrails = "single person only, same character throughout the clip, no on-screen graphics, no subtitles, no captions",
 
     [string]$NegativePrompt = "subtitles, captions, Chinese subtitles, pseudo Chinese text, fake Chinese characters, karaoke lyrics, transcribed words, bottom text, lower third captions, text overlay, watermark, logo, news ticker, speech bubble, comic text, blurry, out of focus, flickering, motion blur, deformed face, distorted mouth, mismatched lip sync, extra limbs, extra fingers, disfigured hands, duplicated person, bad anatomy, cartoon, CGI, uncanny, low quality, noisy, artifacts",
 
@@ -170,9 +178,19 @@ $prepareArgs = @(
     "--output-height", "$OutputHeight",
     "--duration-seconds", $DurationSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
     "--fps", "$Fps",
-    "--positive-prompt", $PositivePrompt,
     "--negative-prompt", $NegativePrompt
 )
+if (-not [string]::IsNullOrWhiteSpace($PositivePrompt)) {
+    $prepareArgs += @("--positive-prompt", $PositivePrompt)
+}
+else {
+    $prepareArgs += @(
+        "--speaker-prompt", $SpeakerPrompt,
+        "--background-prompt", $BackgroundPrompt,
+        "--camera-prompt", $CameraPrompt,
+        "--prompt-guardrails", $PromptGuardrails
+    )
+}
 if ($Seed -ge 0) {
     $prepareArgs += @("--seed", "$Seed")
 }
@@ -216,7 +234,12 @@ $manifest = [ordered]@{
         motion_lora_enabled = $runtimeMetadata.motion_lora_enabled
         motion_lora_name = $runtimeMetadata.motion_lora_name
         motion_lora_strength = $runtimeMetadata.motion_lora_strength
-        positive_prompt = $PositivePrompt
+        positive_prompt_source = $runtimeMetadata.positive_prompt_source
+        positive_prompt = $runtimeMetadata.positive_prompt
+        speaker_prompt = $runtimeMetadata.speaker_prompt
+        background_prompt = $runtimeMetadata.background_prompt
+        camera_prompt = $runtimeMetadata.camera_prompt
+        prompt_guardrails = $runtimeMetadata.prompt_guardrails
         negative_prompt = $NegativePrompt
         bootstrap_template = $bootstrapScript
         remote_submit_template = $remoteSubmitScript

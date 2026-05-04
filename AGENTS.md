@@ -248,7 +248,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `LTX2.3 候选新路线`
   - 内部：`ltx23_talking_head_smoke`
   - 入口：`scripts/run_ltx23_talking_head_smoke_end_to_end.ps1`
-  - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前候选 `2040333916862685186` 无字幕底座已由 `ltx23-nosub-nag-20260504-01` 跑通；VBVR motion LoRA strength `0.60` 已由 `ltx23-vbvr-motion-s06-20260504-01` 跑通，中段有右手胸前小手势，抽帧未见伪字幕/伪文字，尾部仍有嘴部动作。当前推荐先用 `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors` + `0.60` 作为低风险动作增强；如还要更强动作，下一步接 IC-LoRA / 参考动作控制，不要只把 VBVR 拉到 `1.0`。
+  - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前候选 `2040333916862685186` 无字幕底座已由 `ltx23-nosub-nag-20260504-01` 跑通；VBVR motion LoRA strength `0.60` 已由 `ltx23-vbvr-motion-s06-20260504-01` 跑通，中段有右手胸前小手势，抽帧未见伪字幕/伪文字，尾部仍有嘴部动作。`2026-05-05` 已接入 prompt-only 背景提示词模块：`-BackgroundPrompt` 只拼进 LTX 正向 prompt，不加载 PromptRelay / Qwen3-VL / Gemini 节点，也不下载额外提示词大模型。当前推荐先用 `Ltx2.3-Licon-VBVR-I2V-240K-R32.safetensors` + `0.60` + prompt-only 背景描述作为低风险默认组合；如还要更强动作，下一步接 IC-LoRA / 参考动作控制，不要只把 VBVR 拉到 `1.0`。
 
 规则：
 

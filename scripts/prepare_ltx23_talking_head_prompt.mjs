@@ -2,11 +2,32 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertCanvasWorkflow } from "./convert_comfy_canvas_to_api.mjs";
 
-const DEFAULT_POSITIVE_PROMPT = [
+const DEFAULT_SPEAKER_PROMPT = [
   "A woman is speaking naturally to the camera.",
-  "Stable face identity, natural lip sync, clean photovoltaic technology background.",
-  "Clean camera frame, natural professional lighting, no on-screen graphics.",
+  "Stable face identity, natural lip sync, subtle natural upper-body motion.",
 ].join(" ");
+
+const DEFAULT_BACKGROUND_PROMPT = [
+  "modern photovoltaic technology scene",
+  "clean solar panel field or rooftop solar installation",
+  "bright professional product-demo environment",
+  "no readable signs or background text",
+].join(", ");
+
+const DEFAULT_CAMERA_PROMPT = [
+  "portrait vertical talking-head framing",
+  "natural professional lighting",
+  "clean camera frame",
+  "realistic digital human video",
+].join(", ");
+
+const DEFAULT_PROMPT_GUARDRAILS = [
+  "single person only",
+  "same character throughout the clip",
+  "no on-screen graphics",
+  "no subtitles",
+  "no captions",
+].join(", ");
 
 const DEFAULT_NEGATIVE_PROMPT = [
   "subtitles, captions, Chinese subtitles, pseudo Chinese text, fake Chinese characters",
@@ -59,6 +80,57 @@ function toNumber(value, fallback) {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeInlineText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildPositivePrompt(options) {
+  if (hasText(options["positive-prompt"])) {
+    const positivePrompt = normalizeInlineText(options["positive-prompt"]);
+    return {
+      positivePrompt,
+      source: "full_override",
+      speakerPrompt: null,
+      backgroundPrompt: null,
+      cameraPrompt: null,
+      promptGuardrails: null,
+    };
+  }
+
+  const speakerPrompt = normalizeInlineText(options["speaker-prompt"] || DEFAULT_SPEAKER_PROMPT);
+  const backgroundPrompt = normalizeInlineText(
+    options["background-prompt"] || DEFAULT_BACKGROUND_PROMPT,
+  );
+  const cameraPrompt = normalizeInlineText(options["camera-prompt"] || DEFAULT_CAMERA_PROMPT);
+  const promptGuardrails = normalizeInlineText(
+    options["prompt-guardrails"] || DEFAULT_PROMPT_GUARDRAILS,
+  );
+
+  const positivePrompt = [
+    speakerPrompt,
+    backgroundPrompt ? `Background / scene: ${backgroundPrompt}.` : "",
+    cameraPrompt ? `Camera / style: ${cameraPrompt}.` : "",
+    promptGuardrails ? `Constraints: ${promptGuardrails}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    positivePrompt,
+    source: "composed_prompt_only",
+    speakerPrompt,
+    backgroundPrompt,
+    cameraPrompt,
+    promptGuardrails,
+  };
 }
 
 function getTitle(node) {
@@ -374,6 +446,7 @@ function patchPrompt(
     fps,
     positivePrompt,
     negativePrompt,
+    promptBuild,
     seed,
     enableNag,
     disableNag,
@@ -520,7 +593,12 @@ function patchPrompt(
       frame_count: frameCount,
       expected_video_seconds: frameCount / fps,
       output_container: outputContainer,
+      positive_prompt_source: promptBuild?.source || "unknown",
       positive_prompt: positivePrompt,
+      speaker_prompt: promptBuild?.speakerPrompt || null,
+      background_prompt: promptBuild?.backgroundPrompt || null,
+      camera_prompt: promptBuild?.cameraPrompt || null,
+      prompt_guardrails: promptBuild?.promptGuardrails || null,
       negative_prompt: negativePrompt,
       seed: Number.isSafeInteger(seed) ? seed : null,
       nag_enabled: nagEnabled,
@@ -547,6 +625,7 @@ async function main() {
   const workflow = JSON.parse(await fs.readFile(inputPath, "utf8"));
   const converted = convertCanvasWorkflow(workflow);
   const seed = options.seed ? toInteger(options.seed, Number.NaN) : Number.NaN;
+  const promptBuild = buildPositivePrompt(options);
   const result = patchPrompt(converted, {
     imageName: options["image-name"],
     audioName: options["audio-name"],
@@ -555,8 +634,9 @@ async function main() {
     outputHeight: toInteger(options["output-height"], 896),
     durationSeconds: toNumber(options["duration-seconds"], 10),
     fps: toInteger(options.fps, 24),
-    positivePrompt: options["positive-prompt"] || DEFAULT_POSITIVE_PROMPT,
+    positivePrompt: promptBuild.positivePrompt,
     negativePrompt: options["negative-prompt"] || DEFAULT_NEGATIVE_PROMPT,
+    promptBuild,
     seed: Number.isSafeInteger(seed) ? seed : null,
     enableNag: options["enable-nag"] === true,
     disableNag: options["disable-nag"] === true,

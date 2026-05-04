@@ -28,7 +28,15 @@ param(
 
     [int]$Fps = 24,
 
-    [string]$PositivePrompt = "A woman is speaking naturally to the camera. Stable face identity, natural lip sync, clean photovoltaic technology background. Clean camera frame, natural professional lighting, no on-screen graphics.",
+    [string]$PositivePrompt = "",
+
+    [string]$SpeakerPrompt = "A woman is speaking naturally to the camera. Stable face identity, natural lip sync, subtle natural upper-body motion.",
+
+    [string]$BackgroundPrompt = "modern photovoltaic technology scene, clean solar panel field or rooftop solar installation, bright professional product-demo environment, no readable signs or background text",
+
+    [string]$CameraPrompt = "portrait vertical talking-head framing, natural professional lighting, clean camera frame, realistic digital human video",
+
+    [string]$PromptGuardrails = "single person only, same character throughout the clip, no on-screen graphics, no subtitles, no captions",
 
     [string]$NegativePrompt = "subtitles, captions, Chinese subtitles, pseudo Chinese text, fake Chinese characters, karaoke lyrics, transcribed words, bottom text, lower third captions, text overlay, watermark, logo, news ticker, speech bubble, comic text, blurry, out of focus, flickering, motion blur, deformed face, distorted mouth, mismatched lip sync, extra limbs, extra fingers, disfigured hands, duplicated person, bad anatomy, cartoon, CGI, uncanny, low quality, noisy, artifacts",
 
@@ -108,6 +116,13 @@ Write-Host "runtime_image=$Image"
 Write-Host "resolution=${OutputWidth}x${OutputHeight}"
 Write-Host "duration_seconds=$DurationSeconds"
 Write-Host "fps=$Fps"
+if (-not [string]::IsNullOrWhiteSpace($PositivePrompt)) {
+    Write-Host "positive_prompt_source=full_override"
+}
+else {
+    Write-Host "positive_prompt_source=composed_prompt_only"
+    Write-Host "background_prompt=$BackgroundPrompt"
+}
 if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
     Write-Host "motion_lora=$MotionLoraName"
     Write-Host "motion_lora_strength=$MotionLoraStrength"
@@ -122,12 +137,22 @@ if (-not $SkipStage) {
         "-OutputHeight", "$OutputHeight",
         "-DurationSeconds", $DurationSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture),
         "-Fps", "$Fps",
-        "-PositivePrompt", $PositivePrompt,
         "-NegativePrompt", $NegativePrompt,
         "-R2Prefix", $R2Prefix,
         "-R2Bucket", $R2Bucket,
         "-R2PublicBaseUrl", $R2PublicBaseUrl
     )
+    if (-not [string]::IsNullOrWhiteSpace($PositivePrompt)) {
+        $stageArgs += @("-PositivePrompt", $PositivePrompt)
+    }
+    else {
+        $stageArgs += @(
+            "-SpeakerPrompt", $SpeakerPrompt,
+            "-BackgroundPrompt", $BackgroundPrompt,
+            "-CameraPrompt", $CameraPrompt,
+            "-PromptGuardrails", $PromptGuardrails
+        )
+    }
     if ($Seed -ge 0) {
         $stageArgs += @("-Seed", "$Seed")
     }
