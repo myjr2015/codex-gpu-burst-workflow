@@ -12,6 +12,10 @@ param(
 
     [switch]$ActionMimic,
 
+    [string]$ActionMimicWorkflowSource = "",
+
+    [string]$ActionMimicWorkflowId = "",
+
     [int]$OutputWidth = 512,
 
     [int]$OutputHeight = 896,
@@ -104,14 +108,29 @@ if ([string]::IsNullOrWhiteSpace($sourceWorkflowId)) {
 
 if ($ActionMimic -or -not [string]::IsNullOrWhiteSpace($ReferenceVideoPath)) {
     $ActionMimic = $true
-    $workflowSourceRel = "workflows\LTX2.3动作模仿+音频对口型-V3候选.json"
-    $sourceWorkflowId = "2044017351640748034"
+    if ([string]::IsNullOrWhiteSpace($ActionMimicWorkflowSource)) {
+        $workflowSourceRel = "workflows\LTX2.3动作模仿+音频对口型-V3候选.json"
+    }
+    else {
+        $workflowSourceRel = $ActionMimicWorkflowSource
+    }
+    if ([string]::IsNullOrWhiteSpace($ActionMimicWorkflowId)) {
+        $sourceWorkflowId = "2044017351640748034"
+    }
+    else {
+        $sourceWorkflowId = $ActionMimicWorkflowId
+    }
     if ([string]::IsNullOrWhiteSpace($ReferenceVideoPath)) {
         throw "ReferenceVideoPath is required when ActionMimic is enabled."
     }
 }
 
-$sourceWorkflow = Join-Path $repoRoot $workflowSourceRel
+if ([System.IO.Path]::IsPathRooted($workflowSourceRel)) {
+    $sourceWorkflow = $workflowSourceRel
+}
+else {
+    $sourceWorkflow = Join-Path $repoRoot $workflowSourceRel
+}
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap_ltx23_talking_head.sh"
 $remoteSubmitScript = Join-Path $repoRoot "scripts\remote_submit_ltx23_talking_head.sh"
 $prepareScript = Join-Path $repoRoot "scripts\prepare_ltx23_talking_head_prompt.mjs"

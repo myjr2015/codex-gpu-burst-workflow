@@ -175,7 +175,8 @@ try {
     foreach ($line in $output) {
         Write-Host (Redact-SecretText -Text $line -Secrets @($RegistryToken))
     }
-    if ($exitCode -ne 0) {
+    $reportedFailure = @($output | Where-Object { $_ -match "^Failed with error" }).Count -gt 0
+    if ($exitCode -ne 0 -or $reportedFailure) {
         throw "vastai create instance failed with exit code $exitCode"
     }
 }

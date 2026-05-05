@@ -306,6 +306,52 @@ Rejected clean-matte attempt:
 - Local subtitle cleanup also rejected: it dimmed text but left obvious gray blocks over legs, feet, and chair areas.
 - Conclusion: do not use the clean-matte-only reference as the next default. For text-free action mimic, keep the v6 grounded anchor plus cleaned full reference video path, or create a stronger clean reference video.
 
+## 2026-05-06 V4 Three-Sample IDLoRA Candidate
+
+V4 is wired but not visually validated yet.
+
+Workflow:
+
+- RunningHub id: `2044022005221036033`
+- source file: `workflows/LTX2.3动作模仿+音频对口型-V4三采IDLoRA候选.json`
+- local entry: `scripts/run_ltx23_talking_head_smoke_end_to_end.ps1 -ActionMimic`
+- stage/run switches: `-ActionMimicWorkflowSource` and `-ActionMimicWorkflowId`
+
+Current intended 10s test setup:
+
+- anchor: `output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_grounded_v6_skip1.png`
+- reference video: `output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4`
+- audio: `素材资产/原音频/10s.wav`
+- output: `512x896`, `24fps`, about `10s`
+- `ActionGuideStrength=0.48`
+- `ActionLoraStrength=0.70`
+- `IdentityLoraStrength=0.78`
+- `IdentityGuidanceScale=2.8`
+
+Code changes made for V4:
+
+- `stage_ltx23_talking_head_job.ps1` can switch the action-mimic workflow source/id instead of hardcoding V3.
+- `run_ltx23_talking_head_smoke_end_to_end.ps1` forwards those V4 workflow arguments into stage.
+- `launch_ltx23_talking_head_vast_job.ps1` splits comma-separated `ExtraEnv` and allows `LTX_UPDATE_COMFYUI=0`.
+- `bootstrap_ltx23_talking_head.sh` keeps ComfyUI core requirements, filters slow optional frontend/template/docs packages, and downloads `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` when the V4 runtime references it.
+- `create_vast_instance_minimal.ps1` treats Vast CLI text beginning with `Failed with error` as a real create failure, even if the CLI exits `0`.
+
+Paid attempt status:
+
+- Local stage succeeded for `ltx23-v4-trisample-cleanref-s048-nocn-nobg-20260506-10`, `...-11`, and `ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12`.
+- No V4 inference result exists yet.
+- Non-`CN` Vast 3090 creation was tried with `DiskGb=180`, then `120`, then `80`.
+- All real create attempts either returned stale-offer `no_such_ask` or `Your account lacks credit; see the billing page.`
+- Final instance check returned `[]`, so no Vast instance was left billing.
+
+Machine lessons from this attempt:
+
+- Keep `geolocation notin [CN]` for paid LTX generation.
+- Keep `cuda_max_good>=12.8` for LTX cu128; the Sweden `driver 535 / cuda_max_good=12.2` host already produced CUDA Error 804 and must not be retried for this runtime.
+- Do not use `driver_version` alone as a hard filter, but destroy immediately if real CUDA/torch logs show incompatibility.
+- Avoid `host_id=203531` for this LTX V4 path until there is evidence it no longer crawls on ComfyUI/PyPI requirements.
+- If Vast returns `Your account lacks credit`, stop creating instances; changing machine, region, or disk size cannot complete paid inference until account credit is restored.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:

@@ -258,6 +258,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
   - 内部：`ltx23_talking_head_smoke`
   - 入口：`scripts/run_ltx23_talking_head_smoke_end_to_end.ps1`
   - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前无字幕底座 `2040333916862685186` 已由 `ltx23-nosub-nag-20260504-01` 跑通；VBVR motion LoRA strength `0.60` 已由 `ltx23-vbvr-motion-s06-20260504-01` 跑通，但 VBVR 只算轻动效，不算严格动作模仿。`2026-05-05` 已接入 prompt-only 背景提示词模块：`-BackgroundPrompt` 只拼进 LTX 正向 prompt，不加载 PromptRelay / Qwen3-VL / Gemini 节点，也不下载额外提示词大模型。当前动作模仿候选是 `2044017351640748034 / LTX2.3_自定义音频+人物动作迁移V3（单采IDLoRA）`，本地 workflow 为 `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`，入口使用 `-ActionMimic -ReferenceVideoPath`。当前推荐 10s 样本是 `ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02`：使用 V6 grounded RGB 坐姿 anchor + `光伏10s_clean_reference_v6_skip1.mp4` 干净参考，`ActionGuideStrength=0.45`、`ActionLoraStrength=0.65`，输出 `512x896`、`24fps`、`10.041667s`，1fps/尾帧拼图未见伪字幕/文字、多人，尾部嘴部仍动，已发布 R2 并销毁实例。`ltx23-matte-action-cleanref-nocn-20260505-05` 的纯灰 matte 动作参考方案虽然技术跑通，但整段出现底部伪中文字幕样式文本，本地遮罩修复会伤腿/脚/椅子，标记失败不要作为默认路线。
+  - `2026-05-06` 已接入 V4 三采 IDLoRA 候选：RunningHub `2044022005221036033`，本地 workflow `workflows/LTX2.3动作模仿+音频对口型-V4三采IDLoRA候选.json`，通过 `-ActionMimicWorkflowSource` / `-ActionMimicWorkflowId` 指定。V4 目前只是 stage 通过，未完成付费推理验收；非 `CN` 3090 在 `180GB/120GB/80GB` 下最终被 Vast 账户余额不足阻塞，实例列表已确认 `[]`。余额恢复前不要继续换机烧时间；余额恢复后可用 V4 参数 `ActionGuideStrength=0.48`、`ActionLoraStrength=0.70`、`IdentityLoraStrength=0.78`、`IdentityGuidanceScale=2.8` 继续跑。
 
 规则：
 
@@ -268,7 +269,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 用户说“红点修理”“成片精修”“一条龙修复”时，默认指 `scripts/polish_generated_artifacts.py` 的本地后处理：检测风险、定位候选彩色组件，v5 默认自动处理 `red/yellow/green/magenta`，目标前后默认补 `2` 帧处理不足 1 秒的边缘漏帧，围绕已确认目标尝试清理银白高光/细线残留，跳过皮肤/脸/脚等高误伤区域，OpenCV 局部 inpaint，重封装音频，复检并输出 before/after 拼图；`cyan/blue` 支持显式开启但默认关闭，避免误伤天空和光伏板。
 - `kj60-b11-sameframe-30x2-20260501` 的 `polished-auto-v5.mp4` 已被用户暂时验收为可接受，作为本次 60s 推荐精修输出；后续同类 KJ 2.0 同图锚定版默认先跑 v5 精修再人工确认。
 - 用户说“MultiTalk”“InfiniteTalk”“最后几秒不说话那个方案”时，默认指 `multitalk10-smoke-20260504-001`，必须先说明该方案已被否决，不要直接复跑。
-- 用户说“LTX2.3”时，默认走 `ltx23_talking_head_smoke` 独立路线；如果他说“动作模仿+对口型”，默认指 V3 `-ActionMimic` 候选，不是继续改 KJ 2.0/3.0。
+- 用户说“LTX2.3”时，默认走 `ltx23_talking_head_smoke` 独立路线；如果他说“动作模仿+对口型”，默认指当前 V6/V3 clean-reference 推荐候选，不是继续改 KJ 2.0/3.0；如果明确说 V4/三采，则使用 V4 workflow，但要说明它尚未完成推理验收。
 - 最新可跑状态仍以 `config/version-manifest.json` 为准；如果 AGENTS 和 manifest 冲突，以 manifest 为准，并同步修正 AGENTS。
 
 ## 版本管理规则

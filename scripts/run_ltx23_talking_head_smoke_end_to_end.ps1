@@ -10,6 +10,10 @@ param(
 
     [switch]$ActionMimic,
 
+    [string]$ActionMimicWorkflowSource = "",
+
+    [string]$ActionMimicWorkflowId = "",
+
     [string]$OfferId,
 
     [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.8 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
@@ -150,6 +154,12 @@ if (-not [string]::IsNullOrWhiteSpace($MotionLoraName)) {
 if ($ActionMimic) {
     Write-Host "mode=action_mimic"
     Write-Host "reference_video=$ReferenceVideoPath"
+    if (-not [string]::IsNullOrWhiteSpace($ActionMimicWorkflowSource)) {
+        Write-Host "action_mimic_workflow_source=$ActionMimicWorkflowSource"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ActionMimicWorkflowId)) {
+        Write-Host "action_mimic_workflow_id=$ActionMimicWorkflowId"
+    }
     Write-Host "action_guide_strength=$ActionGuideStrength"
     Write-Host "action_lora_strength=$ActionLoraStrength"
 }
@@ -198,6 +208,12 @@ if (-not $SkipStage) {
             "-IdentityGuidanceScale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
             "-DwposeResolution", "$DwposeResolution"
         )
+        if (-not [string]::IsNullOrWhiteSpace($ActionMimicWorkflowSource)) {
+            $stageArgs += @("-ActionMimicWorkflowSource", $ActionMimicWorkflowSource)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ActionMimicWorkflowId)) {
+            $stageArgs += @("-ActionMimicWorkflowId", $ActionMimicWorkflowId)
+        }
     }
     if (-not [string]::IsNullOrWhiteSpace($R2AccountId)) {
         $stageArgs += @("-R2AccountId", $R2AccountId)
@@ -214,6 +230,9 @@ if (-not $SkipStage) {
 $launchArgs = @()
 if (-not $SkipLaunch) {
     $extraEnvItems = @()
+    $extraEnvItems += @(
+        "LTX_UPDATE_COMFYUI=0"
+    )
     if ([string]::IsNullOrWhiteSpace($OfferId)) {
         $selectionJson = & pwsh -File $selectorPath `
             -SearchQuery $SearchQuery `
@@ -255,7 +274,7 @@ if (-not $SkipLaunch) {
         $extraEnvItems += "LTX23_ENABLE_ACTION_MIMIC=1"
     }
     if ($extraEnvItems.Count -gt 0) {
-        $launchArgs += @("-ExtraEnv") + $extraEnvItems
+        $launchArgs += @("-ExtraEnv", ($extraEnvItems -join ","))
     }
     if ($MountArgs.Count -gt 0) {
         $launchArgs += @("-MountArgs", $MountArgs)

@@ -86,7 +86,7 @@
       "supported_runtime_strategies": [
         "1.0-cold"
       ],
-      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime. Direct transparent RGBA input plus background prompt is rejected after ltx23-vlbg-transparent-vbvr-20260505-03 because pseudo English subtitles reappeared; use a clean RGB anchor composed from the transparent subject and no-text background plate before the next paid smoke.",
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime. Direct transparent RGBA input plus background prompt is rejected after ltx23-vlbg-transparent-vbvr-20260505-03 because pseudo English subtitles reappeared; use a clean RGB anchor composed from the transparent subject and no-text background plate before the next paid smoke. V4 three-sample IDLoRA workflow 2044022005221036033 is wired through ActionMimicWorkflowSource/ActionMimicWorkflowId, but as of 2026-05-06 it has only passed local stage; paid inference was blocked by Vast account credit.",
       "latest_smoke": {
         "job_name": "ltx23-nosub-nag-20260504-01",
         "validated_at": "2026-05-04T14:42:31+08:00",
@@ -323,6 +323,35 @@
         "previous_clean_visual_baseline_job": "ltx23-v6-grounded-cleanref-fullbody-20260505-01",
         "rejected_matte_reference_job": "ltx23-matte-action-cleanref-nocn-20260505-05",
         "next_action": "Use this v6 grounded RGB anchor plus v6 clean reference s045 sample as the current 10s candidate. Do not return to raw subtitle-heavy reference video; if more motion is needed, create a stronger clean reference instead of using matte-only reference that still triggered LTX pseudo subtitles."
+      },
+      "latest_action_mimic_v4_attempt": {
+        "job_name": "ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12",
+        "attempted_at": "2026-05-06T03:43:37+08:00",
+        "status": "stage_passed_paid_inference_blocked",
+        "source_workflow_id": "2044022005221036033",
+        "source_workflow_name": "LTX2.3_自定义音频+人物动作迁移V4（三采IDLoRA）",
+        "source_workflow": "workflows/LTX2.3动作模仿+音频对口型-V4三采IDLoRA候选.json",
+        "anchor_image": "output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_grounded_v6_skip1.png",
+        "reference_video": "output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4",
+        "audio": "素材资产/原音频/10s.wav",
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "frame_count": 241,
+        "expected_video_seconds": 10.041667,
+        "action_guide_strength": 0.48,
+        "action_lora_strength": 0.7,
+        "identity_lora_strength": 0.78,
+        "identity_guidance_scale": 2.8,
+        "local_stage_status": "succeeded",
+        "paid_inference_status": "not_started",
+        "blocker": "Vast create instance returned 'Your account lacks credit; see the billing page.' on non-CN RTX 3090 offers, including 180GB, 120GB, and 80GB disk attempts.",
+        "instances_after_attempt": "[]",
+        "launch_attempt_logs": [
+          "output/ltx23_talking_head_smoke/ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12/manual-create-attempts.log",
+          "output/ltx23_talking_head_smoke/ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12/manual-create-attempts-120gb.log",
+          "output/ltx23_talking_head_smoke/ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12/manual-create-attempts-80gb.log"
+        ],
+        "next_action": "After Vast credit is restored, rerun this V4 candidate on a non-CN RTX 3090 with cuda_max_good>=12.8. Do not classify V4 as accepted until the MP4 is downloaded, self-checked, and reviewed for lip sync, subtitles/text, single-person identity, and hand/body artifacts."
       }
     }
   ],

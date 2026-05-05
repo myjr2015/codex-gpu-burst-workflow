@@ -17,7 +17,31 @@ def load_module(script_name: str):
 
 
 class MachineRegistrySelectionTests(unittest.TestCase):
-    def test_prefers_known_success_machine_and_enables_warm_start(self):
+    def test_prefers_near_price_known_success_machine_and_enables_warm_start(self):
+        module = load_module("vast_machine_registry.py")
+        registry = {
+            "machines": [
+                {
+                    "machine_id": 56268,
+                    "host_id": 1820,
+                    "result": "succeeded",
+                    "last_success_at": "2026-04-23T11:47:28",
+                    "total_until_download_seconds": 1476.0,
+                }
+            ]
+        }
+        offers = [
+            {"id": 999001, "machine_id": 90001, "host_id": 5001, "dph_total": 0.17, "verification": "verified"},
+            {"id": 35314367, "machine_id": 56268, "host_id": 1820, "dph_total": 0.175, "verification": "verified"},
+        ]
+
+        decision = module.choose_offer(offers=offers, registry=registry)
+
+        self.assertEqual(decision["offer_id"], 35314367)
+        self.assertTrue(decision["warm_start"])
+        self.assertEqual(decision["selection_mode"], "preferred_machine")
+
+    def test_known_success_machine_does_not_override_much_cheaper_offer(self):
         module = load_module("vast_machine_registry.py")
         registry = {
             "machines": [
@@ -37,9 +61,9 @@ class MachineRegistrySelectionTests(unittest.TestCase):
 
         decision = module.choose_offer(offers=offers, registry=registry)
 
-        self.assertEqual(decision["offer_id"], 35314367)
-        self.assertTrue(decision["warm_start"])
-        self.assertEqual(decision["selection_mode"], "preferred_machine")
+        self.assertEqual(decision["offer_id"], 999001)
+        self.assertFalse(decision["warm_start"])
+        self.assertEqual(decision["selection_mode"], "cold_start")
 
     def test_falls_back_to_cheapest_offer_for_unknown_machine(self):
         module = load_module("vast_machine_registry.py")

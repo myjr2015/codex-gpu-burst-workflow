@@ -9,6 +9,7 @@ PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}"
 PIP_TIMEOUT="${PIP_TIMEOUT:-1800}"
 PIP_RETRIES="${PIP_RETRIES:-20}"
 LTX_UPDATE_COMFYUI="${LTX_UPDATE_COMFYUI:-1}"
+LTX_INSTALL_COMFYUI_CORE_REQUIREMENTS="${LTX_INSTALL_COMFYUI_CORE_REQUIREMENTS:-1}"
 LTX23_ENABLE_ACTION_MIMIC="${LTX23_ENABLE_ACTION_MIMIC:-0}"
 
 mkdir -p "$MODELS_DIR" "$RUN_DIR" "$COMFY_ROOT/input" "$COMFY_ROOT/output" "$COMFY_ROOT/custom_nodes"
@@ -138,6 +139,16 @@ managed_prefixes = (
     "kornia-rs",
     "kornia_rs",
 )
+slow_optional_prefixes = (
+    "comfyui_embedded_docs",
+    "comfyui-embedded-docs",
+    "comfyui_frontend_package",
+    "comfyui-frontend-package",
+    "comfyui_workflow_templates",
+    "comfyui-workflow-templates",
+    "comfyui_workflow_templates_media_api",
+    "comfyui-workflow-templates-media-api",
+)
 
 lines = []
 for raw in src.read_text(encoding="utf-8").splitlines():
@@ -151,6 +162,9 @@ for raw in src.read_text(encoding="utf-8").splitlines():
         continue
     if normalized.startswith(managed_prefixes):
         print(f"[bootstrap-ltx23] skip managed requirement: {line}")
+        continue
+    if normalized.startswith(slow_optional_prefixes):
+        print(f"[bootstrap-ltx23] skip slow optional requirement: {line}")
         continue
     lines.append(line)
 
@@ -287,6 +301,12 @@ download_action_mimic_models_if_requested() {
   download_if_missing \
     "https://huggingface.co/hr16/DWPose-TorchScript-BatchSize5/resolve/main/dw-ll_ucoco_384_bs5.torchscript.pt" \
     "$MODELS_DIR/dwpose/dw-ll_ucoco_384_bs5.torchscript.pt"
+
+  if [ -f "$RUN_DIR/workflow_runtime.json" ] && grep -q "ltx-2.3-spatial-upscaler-x2-1.1.safetensors" "$RUN_DIR/workflow_runtime.json"; then
+    download_if_missing \
+      "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.1.safetensors" \
+      "$MODELS_DIR/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+  fi
 }
 
 install_custom_node_repo() {
@@ -318,7 +338,11 @@ fi
 echo "[bootstrap-ltx23] installing python dependencies"
 stage_event "bootstrap.python_dependencies" "start"
 ensure_torch_stack
-install_filtered_requirements_file "$COMFY_APP_ROOT/requirements.txt" "comfyui-core-requirements"
+if [ "$LTX_INSTALL_COMFYUI_CORE_REQUIREMENTS" = "1" ]; then
+  install_filtered_requirements_file "$COMFY_APP_ROOT/requirements.txt" "comfyui-core-requirements"
+else
+  echo "[bootstrap-ltx23] skipping ComfyUI core requirements install"
+fi
 ensure_kornia_compat
 ensure_python_package "huggingface_hub[hf_xet]>=0.31.0" "huggingface_hub"
 ensure_python_package "safetensors" "safetensors"

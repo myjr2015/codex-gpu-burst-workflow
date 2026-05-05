@@ -45,15 +45,22 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $fullLabel = "$Label-$JobName"
-$envItems = @(
-    "PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu128",
-    "LTX_UPDATE_COMFYUI=1"
-)
+$extraEnvItems = @()
 foreach ($item in $ExtraEnv) {
-    if (-not [string]::IsNullOrWhiteSpace($item)) {
-        $envItems += $item
+    foreach ($part in ([string]$item -split ",")) {
+        if (-not [string]::IsNullOrWhiteSpace($part)) {
+            $extraEnvItems += $part.Trim()
+        }
     }
 }
+$hasComfyUpdateOverride = @($extraEnvItems | Where-Object { $_ -match "^LTX_UPDATE_COMFYUI=" }).Count -gt 0
+$envItems = @(
+    "PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu128"
+)
+if (-not $hasComfyUpdateOverride) {
+    $envItems += "LTX_UPDATE_COMFYUI=1"
+}
+$envItems += $extraEnvItems
 
 $createArgs = @(
     "-File", $createScript,

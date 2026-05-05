@@ -15,6 +15,8 @@ DEFAULT_REGISTRY = {
     "updated_at": None,
 }
 
+PREFERRED_PRICE_TOLERANCE = 0.01
+
 
 def _now_iso() -> str:
     return datetime.now().replace(microsecond=0).isoformat()
@@ -152,10 +154,14 @@ def choose_offer(
         if record_time and (existing_time is None or record_time > existing_time):
             successful_by_machine[machine_id] = record
 
+    cheapest_offer = sorted(offers, key=_offer_sort_key)[0]
+    cheapest_price = _to_float(cheapest_offer.get("dph_total"), float("inf"))
+
     preferred_candidates: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for offer in offers:
         machine_id = offer.get("machine_id")
-        if machine_id in successful_by_machine:
+        offer_price = _to_float(offer.get("dph_total"), float("inf"))
+        if machine_id in successful_by_machine and offer_price <= cheapest_price + PREFERRED_PRICE_TOLERANCE:
             preferred_candidates.append((offer, successful_by_machine[machine_id]))
 
     if preferred_candidates:
@@ -184,7 +190,6 @@ def choose_offer(
             "offer": offer,
         }
 
-    cheapest_offer = sorted(offers, key=_offer_sort_key)[0]
     return {
         "offer_id": cheapest_offer.get("id"),
         "machine_id": cheapest_offer.get("machine_id"),
