@@ -402,6 +402,34 @@ Runs:
   - status: current recommended 10s RunningHub review sample after lip-sync polish.
   - caveat: if playback still fails mouth sync, try another video+audio lip-sync postprocess on the same clean `facehand-04` visual base instead of asking LTX to redraw the person/background.
 
+## 2026-05-06 RunningHub 203136 Action + 204649 Lip Candidate
+
+Use this route when the user prioritizes stronger action mimic than `204071 facehand-04`.
+
+Discovery notes:
+
+- `2031596620839657473 / LTX2.3 动作迁移` looked structurally useful locally, but RunningHub create failed before inference with `NODE_INFO_MISMATCH(nodeId=36, fieldName=audio, reason=node_not_found_in_workflow)`. Treat it as an API/runtime graph mismatch, not a visual candidate.
+- `2031355634699997185 / LTX2.3人物动作迁移V1` ran successfully with the clean anchor/reference/audio, output `512x896`, `24fps`, `265` frames, about `11.041667s`; visual review showed clean photovoltaic background and no pseudo subtitles, but hand action weakened in the second half.
+- `2031367576470687746 / LTX2.3人物动作迁移V2` ran successfully with the same clean inputs and produced stronger hand/upper-body motion than `203135`.
+
+Current stronger-action RunningHub candidate:
+
+- action base job: `ltx23-rh203136-actionaudio-cleanref-20260506-01`
+- action base output: `output/ltx23_talking_head_smoke/ltx23-rh203136-actionaudio-cleanref-20260506-01/downloads/01_331_ComfyUI_00001_p85-audio_lcnmj_1778024708.mp4`
+- base shape: `512x896`, `24fps`, `265` frames, video/audio about `11.041667s`
+- lip-sync postprocess: RunningHub `2046494511848755201 / 精准视频口型同步`
+- retimed input: `output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/inputs/action203136_retimed_25fps_10s_720x1280.mp4`
+- final deliverable: `output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/deliverables/ltx23-action203136-latentsync204649-v1-10s-originalaudio-720x1280.mp4`
+- R2 deliverable: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/output/ltx23-action203136-latentsync204649-v1-10s-originalaudio-720x1280.mp4`
+- final shape: `720x1280`, `25fps`, `250` frames, video `10.000s`, original `10s.wav` rewrapped as AAC with audio duration about `10.008s`
+
+Review result:
+
+- Contact and tail sheets show no visible pseudo subtitles, duplicate person, or polluted background text.
+- Hand/upper-body motion is stronger than `204071 facehand-04 + 204649`, especially around mid/tail hand gestures.
+- Automatic artifact boxes mostly mark red shoes, lips, roof line, hands, stool, and solar-panel/background edges; manual review did not find subtitle-like text in those boxes.
+- Caveat: hand naturalness and phoneme-level mouth sync still need normal playback review. Do not mark the overall goal complete from contact sheets alone.
+
 Related rejected routes:
 
 - `2048694979278671873` (`LTX-2.3_动作参考并保持脸部一致性`)
@@ -424,7 +452,8 @@ Related rejected routes:
 
 Current practical recommendation:
 
-- Use the `204649` LatentSync polish deliverable as the current mouth-sync review sample.
+- Use `203136 + 204649` as the current stronger-action RunningHub review sample.
+- Use `204071 facehand-04 + 204649` as the more conservative stable-mouth review sample if hand artifacts in `203136` are judged too risky.
 - Keep raw `facehand-04` upper-body reframe as the cleanest unpolished visual base.
 - Keep `upperonly-03` as the stable full-body fallback.
 - Do not spend more RunningHub points on `204869` / `204664` / `203919` with only small strength changes; those tests already showed the current tradeoff cannot meet clean background, stable identity, real audio, and strict action mimic at the same time.

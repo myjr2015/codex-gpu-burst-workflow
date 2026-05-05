@@ -475,7 +475,59 @@
             "reason": "structure and visuals were similar, but the proxy mouth/audio correlation was slightly weaker than 204649-v3"
           }
         ],
-        "next_action": "Use this published deliverable as the current 10s RunningHub review sample. If normal playback still fails mouth sync, keep the clean facehand-04 visual base and try another video+audio lip-sync postprocess rather than regenerating the full LTX scene."
+        "next_action": "Use this published deliverable as the current stable-mouth 10s RunningHub review sample. If normal playback still fails mouth sync, keep the clean facehand-04 visual base and try another video+audio lip-sync postprocess rather than regenerating the full LTX scene."
+      },
+      "latest_runninghub_action_lipsync_candidate": {
+        "job_name": "ltx23-latentsync204649-action203136-strict25-pad01-20260506-01",
+        "validated_at": "2026-05-06T07:55:00+08:00",
+        "status": "current_runninghub_stronger_action_lipsync_candidate_needs_playback_review",
+        "source_action_workflow_id": "2031367576470687746",
+        "source_action_workflow_name": "LTX2.3人物动作迁移V2",
+        "lip_polish_workflow_id": "2046494511848755201",
+        "lip_polish_workflow_name": "精准视频口型同步",
+        "input_anchor_image": "api/cf64d1d2360f391bf47a61566ea2a771ee2e9600278fb2537f13e20c10abc7a4.png",
+        "input_reference_video": "api/5553688f8a8d3b2786f8bc6194154e962fa404e27a1ae25512ad167c567c59c6.mp4",
+        "input_audio": "api/0c75a9156200d984d479b8f67817169987c98bfc9dd97748fef77de50b4d300a.wav",
+        "action_base_job": "ltx23-rh203136-actionaudio-cleanref-20260506-01",
+        "action_base_path": "output/ltx23_talking_head_smoke/ltx23-rh203136-actionaudio-cleanref-20260506-01/downloads/01_331_ComfyUI_00001_p85-audio_lcnmj_1778024708.mp4",
+        "action_base_resolution": "512x896",
+        "action_base_fps": 24,
+        "action_base_frame_count": 265,
+        "action_base_duration_seconds": 11.041667,
+        "lip_polish_input_video": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/inputs/action203136_retimed_25fps_10s_720x1280.mp4",
+        "lip_polish_raw_output_path": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/downloads/01_10_Wuji_00001_p85-audio_rqims_1778025042.mp4",
+        "deliverable_path": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/deliverables/ltx23-action203136-latentsync204649-v1-10s-originalaudio-720x1280.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/output/ltx23-action203136-latentsync204649-v1-10s-originalaudio-720x1280.mp4",
+        "deliverable_resolution": "720x1280",
+        "deliverable_fps": 25,
+        "deliverable_frame_count": 250,
+        "deliverable_video_duration_seconds": 10.0,
+        "deliverable_audio_duration_seconds": 10.008,
+        "deliverable_audio": "original 10s.wav rewrapped as AAC",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/deliverables/review/contact_1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/deliverables/review/tail_8s_10s.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-action203136-strict25-pad01-20260506-01/deliverables/review/artifact_risk/generated-artifact-contact-sheet.jpg"
+        ],
+        "visible_text_artifacts": "none_seen_in_contact_tail_or_artifact_review_sheets",
+        "duplicate_person": "none_seen_in_contact_sheets",
+        "background": "clean photovoltaic background preserved after lip-sync polish",
+        "motion_review": "stronger hand and upper-body motion than 204071 facehand-04 plus 204649, especially mid/tail hand gestures; still needs playback review for hand naturalness",
+        "artifact_risk_interpretation": "automatic boxes mostly hit red shoes, lips, roof line, hands, stool, and solar-panel/background edges; no subtitle-like text seen in manual review",
+        "related_tests": [
+          {
+            "job_name": "ltx23-rh203159-actionaudio-cleanref-20260506-01",
+            "source_workflow_id": "2031596620839657473",
+            "reason": "RunningHub create rejected the payload with NODE_INFO_MISMATCH for LoadAudio node 36, so no inference was run"
+          },
+          {
+            "job_name": "ltx23-rh203135-actionaudio-cleanref-20260506-01",
+            "source_workflow_id": "2031355634699997185",
+            "reason": "clean background and no visible pseudo text, but hand action weakened in the second half; kept only as a comparison sample"
+          }
+        ],
+        "tradeoff": "Use this sample when the user prioritizes stronger action mimic. Keep 204071 facehand-04 plus 204649 as the more conservative stable-mouth fallback if hand artifacts are judged too risky.",
+        "next_action": "Playback-review this published 10s sample for phoneme-level mouth sync and hand naturalness. If it still fails, return to a cleaner/stronger action reference or self-hosted V3 once Vast is stable; do not rerun 204869, 204664, or 203919 by only changing small strengths."
       },
       "latest_runninghub_action_template_followup": {
         "validated_at": "2026-05-06T09:25:00+08:00",
@@ -582,7 +634,7 @@
           },
           "created_instance": false
         },
-        "next_action": "Keep 204071 facehand-04 plus 204649 LatentSync as the current RunningHub review sample. Do not rerun 204869, 204664, or 203919 by only nudging strengths; use a genuinely new clean action reference or return to self-hosted V3/Vast once available."
+        "next_action": "For stronger RunningHub action, use latest_runninghub_action_lipsync_candidate instead of these rejected templates. Do not rerun 204869, 204664, or 203919 by only nudging strengths; use a genuinely new clean action reference or return to self-hosted V3/Vast once available."
       }
     }
   ],
