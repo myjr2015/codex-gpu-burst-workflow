@@ -404,6 +404,15 @@ Runs:
 
 Related rejected routes:
 
+- `2048694979278671873` (`LTX-2.3_动作参考并保持脸部一致性`)
+  - `ltx23-rh204869-cleanref-20260506-01`: used the grounded v6 anchor and clean reference with guide `0.65`, LoRA `0.70`; all three outputs avoided obvious subtitle text, but legs and feet moved too much and face/framing drifted. The workflow does not expose an independent `LoadAudio` path, so it is not suitable as a final lip-sync route without a separate mouth postprocess.
+  - `ltx23-rh204869-facehand-cleanref-20260506-02`: disabled body DWPose and kept hand/face only, guide `0.32`, LoRA `0.45`; output still had leg drift, face crop instability, and small background marker risk. Do not continue this route by only lowering strengths.
+- `2046642168843997185` (`LTX-2.3 视频编辑：运镜+视频人物替换+自定义音频`)
+  - `ltx23-rh204664-videoedit-audio-cleanref-20260506-01`: used the same anchor, clean reference, and real `10s.wav`; generated active gestures and audio, but changed the subject into a gray-suit identity, changed the background away from the target photovoltaic scene, and introduced a black foreground obstruction near the tail. Rejected.
+- `2039196522113409025` (`LTX2.3 人物动作迁移图生音视频`)
+  - For this workflow the audio is taken from the reference video. A clean reference with the original `10s.wav` was muxed and re-encoded as `output/ltx23_talking_head_smoke/ltx23-rh203919-actionaudio-facehand-20260506-01/clean_reference_with_10s_audio_reencoded.mp4` before upload.
+  - `ltx23-rh203919-actionaudio-facehand-20260506-01`: `detect_body=disable`, hand/face enabled, guide `0.35`, LoRA `0.55`; kept the green/white outfit and photovoltaic background roughly intact, but motion was weak and body/head pose drift remained.
+  - `ltx23-rh203919-actionaudio-body-s045-20260506-02`: body enabled with guide `0.45`, LoRA `0.65`; stronger motion caused clear leg/feet instability and did not improve hand action enough. Rejected as not better than `204071 facehand-04`.
 - V4 three-sample workflow `2044022005221036033`
   - RunningHub `512x768` output produced obvious bottom pseudo-English letter strings.
   - Forcing `512x896` failed with `torch.OutOfMemoryError`.
@@ -418,6 +427,7 @@ Current practical recommendation:
 - Use the `204649` LatentSync polish deliverable as the current mouth-sync review sample.
 - Keep raw `facehand-04` upper-body reframe as the cleanest unpolished visual base.
 - Keep `upperonly-03` as the stable full-body fallback.
+- Do not spend more RunningHub points on `204869` / `204664` / `203919` with only small strength changes; those tests already showed the current tradeoff cannot meet clean background, stable identity, real audio, and strict action mimic at the same time.
 - Do not call the goal final until normal playback checks mouth sync through the whole clip.
 
 ## Kornia CPU Compatibility Trap

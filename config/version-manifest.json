@@ -476,6 +476,113 @@
           }
         ],
         "next_action": "Use this published deliverable as the current 10s RunningHub review sample. If normal playback still fails mouth sync, keep the clean facehand-04 visual base and try another video+audio lip-sync postprocess rather than regenerating the full LTX scene."
+      },
+      "latest_runninghub_action_template_followup": {
+        "validated_at": "2026-05-06T09:25:00+08:00",
+        "status": "rejected_not_better_than_204071_facehand_plus_204649_lipsync",
+        "reason": "Temporary RunningHub action-template tests while Vast was unstable did not meet the combined target of clean photovoltaic background, stable identity, real audio lip-sync, and stronger action mimic.",
+        "tests": [
+          {
+            "job_name": "ltx23-rh204869-cleanref-20260506-01",
+            "source_workflow_id": "2048694979278671873",
+            "source_workflow_name": "LTX-2.3_动作参考并保持脸部一致性",
+            "settings": {
+              "detect_body": "enable",
+              "detect_hand": "enable",
+              "detect_face": "enable",
+              "action_guide_strength": 0.65,
+              "action_lora_strength": 0.7
+            },
+            "outputs": [
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-cleanref-20260506-01/downloads/01_5105_ltx2.3_00001_p87-audio_pdrrb_1778012554.mp4",
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-cleanref-20260506-01/downloads/02_5172_ltx2.3_00002_p87-audio_lddqv_1778012733.mp4",
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-cleanref-20260506-01/downloads/03_5178_ltx2.3_00003_p87-audio_yndjq_1778012758.mp4"
+            ],
+            "rejection_reason": "no obvious subtitle text, but legs and feet drifted heavily; face/framing were unstable; workflow does not expose an independent LoadAudio input for the target 10s.wav"
+          },
+          {
+            "job_name": "ltx23-rh204869-facehand-cleanref-20260506-02",
+            "task_id": "2051795793979031553",
+            "source_workflow_id": "2048694979278671873",
+            "settings": {
+              "detect_body": "disable",
+              "detect_hand": "enable",
+              "detect_face": "enable",
+              "action_guide_strength": 0.32,
+              "action_lora_strength": 0.45
+            },
+            "outputs": [
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-facehand-cleanref-20260506-02/downloads/01_5105_ltx2.3_00001_p83-audio_kqamh_1778021445.mp4",
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-facehand-cleanref-20260506-02/downloads/02_5172_ltx2.3_00002_p83-audio_gpygq_1778021630.mp4",
+              "output/ltx23_talking_head_smoke/ltx23-rh204869-facehand-cleanref-20260506-02/downloads/03_5178_ltx2.3_00003_p83-audio_dzqro_1778021660.mp4"
+            ],
+            "rejection_reason": "body-off DWPose still left leg drift and face crop instability; small background marker risk remained"
+          },
+          {
+            "job_name": "ltx23-rh204664-videoedit-audio-cleanref-20260506-01",
+            "task_id": "2051798144521515009",
+            "source_workflow_id": "2046642168843997185",
+            "source_workflow_name": "LTX-2.3 视频编辑： 运镜+视频人物替换+自定义音频",
+            "settings": {
+              "video_guide_strength": 0.42,
+              "cameraman_lora_strength": 0.55
+            },
+            "output_path": "output/ltx23_talking_head_smoke/ltx23-rh204664-videoedit-audio-cleanref-20260506-01/downloads/01_76_LTX-2_00001_p86-audio_daxsg_1778022195.mp4",
+            "output_resolution": "1088x1920",
+            "output_fps": 24,
+            "video_duration_seconds": 10.041667,
+            "rejection_reason": "used real audio and had active gestures, but changed the target woman into a gray-suit identity, moved away from the target photovoltaic background, and introduced a black foreground obstruction near the tail"
+          },
+          {
+            "job_name": "ltx23-rh203919-actionaudio-facehand-20260506-01",
+            "task_id": "2051800795195846658",
+            "source_workflow_id": "2039196522113409025",
+            "source_workflow_name": "LTX2.3 人物动作迁移图生音视频",
+            "muxed_reference_with_audio": "output/ltx23_talking_head_smoke/ltx23-rh203919-actionaudio-facehand-20260506-01/clean_reference_with_10s_audio_reencoded.mp4",
+            "settings": {
+              "detect_body": "disable",
+              "detect_hand": "enable",
+              "detect_face": "enable",
+              "video_guide_strength": 0.35,
+              "union_control_lora_strength": 0.55
+            },
+            "output_path": "output/ltx23_talking_head_smoke/ltx23-rh203919-actionaudio-facehand-20260506-01/downloads/01_76_LTX-2_00001_p86-audio_lcgra_1778022887.mp4",
+            "output_resolution": "1024x1920",
+            "output_fps": 24,
+            "video_duration_seconds": 10.375,
+            "rejection_reason": "kept the green/white outfit and photovoltaic background roughly intact, but hand/body action was weak and head/body drift remained"
+          },
+          {
+            "job_name": "ltx23-rh203919-actionaudio-body-s045-20260506-02",
+            "task_id": "2051803137618132993",
+            "source_workflow_id": "2039196522113409025",
+            "settings": {
+              "detect_body": "enable",
+              "detect_hand": "enable",
+              "detect_face": "enable",
+              "video_guide_strength": 0.45,
+              "union_control_lora_strength": 0.65
+            },
+            "output_path": "output/ltx23_talking_head_smoke/ltx23-rh203919-actionaudio-body-s045-20260506-02/downloads/01_76_LTX-2_00002_p86-audio_phhsh_1778023370.mp4",
+            "output_resolution": "1024x1920",
+            "output_fps": 24,
+            "video_duration_seconds": 10.375,
+            "rejection_reason": "stronger body control caused obvious leg and foot instability while hand action still did not improve enough"
+          }
+        ],
+        "vast_poll_after_tests": {
+          "instances": "[]",
+          "cheapest_non_cn_3090_80gb_seen": {
+            "offer_id": 28987194,
+            "machine_id": 12368,
+            "host_id": 39788,
+            "dph_total": 0.16,
+            "driver_version": "580.126.09",
+            "cuda_max_good": 13.0
+          },
+          "created_instance": false
+        },
+        "next_action": "Keep 204071 facehand-04 plus 204649 LatentSync as the current RunningHub review sample. Do not rerun 204869, 204664, or 203919 by only nudging strengths; use a genuinely new clean action reference or return to self-hosted V3/Vast once available."
       }
     }
   ],
