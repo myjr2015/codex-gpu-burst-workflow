@@ -1,6 +1,5 @@
 import argparse
 import json
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -113,31 +112,11 @@ def _filter_by_max_dph_total(offers: list[dict[str, Any]], max_dph_total: float 
     ]
 
 
-def _driver_major(value: Any) -> int | None:
-    if value is None:
-        return None
-    match = re.match(r"^\s*(\d+)", str(value))
-    if not match:
-        return None
-    return int(match.group(1))
-
-
-def _filter_by_min_driver_major(offers: list[dict[str, Any]], min_driver_major: int | None) -> list[dict[str, Any]]:
-    if min_driver_major is None or min_driver_major <= 0:
-        return offers
-    return [
-        offer
-        for offer in offers
-        if (_driver_major(offer.get("driver_version")) or 0) >= min_driver_major
-    ]
-
-
 def choose_offer(
     offers: list[dict[str, Any]],
     registry: dict[str, Any],
     exclude_known: bool = False,
     max_dph_total: float | None = None,
-    min_driver_major: int | None = None,
 ) -> dict[str, Any]:
     if not offers:
         raise ValueError("No Vast offers available for selection.")
@@ -149,10 +128,6 @@ def choose_offer(
     offers = _filter_by_max_dph_total(offers, max_dph_total)
     if not offers:
         raise ValueError(f"No Vast offers remain after applying max dph_total {max_dph_total}.")
-
-    offers = _filter_by_min_driver_major(offers, min_driver_major)
-    if not offers:
-        raise ValueError(f"No Vast offers remain after applying min driver major {min_driver_major}.")
 
     if exclude_known:
         known_ids = _successful_machine_ids(registry)
@@ -338,7 +313,6 @@ def main() -> int:
     choose_parser.add_argument("--offers-path", required=True)
     choose_parser.add_argument("--exclude-known", action="store_true")
     choose_parser.add_argument("--max-dph-total", type=float)
-    choose_parser.add_argument("--min-driver-major", type=int)
 
     update_parser = subparsers.add_parser("record-run")
     update_parser.add_argument("--registry-path", required=True)
@@ -358,7 +332,6 @@ def main() -> int:
             registry=registry,
             exclude_known=args.exclude_known,
             max_dph_total=args.max_dph_total,
-            min_driver_major=args.min_driver_major,
         )
         print(json.dumps(decision, ensure_ascii=False))
         return 0

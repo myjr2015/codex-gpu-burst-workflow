@@ -197,7 +197,7 @@ v4 运行时，推理阶段按段汇报但不要说带 `continue_motion`：
 ## 不要重复踩坑
 
 - 不要并行 `stage` 和 `launch`。
-- 不要用中国或土耳其机器，默认搜索必须包含 `geolocation notin [CN,TR]`。
+- 不要用中国机器，默认搜索必须包含 `geolocation notin [CN]`；土耳其只作为测速/启动风险信号，不再默认硬排除。
 - 不要把命中同一台机器当成缓存命中；必须看 `warm-start hit/miss`。
 - 不要猜输出文件名；必须从 `/history` 读取。
 - 不要在未重新 stage/upload 的情况下验证脚本修改。

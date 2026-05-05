@@ -282,7 +282,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": true,
       "updated_at": "2026-05-03T13:52:53"
+    },
+    {
+      "machine_id": 33622,
+      "host_id": 207261,
+      "offer_id": 36162844,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "580.142",
+      "geolocation": "British Columbia, CA",
+      "verification": "verified",
+      "dph_total": 0.15666666666666668,
+      "job_name": "ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02",
+      "instance_id": 36191947,
+      "result": "succeeded",
+      "last_success_at": "2026-05-06T00:19:11",
+      "total_until_download_seconds": 1242.0,
+      "instance_started_to_submit_seconds": 745.0,
+      "prompt_execution": "00:07:50.4700000",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-05-06T01:33:48"
     }
   ],
-  "updated_at": "2026-05-03T13:52:53"
+  "updated_at": "2026-05-06T01:33:48"
 }

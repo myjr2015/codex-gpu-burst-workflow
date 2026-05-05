@@ -5,7 +5,10 @@ param(
 
     [switch]$ExcludeCN,
 
-    [switch]$ExcludeRiskyGeos,
+    [Alias("ExcludeRiskyGeos")]
+    [switch]$ExcludeTR,
+
+    [switch]$IncludeCN,
 
     [double]$MinCuda = 0,
 
@@ -30,8 +33,21 @@ $queryParts = @(
     "rented=False"
 )
 
-if ($ExcludeCN -or $ExcludeRiskyGeos) {
+if ($IncludeCN -and $ExcludeCN) {
+    throw "-IncludeCN and -ExcludeCN cannot be used together."
+}
+
+# CN is excluded by default for paid generation. Exclude TR only when explicitly requested.
+if ($IncludeCN) {
+    if ($ExcludeTR) {
+        $queryParts += "geolocation notin [TR]"
+    }
+}
+elseif ($ExcludeTR) {
     $queryParts += "geolocation notin [CN,TR]"
+}
+else {
+    $queryParts += "geolocation notin [CN]"
 }
 
 if ($MinCuda -gt 0) {

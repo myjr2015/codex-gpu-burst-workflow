@@ -17,6 +17,7 @@ scripts_test/
 __pycache__/
 *.pyc
 config/workflows.local.json
+workflows/temp/
 素材资产/**
 !素材资产/
 !素材资产/README.md

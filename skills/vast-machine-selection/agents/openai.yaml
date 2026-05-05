@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vast 选机"
+  short_description: "为 Vast 3090/4090 付费任务按含存储总价、地区、测速和缓存证据选择机器。"
+  default_prompt: "为这次 Vast 付费任务选机器，先按含存储 dph_total 控价，再对候选做下载测速和止损判断。"

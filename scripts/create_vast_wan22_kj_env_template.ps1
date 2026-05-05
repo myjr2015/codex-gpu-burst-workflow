@@ -5,7 +5,7 @@ param(
 
     [int]$DiskGb = 240,
 
-    [string]$SearchParams = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchParams = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [switch]$PrivateDockerHubLogin,
 

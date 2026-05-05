@@ -29,6 +29,8 @@ param(
 
     [int]$MaxSegments = 0,
 
+    [string]$SegmentPlanPath = "",
+
     [switch]$UploadToR2,
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd("/") + "/wan22_kj_30s_segmented" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX.TrimEnd("/") + "/wan22_kj_30s_segmented" } else { "runcomfy-inputs/wan22_kj_30s_segmented" }),
@@ -167,10 +169,33 @@ $resolvedBackgroundImage = $null
 if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
     $resolvedBackgroundImage = (Resolve-Path -LiteralPath $BackgroundImagePath).Path
 }
+$resolvedSegmentPlan = $null
+$plannedSegments = @()
+if (-not [string]::IsNullOrWhiteSpace($SegmentPlanPath)) {
+    if (-not (Test-Path -LiteralPath $SegmentPlanPath)) {
+        throw "Missing segment plan file: $SegmentPlanPath"
+    }
+    $resolvedSegmentPlan = (Resolve-Path -LiteralPath $SegmentPlanPath).Path
+    $segmentPlan = Get-Content -Raw -LiteralPath $resolvedSegmentPlan | ConvertFrom-Json
+    if (-not $segmentPlan.segments -or @($segmentPlan.segments).Count -lt 1) {
+        throw "Segment plan has no segments: $resolvedSegmentPlan"
+    }
+    $plannedSegments = @($segmentPlan.segments)
+}
 $videoDurationSeconds = Get-VideoDurationSeconds -Path $resolvedVideo
-$segmentCount = [int][math]::Ceiling($videoDurationSeconds / [double]$SegmentSeconds)
-if ($MaxSegments -gt 0) {
-    $segmentCount = [math]::Min($segmentCount, $MaxSegments)
+$segmentCount = 0
+if ($plannedSegments.Count -gt 0) {
+    $segmentCount = $plannedSegments.Count
+    if ($MaxSegments -gt 0) {
+        $segmentCount = [math]::Min($segmentCount, $MaxSegments)
+        $plannedSegments = @($plannedSegments | Select-Object -First $segmentCount)
+    }
+}
+else {
+    $segmentCount = [int][math]::Ceiling($videoDurationSeconds / [double]$SegmentSeconds)
+    if ($MaxSegments -gt 0) {
+        $segmentCount = [math]::Min($segmentCount, $MaxSegments)
+    }
 }
 if ($segmentCount -lt 1) {
     throw "No segments to stage."
@@ -203,9 +228,34 @@ Copy-Item -LiteralPath $warmstartInspectorScript -Destination $warmstartInspecto
 $segments = @()
 for ($index = 1; $index -le $segmentCount; $index += 1) {
     $segmentId = "{0:d2}" -f $index
-    $startSeconds = [double](($index - 1) * $SegmentSeconds)
-    $remainingSeconds = [math]::Max(0.0, $videoDurationSeconds - $startSeconds)
-    $durationSeconds = [math]::Min([double]$SegmentSeconds, $remainingSeconds)
+    if ($plannedSegments.Count -gt 0) {
+        $planned = $plannedSegments[$index - 1]
+        if ($planned.id) {
+            $segmentId = "{0}" -f $planned.id
+        }
+        $startSeconds = [double]$planned.start_seconds
+        if ($planned.duration_seconds) {
+            $durationSeconds = [double]$planned.duration_seconds
+        }
+        elseif ($planned.end_seconds) {
+            $durationSeconds = [double]$planned.end_seconds - $startSeconds
+        }
+        else {
+            throw "Segment plan item $index missing duration_seconds or end_seconds."
+        }
+        if ($durationSeconds -gt ([double]$SegmentSeconds + 0.001)) {
+            throw "Segment $segmentId duration $durationSeconds exceeds SegmentSeconds=$SegmentSeconds."
+        }
+    }
+    else {
+        $startSeconds = [double](($index - 1) * $SegmentSeconds)
+        $remainingSeconds = [math]::Max(0.0, $videoDurationSeconds - $startSeconds)
+        $durationSeconds = [math]::Min([double]$SegmentSeconds, $remainingSeconds)
+    }
+    if ($startSeconds -lt 0 -or $startSeconds -ge $videoDurationSeconds) {
+        throw "Segment $segmentId start_seconds out of range: $startSeconds"
+    }
+    $durationSeconds = [math]::Min($durationSeconds, [math]::Max(0.0, $videoDurationSeconds - $startSeconds))
     if ($durationSeconds -le 0) {
         continue
     }
@@ -292,6 +342,8 @@ $manifest = [ordered]@{
         prepare_script = $prepareScript
         source_video_duration_seconds = [math]::Round($videoDurationSeconds, 3)
         segment_seconds = $SegmentSeconds
+        segment_strategy = if ($plannedSegments.Count -gt 0) { "segment_plan" } else { "fixed_duration" }
+        segment_plan_source = $resolvedSegmentPlan
         force_rate = $videoFrameRate
         output_width = $OutputWidth
         output_height = $OutputHeight
@@ -374,6 +426,9 @@ if ($resolvedBackgroundImage) {
 }
 Write-Host "source_video_duration_seconds=$([math]::Round($videoDurationSeconds, 3))"
 Write-Host "segment_seconds=$SegmentSeconds"
+if ($resolvedSegmentPlan) {
+    Write-Host "segment_plan=$resolvedSegmentPlan"
+}
 Write-Host "segment_count=$($segments.Count)"
 Write-Host "output_resolution=${OutputWidth}x${OutputHeight}"
 foreach ($segment in $segments) {

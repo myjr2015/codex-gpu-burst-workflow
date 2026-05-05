@@ -16,7 +16,7 @@ param(
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
@@ -1419,7 +1419,7 @@ try {
             host_id = $offer.host_id
             warm_start = $false
             selection_mode = "cold_start"
-            selection_reason = "1.0 cheapest non-CN/TR RTX 3090 offer"
+            selection_reason = "1.0 cheapest non-CN RTX 3090 offer"
         }
     }
     $OfferId = [string]$selection.offer_id

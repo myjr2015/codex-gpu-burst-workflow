@@ -117,13 +117,13 @@ RTX 4090 template:
 template_name=codex-wan22-kj-comfy-cuda129-v3-dockerhub
 template_hash_id=eb3ff9185d9de9a9482c2cffbdfd8f9f
 template_id=400607
-search_filter=gpu_name == RTX 4090, disk_space > 240, geolocation notin [CN,TR]
+search_filter=gpu_name == RTX 4090, disk_space > 240, geolocation notin [CN]
 
 RTX 3090 template:
 template_name=codex-wan22-kj-comfy-cuda129-v3-dockerhub-3090
 template_hash_id=ffe5b8f532b7b14b825df78c43be59d9
 template_id=401196
-search_filter=gpu_name == RTX 3090, disk_space > 240, geolocation notin [CN,TR]
+search_filter=gpu_name == RTX 3090, disk_space > 240, geolocation notin [CN]
 
 status=onnx_cuda_smoke_passed_on_4090_template
 validated_job=kj30s-v3-dhub-4090-onnxfix-20260502-0020

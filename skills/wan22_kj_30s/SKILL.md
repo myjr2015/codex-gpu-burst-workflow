@@ -379,14 +379,14 @@ User cost preference from 2026-05-01:
 - HF-only speed tests may use smaller storage to reach the speedtest stage quickly; real KJ cold-start or inference runs must recalculate with the disk size required by image plus models.
 - Full KJ 30s / segmented workflow selection uses `DiskGb=240` and `--storage 240` by default. Do not use 40GB/80GB HF-only speedtest prices as the final production cost.
 - Do not pick 3090 offers at or above `$0.20/h` unless the user explicitly asks or there is no usable machine below the threshold.
-- Keep excluding `CN` and `TR`.
-- Prefer drivers `580.*` or `590.*`; driver `570.*` and lower must be called out as CUDA / torch compatibility risk before spending money.
+- Exclude `CN` for paid generation by default; treat `TR` as a speed/bootstrap risk signal, not as a hard default exclusion.
+- Record `driver_version` for diagnostics, but do not reject only because it is below `580.*`; switch machines only after real CUDA / torch / bootstrap log failures.
 
 Current 3090 speed-test candidates requested by the user:
 
 - `35423246`: California, `machine_id=54625`, `host_id=344939`, listed about `$0.1347/h`; with 180GB storage observed about `$0.1833/h`, still below `$0.20/h`.
 - `35135923`: California, `machine_id=68407`, `host_id=344939`, listed about `$0.1356/h`; actual total must be checked with storage.
-- `32302041`: California, `machine_id=42748`, `host_id=299337`, about `$0.1228/h`, driver `570.158.01`; inside preferred price band but driver is a CUDA / torch compatibility risk until proven reliable.
+- `32302041`: California, `machine_id=42748`, `host_id=299337`, about `$0.1228/h`, driver `570.158.01`; inside preferred price band, with compatibility judged from actual CUDA / torch / bootstrap logs.
 
 Cleanup roadmap:
 
@@ -680,9 +680,9 @@ Reference-overlay gate:
 
 Required defaults:
 
-- exclude `CN` and `TR`
+- exclude `CN`; treat `TR` as a speed/bootstrap risk signal, not a hard default exclusion
 - `MaxDphTotal=0.215`
-- `MinDriverMajor=580`
+- 不再把 `MinDriverMajor=580` 作为硬过滤；记录 `driver_version`，真实 CUDA / torch 报错再止损切机
 - `DiskGb=240`
 - run HuggingFace speed preflight before bootstrap
 - default HF gate:
@@ -737,7 +737,7 @@ pwsh -File .\scripts\select_wan22_kj_30s_offer_by_hf_speed.ps1 `
 Selection rule:
 
 - list `10-20` candidate offers first
-- filter out `CN/TR`, blacklisted hosts, low driver versions, and high price
+- filter out `CN`, blacklisted hosts, and high price; record driver versions, but do not filter on driver unless real CUDA / torch / bootstrap logs fail on that host
 - short-rent only `1-3` best-looking offers per batch
 - if an instance does not print `[hf-speedtest]` within `5 min`, treat it as startup too slow and destroy it
 - if none pass the HF gate, destroy them and continue with the next candidate batch

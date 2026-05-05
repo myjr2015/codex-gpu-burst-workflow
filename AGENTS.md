@@ -1,6 +1,6 @@
 # 项目运行规则
 
-本项目的长期记忆分六层：
+本项目的长期记忆分七层：
 
 1. `AGENTS.md`
    - 项目级默认规则。
@@ -27,6 +27,10 @@
    - 历史方案归档、暂停后恢复入口、路线切换经验。
    - 用户问“之前做过哪些方案”“现在该走哪条路线”“LTX2.3 要不要试”时必须加载。
 
+7. `skills/vast-machine-selection/SKILL.md`
+   - Vast 选机、测速、价格上限、地区排除、机器库优先级和切机止损规则。
+   - 每次准备租 Vast 付费机器、切换机器、解释下载速度、或选择 3090/4090 前必须加载。
+
 ## 中文优先规则
 
 能用中文表达的地方优先用中文，包括：
@@ -49,6 +53,7 @@
 
 每次开始跑付费 Vast 任务前，必须先读取：
 
+- `skills/vast-machine-selection/SKILL.md`
 - `skills/okskills/SKILL.md`
 - `skills/badskills/SKILL.md`
 - 如果跑分段流程，再读取 `skills/wan_2_2_animate_segmented/SKILL.md`
@@ -66,7 +71,9 @@
 
 - `data/vast-machine-registry.json`
 
-选择机器时先运行：
+选择机器前先读取 `skills/vast-machine-selection/SKILL.md`。如使用现有 selector，必须确认它没有违反该 skill 的价格和测速规则。
+
+老 Wan2.2 selector 入口：
 
 ```powershell
 pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
@@ -74,26 +81,28 @@ pwsh -File .\scripts\select_wan_2_2_animate_vast_offer.ps1
 
 规则：
 
-- 如果当前可租机器命中机器库里的成功机器，优先租它。
+- 如果当前可租机器命中机器库里的成功机器，只能作为同价/近价候选的加分项，不能压过 `skills/vast-machine-selection/SKILL.md` 里的价格上限和测速结果。
 - 只有命中老机器时才启用 `WarmStart`。
 - 如果没有命中老机器，按 `1.0` 冷启动处理。
-- 默认选机必须排除 `CN` 和 `TR`：`geolocation notin [CN,TR]`。
+- `CN` 从 2026-05-05 起不再租用；付费生成默认在 Vast 搜索条件中排除 `CN`。
+- `TR` 只作为测速风险信号，不再和 `CN` 一起硬排除；是否可用以实际启动和下载日志为准。
 - `hit` 说中文叫“命中”。
 - `miss` 说中文叫“未命中”，意思是没有找到可复用缓存，不是文件丢失。
 
 ### 3090 价格规则
 
-选择 `RTX 3090 24GB` 跑 KJ / Wan2.2 付费任务时，默认只考虑全部费用合计低于 `$0.20/h` 的机器。
+选择 `RTX 3090 24GB` 跑 KJ / Wan2.2 / LTX2.3 付费任务时，以 `skills/vast-machine-selection/SKILL.md` 为准：默认优先全部费用合计低于 `$0.15/h` 的机器，`$0.16/h` 可作为低价候选失败后的回退，超过 `$0.18/h` 必须先说明原因或得到用户明确同意。
 
 规则：
 
-- 仍然必须排除 `CN` 和 `TR`。
-- 优先 `driver_version` 为 `580.*` 或 `590.*`，避免 CUDA / torch 兼容问题。
+- 默认排除 `CN`；不要为了低价把 `CN` 候选放进付费生成短名单，除非用户之后明确重新允许。
+- `TR` 只作为测速风险信号，低价非 `CN` 候选可以进入短名单，是否可用以实际启动和下载日志为准。
+- `driver_version` 不作为硬过滤条件；不再因为低于 `580.*` 单独否决机器，真实兼容性以 CUDA / torch / bootstrap 日志为准。
 - 必须用带实际 `--storage` 后的 `dph_total` 判断价格，不能只看裸 GPU 价格。
 - HF 纯测速可以用小磁盘快速测网络；真实 KJ 冷启动/推理要用实际需要的磁盘重新计算总价。
 - KJ 30s / KJ 分段完整工作流默认按 `DiskGb=240` 选机，搜索也必须带 `--storage 240`；不要用 40GB/80GB 的测速价格判断真实任务成本。
-- 全部费用高于 `$0.20/h` 的 3090 默认不选，除非用户明确要求或当前没有低于 `$0.20/h` 的可用候选。
-- 当前用户指定的 3090 价格偏好来自 2026-05-01：全部费用加起来低于 `0.20/h`。
+- 全部费用高于 `$0.18/h` 的 3090 默认不选，除非用户明确要求、当前低价候选测速失败，或任务已经进入必须止损权衡的阶段。
+- 当前用户指定的 3090 价格偏好更新于 2026-05-05：优先找含存储费用低于 `$0.15/h` 的非 `CN` 机器，`CN` 不租用。
 
 ### 选机结果以“实际启动时”为准
 
@@ -248,7 +257,7 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - `LTX2.3 候选新路线`
   - 内部：`ltx23_talking_head_smoke`
   - 入口：`scripts/run_ltx23_talking_head_smoke_end_to_end.ps1`
-  - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前无字幕底座 `2040333916862685186` 已由 `ltx23-nosub-nag-20260504-01` 跑通；VBVR motion LoRA strength `0.60` 已由 `ltx23-vbvr-motion-s06-20260504-01` 跑通，但 VBVR 只算轻动效，不算严格动作模仿。`2026-05-05` 已接入 prompt-only 背景提示词模块：`-BackgroundPrompt` 只拼进 LTX 正向 prompt，不加载 PromptRelay / Qwen3-VL / Gemini 节点，也不下载额外提示词大模型。当前动作模仿候选是 `2044017351640748034 / LTX2.3_自定义音频+人物动作迁移V3（单采IDLoRA）`，本地 workflow 为 `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`，入口使用 `-ActionMimic -ReferenceVideoPath`；job `ltx23-action-mimic-v3-20260505-01` 已跑通 `512x896`、`24fps`、`10.041667s`，节点校验包含 `DWPreprocessor`、`LTXAddVideoICLoRAGuide`、`LTXVReferenceAudio`，抽帧未见伪字幕/多人，手势明显跟随参考视频节奏，尾部嘴部仍动。下一步优先让用户正常播放验口型，再决定跑 30s/60s。
+  - 状态：候选可跑；自托管 Vast 3090 链路已跑通，旧底座 `2043593704170070018` 两次出现伪字幕/伪文字，不能生产。当前无字幕底座 `2040333916862685186` 已由 `ltx23-nosub-nag-20260504-01` 跑通；VBVR motion LoRA strength `0.60` 已由 `ltx23-vbvr-motion-s06-20260504-01` 跑通，但 VBVR 只算轻动效，不算严格动作模仿。`2026-05-05` 已接入 prompt-only 背景提示词模块：`-BackgroundPrompt` 只拼进 LTX 正向 prompt，不加载 PromptRelay / Qwen3-VL / Gemini 节点，也不下载额外提示词大模型。当前动作模仿候选是 `2044017351640748034 / LTX2.3_自定义音频+人物动作迁移V3（单采IDLoRA）`，本地 workflow 为 `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`，入口使用 `-ActionMimic -ReferenceVideoPath`。当前推荐 10s 样本是 `ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02`：使用 V6 grounded RGB 坐姿 anchor + `光伏10s_clean_reference_v6_skip1.mp4` 干净参考，`ActionGuideStrength=0.45`、`ActionLoraStrength=0.65`，输出 `512x896`、`24fps`、`10.041667s`，1fps/尾帧拼图未见伪字幕/文字、多人，尾部嘴部仍动，已发布 R2 并销毁实例。`ltx23-matte-action-cleanref-nocn-20260505-05` 的纯灰 matte 动作参考方案虽然技术跑通，但整段出现底部伪中文字幕样式文本，本地遮罩修复会伤腿/脚/椅子，标记失败不要作为默认路线。
 
 规则：
 

@@ -1,13 +1,11 @@
 param(
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>180 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [int]$Storage = 180,
 
     [double]$MaxDphTotal = 0,
-
-    [int]$MinDriverMajor = 0,
 
     [switch]$ExcludeKnownMachines
 )
@@ -45,10 +43,6 @@ try {
     if ($MaxDphTotal -gt 0) {
         $selectorArgs += @("--max-dph-total", $MaxDphTotal.ToString([System.Globalization.CultureInfo]::InvariantCulture))
     }
-    if ($MinDriverMajor -gt 0) {
-        $selectorArgs += @("--min-driver-major", "$MinDriverMajor")
-    }
-
     $decisionJson = & D:\code\YuYan\python\python.exe @selectorArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Machine registry selector failed."

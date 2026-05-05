@@ -1,5 +1,5 @@
 param(
-    [string]$SearchQuery = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchQuery = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [int]$DiskGb = 240,
 
@@ -10,8 +10,6 @@ param(
     [int]$MaxTests = 9,
 
     [double]$MaxDphTotal = 0.4,
-
-    [int]$MinDriverMajor = 580,
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
@@ -53,16 +51,6 @@ foreach ($required in @($createScript, $destroyScript)) {
 if (Test-Path -LiteralPath $r2HelperPath) {
     . $r2HelperPath
     Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
-}
-
-function Get-DriverMajor {
-    param($Offer)
-
-    $driverMajor = 0
-    if ($Offer.driver_version -match '^\s*(\d+)') {
-        $driverMajor = [int]$Matches[1]
-    }
-    $driverMajor
 }
 
 function Get-RegistryBlacklist {
@@ -637,19 +625,16 @@ $filtered = @(
     $offers |
         Where-Object {
             if ($MaxDphTotal -gt 0 -and [double]$_.dph_total -gt $MaxDphTotal) { return $false }
-            if ($MinDriverMajor -gt 0 -and (Get-DriverMajor -Offer $_) -lt $MinDriverMajor) { return $false }
             if ($blacklist.Machines.ContainsKey([string]$_.machine_id)) { return $false }
             if ($blacklist.Hosts.ContainsKey([string]$_.host_id)) { return $false }
             return $true
         } |
-        Sort-Object `
-            @{ Expression = { [double]$_.dph_total }; Ascending = $true }, `
-            @{ Expression = { Get-DriverMajor -Offer $_ }; Descending = $true } |
+        Sort-Object dph_total |
         Select-Object -First $CandidateCount
 )
 
 if ($filtered.Count -eq 0) {
-    throw "No candidate offers after price, driver, geolocation, and blacklist filters."
+    throw "No candidate offers after price, geolocation, and blacklist filters."
 }
 
 New-Item -ItemType Directory -Force -Path $speedRoot | Out-Null

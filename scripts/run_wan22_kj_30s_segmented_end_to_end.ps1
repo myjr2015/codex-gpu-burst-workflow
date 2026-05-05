@@ -23,7 +23,7 @@ param(
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchQuery = "gpu_name=RTX_4090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
@@ -33,8 +33,6 @@ param(
 
     [double]$MaxDphTotal = 0.4,
 
-    [int]$MinDriverMajor = 580,
-
     [int]$OutputWidth = 720,
 
     [int]$OutputHeight = 1280,
@@ -42,6 +40,8 @@ param(
     [int]$SegmentSeconds = 30,
 
     [int]$MaxSegments = 0,
+
+    [string]$SegmentPlanPath = "",
 
     [ValidateSet("Off", "Warn", "FailOnHigh")]
     [string]$ReferenceRiskPolicy = "Warn",
@@ -218,6 +218,9 @@ if ($PrepareOnly) {
     if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
         $prepareStageArgs += @("-BackgroundImagePath", $BackgroundImagePath)
     }
+    if (-not [string]::IsNullOrWhiteSpace($SegmentPlanPath)) {
+        $prepareStageArgs += @("-SegmentPlanPath", $SegmentPlanPath)
+    }
     & pwsh @prepareStageArgs
     exit $LASTEXITCODE
 }
@@ -256,16 +259,6 @@ else {
     if ($MaxDphTotal -gt 0) {
         $offers = @($offers | Where-Object { [double]$_.dph_total -le $MaxDphTotal })
     }
-    if ($MinDriverMajor -gt 0) {
-        $offers = @($offers | Where-Object {
-            $driverMajor = 0
-            if ($_.driver_version -match '^\s*(\d+)') {
-                $driverMajor = [int]$Matches[1]
-            }
-            $driverMajor -ge $MinDriverMajor
-        })
-    }
-
     $registry = $null
     if (($RuntimeVersion -eq "1.1-machine-registry" -or $RuntimeVersion -eq "1.2-docker-env-template") -and (Test-Path -LiteralPath $RegistryPath)) {
         $registry = Get-Content -Raw $RegistryPath | ConvertFrom-Json
@@ -284,7 +277,7 @@ else {
     $preferred = $offers | Where-Object { $knownMachineIds -contains [string]$_.machine_id } | Sort-Object dph_total | Select-Object -First 1
     $offer = if ($preferred) { $preferred } else { $offers | Sort-Object dph_total | Select-Object -First 1 }
     if (-not $offer) {
-        throw "No RTX 4090 Vast offer found under max dph_total $MaxDphTotal and min driver major $MinDriverMajor."
+        throw "No RTX 4090 Vast offer found under max dph_total $MaxDphTotal."
     }
     $selection = [pscustomobject]@{
         offer_id = $offer.id
@@ -292,7 +285,7 @@ else {
         host_id = $offer.host_id
         warm_start = [bool]$preferred
         selection_mode = if ($preferred) { "preferred_machine" } else { "cold_start" }
-        selection_reason = if ($preferred) { "Matched successful $preferredGpuName machine in registry" } else { "Cheapest matching non-CN/TR $preferredGpuName offer" }
+        selection_reason = if ($preferred) { "Matched successful $preferredGpuName machine in registry" } else { "Cheapest matching non-CN $preferredGpuName offer" }
     }
 }
 
@@ -322,6 +315,9 @@ $stageArgs = @(
 )
 if (-not [string]::IsNullOrWhiteSpace($BackgroundImagePath)) {
     $stageArgs += @("-BackgroundImagePath", $BackgroundImagePath)
+}
+if (-not [string]::IsNullOrWhiteSpace($SegmentPlanPath)) {
+    $stageArgs += @("-SegmentPlanPath", $SegmentPlanPath)
 }
 
 $launchArgs = @(

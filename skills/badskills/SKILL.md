@@ -56,12 +56,12 @@ These failures were observed on the same branch:
 
 - Symptom: the cheapest host looks attractive on paper, but cold start is slow or unstable because external registries and model sources are hard to reach
   - Root cause: host geolocation is mainland China or Turkey, while this branch depends on unattended pulls from Docker Hub, PyTorch, Hugging Face, and R2
-  - Action: for `wan_2_2_animate`, exclude `CN` and `TR` when searching Vast offers unless the runtime has been explicitly rebuilt for those network constraints
+  - Action: for `wan_2_2_animate`, exclude `CN` when searching Vast offers unless the user explicitly re-allows it; treat `TR` by actual speed and bootstrap logs
 
 - Symptom: ComfyUI exits with `cudaGetDeviceCount Error 804`
   - Root cause: host driver and container CUDA stack are incompatible
   - Evidence seen on a failed host: `570.211.01`
-  - Action: prefer `580.*` driver hosts; if Error 804 appears, stop and destroy
+  - Action: record `driver_version` for diagnostics; if Error 804 appears in real logs, stop and destroy
 
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
@@ -300,7 +300,7 @@ These failures were observed on the same branch:
   - Root cause: machine registry preference can overrule cost unless the selector has an explicit price gate and blacklist
   - Action:
     - keep `MaxDphTotal=0.215` for `wan22_kj_30s`
-    - keep `MinDriverMajor=580`
+    - do not use `MinDriverMajor` as a hard selection gate; record driver version and act on real CUDA / torch log failures
     - blacklist `machine_id=47075` and `host_id=74292`
     - remember that `warm_start=True` is only a machine-selection mode; it does not prove custom nodes, models, or torch cache hit
 
@@ -411,7 +411,7 @@ Do not destroy immediately when:
 - Vast local volumes are not a general cross-machine solution; they are tied to one physical machine
 - if you want faster retries across the same machine, volumes help
 - if you want faster recovery across different machines, volumes alone do not solve it
-- for this branch, the cheapest `CN` or `TR` host is not automatically the cheapest real choice once retry waste and network friction are counted
+- for this branch, `CN` hosts are not used by default, and `TR` hosts need real speed/bootstrap evidence before they are treated as cheap in practice
 
 ## Log Patterns That Are Slow But Healthy
 

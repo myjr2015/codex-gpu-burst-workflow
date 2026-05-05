@@ -269,6 +269,43 @@ Next action:
 - Create a cleaner full-body action reference that preserves hands and pose without overlay UI, then raise `ActionGuideStrength` back toward `0.45` and `ActionLoraStrength` toward `0.65`.
 - Keep the v6 grounded anchor style as the default for seated tests until a better real-photo grounded anchor is prepared.
 
+## 2026-05-06 V6 Clean Reference Stronger Candidate
+
+Current recommended 10s candidate:
+
+- job: `ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02`
+- instance: `36191947`, British Columbia RTX 3090, host `207261`, machine `33622`, driver `580.142`, `dph_total=0.156666666666667`
+- anchor: `output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_bgplate_v6_grounded_synthetic_clean.png`
+- reference action: `output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4`
+- action settings: `ActionGuideStrength=0.45`, `ActionLoraStrength=0.65`, `IdentityLoraStrength=0.75`, `IdentityGuidanceScale=2.5`
+- output: `512x896`, `24fps`, `241` frames, video `10.041667s`, audio `10.000000s`
+- prompt execution: `470.47s`
+- total until download: `1242s`
+- local result: `output/ltx23_talking_head_smoke/ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02/downloads/ltx23_talking_head_smoke-ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02_00001_.mp4`
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02/output/ltx23_talking_head_smoke-ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02_00001_.mp4`
+- frame review:
+  - `output/ltx23_talking_head_smoke/ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02/frame_review/output_contact_1fps.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02/frame_review/output_tail_8s_10s.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v6-cleanref-action-s045-nocn-ca-20260505-02/frame_review/output_text_overlay_risk/overlay-risk-contact-sheet.jpg`
+- instance destroyed and `vastai show instances --raw` returned `[]`
+
+Review result:
+
+- No visible bottom subtitles, pseudo-Chinese text, English glyphs, lower third, watermark, or UI text in 1fps and tail contact sheets.
+- Single seated woman remains visible; no duplicate person in reviewed sheets.
+- Tail frames still show mouth opening/closing.
+- Automatic color/text risk reports marked high, but manual review shows the boxes are false positives on red shoes, mouth/lip color, face, solar-panel edges, stool/legs, and background blocks.
+- This supersedes `ltx23-v6-grounded-cleanref-fullbody-20260505-01` as the current 10s visual candidate because it keeps the clean frame while using slightly stronger action settings.
+
+Rejected clean-matte attempt:
+
+- job: `ltx23-matte-action-cleanref-nocn-20260505-05`
+- method: `mediapipe_tasks_selfie_segmenter`, using a pure gray matte reference for pose/gesture timing and a grounded RGB speaker anchor.
+- instance: `36189666`, Czechia RTX 3090, host `3497`, machine `42715`, driver `580.119.02`, `dph_total=0.253333333333333`
+- output was technically valid after a retry download, but visual review rejected it because 1fps contact sheets showed pseudo Chinese subtitle-like text across the lower frame for the whole clip.
+- Local subtitle cleanup also rejected: it dimmed text but left obvious gray blocks over legs, feet, and chair areas.
+- Conclusion: do not use the clean-matte-only reference as the next default. For text-free action mimic, keep the v6 grounded anchor plus cleaned full reference video path, or create a stronger clean reference video.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:
@@ -316,8 +353,8 @@ Prompt generation model note:
 
 For paid 3090 smoke runs:
 
-- exclude `CN` and `TR`
-- prefer driver `580.*` or newer
+- exclude `CN`
+- record `driver_version`, but do not reject solely because it is below `580.*`; judge compatibility from real CUDA / torch / bootstrap logs
 - default max total price: `$0.20/h`
 - default storage: `180GB`
 - destroy the instance after result download/publish unless deliberately keeping it for debugging

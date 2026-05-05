@@ -15,7 +15,7 @@ param(
 
     [string]$RegistryPath = ".\data\vast-machine-registry.json",
 
-    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN,TR]",
+    [string]$SearchQuery = "gpu_name=RTX_3090 num_gpus=1 gpu_ram>=24 cuda_max_good>=12.4 disk_space>240 direct_port_count>=4 rented=False geolocation notin [CN]",
 
     [string]$Image = "vastai/comfy:v0.19.3-cuda-12.9-py312",
 
@@ -24,8 +24,6 @@ param(
     [int]$DiskGb = 240,
 
     [double]$MaxDphTotal = 0.215,
-
-    [int]$MinDriverMajor = 580,
 
     [int]$OutputWidth = 720,
 
@@ -113,8 +111,7 @@ elseif ($RuntimeVersion -eq "1.1-machine-registry" -or $RuntimeVersion -eq "1.2-
         -RegistryPath $RegistryPath `
         -SearchQuery $SearchQuery `
         -Storage $DiskGb `
-        -MaxDphTotal $MaxDphTotal `
-        -MinDriverMajor $MinDriverMajor | ConvertFrom-Json
+        -MaxDphTotal $MaxDphTotal | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) {
         throw "Offer selector failed."
     }
@@ -136,18 +133,9 @@ else {
     if ($MaxDphTotal -gt 0) {
         $offers = @($offers | Where-Object { [double]$_.dph_total -le $MaxDphTotal })
     }
-    if ($MinDriverMajor -gt 0) {
-        $offers = @($offers | Where-Object {
-            $driverMajor = 0
-            if ($_.driver_version -match '^\s*(\d+)') {
-                $driverMajor = [int]$Matches[1]
-            }
-            $driverMajor -ge $MinDriverMajor
-        })
-    }
     $offer = $offers | Sort-Object dph_total | Select-Object -First 1
     if (-not $offer) {
-        throw "No Vast offer found under max dph_total $MaxDphTotal and min driver major $MinDriverMajor."
+        throw "No Vast offer found under max dph_total $MaxDphTotal."
     }
     $selection = [pscustomobject]@{
         offer_id = $offer.id
@@ -155,7 +143,7 @@ else {
         host_id = $offer.host_id
         warm_start = $false
         selection_mode = "cold_start"
-        selection_reason = "1.0 cheapest non-CN/TR RTX 3090 offer"
+        selection_reason = "1.0 cheapest non-CN RTX 3090 offer"
     }
 }
 
