@@ -352,6 +352,62 @@ Machine lessons from this attempt:
 - Avoid `host_id=203531` for this LTX V4 path until there is evidence it no longer crawls on ComfyUI/PyPI requirements.
 - If Vast returns `Your account lacks credit`, stop creating instances; changing machine, region, or disk size cannot complete paid inference until account credit is restored.
 
+## 2026-05-06 RunningHub 204071 Audio-Drive Candidate
+
+Use this route only as a temporary RunningHub fallback while Vast is unstable or when a faster cloud iteration loop is needed.
+
+Workflow:
+
+- RunningHub id: `2040718940661354497`
+- name: `LTX 2.3 音频驱动参考角色伪替换工作流`
+- core nodes: `LoadAudio`, `LTXVAudioVAEEncode`, `LTXVConcatAVLatent`, `DWPreprocessor`, `LTXAddVideoICLoRAGuide`
+- important advantage: no Qwen/ASR/LLM prompt-rewrite chain in the tested path
+
+Inputs reused for the accepted local candidate:
+
+- anchor: `output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_grounded_v6_skip1.png`
+- cleaned reference: `output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4`
+- audio: `素材资产/原音频/10s.wav`
+
+Runs:
+
+- `ltx23-rh204071-audiodrive-cleanref-20260506-01`
+  - node `5135` output had clean background and active mouth, but legs kicked / changed too much.
+- `ltx23-rh204071-audiodrive-stablelegs-20260506-02`
+  - lowering guide and LoRA strengths still left obvious leg motion; rejected.
+- `ltx23-rh204071-audiodrive-upperonly-20260506-03`
+  - settings: `detect_body=disable`, `detect_hand=enable`, `detect_face=disable`, image conditioning `1.0`, guide `0.30`, LoRAs `0.45`.
+  - result: no pseudo subtitles, no duplicate person, tail mouth still active, legs much more stable.
+  - tradeoff: weaker strict action mimic; useful as the full-body stability fallback.
+- `ltx23-rh204071-audiodrive-facehand-20260506-04`
+  - settings: `detect_body=disable`, `detect_hand=enable`, `detect_face=enable`, image conditioning `1.0`, guide `0.26`, LoRAs `0.40`.
+  - node `5135` output: `640x1280`, `24fps`, `233` frames, `9.708333s`, with audio.
+  - local deliverable crop: `output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/deliverables/ltx23-rh204071-facehand-04-upperbody-reframe-720x1280.mp4`.
+  - R2 deliverable: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/output/ltx23-rh204071-facehand-04-upperbody-reframe-720x1280.mp4`.
+  - deliverable shape: `720x1280`, `24fps`, `233` frames, audio AAC, `9.708333s`.
+  - review: no visible pseudo subtitles/text, no duplicate person, clean photovoltaic background, stronger face/hand action than upper-only. The upper-body crop intentionally removes the riskiest feet area.
+  - status: current best RunningHub fallback candidate, but not a proof of phoneme-level lip sync.
+- `ltx23-rh204071-audiodrive-facehand-lowmotion-20260506-05`
+  - settings: guide `0.18`, LoRAs `0.30`.
+  - rejected: the legs/feet kicked open and wall markings became text-like; do not use.
+
+Related rejected routes:
+
+- V4 three-sample workflow `2044022005221036033`
+  - RunningHub `512x768` output produced obvious bottom pseudo-English letter strings.
+  - Forcing `512x896` failed with `torch.OutOfMemoryError`.
+  - Do not continue V4 as the default unless a later run proves no text and no OOM at the target resolution.
+- Person-on-solid-color action reference made with `mediapipe_tasks_selfie_segmenter`
+  - local artifact: `output/ltx23_talking_head_smoke/_matte_action_assets/ltx23-personcolor-ref-v7-20260506-01/reference_matte_gray.mp4`.
+  - problem: source overlay residue around `4s` is retained as a black foreground blob, so this artifact is not clean enough for paid inference.
+  - general lesson: SAM/RVM/matting is a good direction only if the foreground itself is free of text/sticker/overlay residue; a pure solid background does not fix overlays that are already attached to the person region.
+
+Current practical recommendation:
+
+- Use `facehand-04` upper-body reframe as the cleanest RunningHub result for review.
+- Keep `upperonly-03` as the stable full-body fallback.
+- Do not call the goal final until normal playback checks mouth sync through the whole clip.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:

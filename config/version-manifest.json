@@ -351,7 +351,68 @@
           "output/ltx23_talking_head_smoke/ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12/manual-create-attempts-120gb.log",
           "output/ltx23_talking_head_smoke/ltx23-v4-trisample-cleanref-s048-nocn-tw-20260506-12/manual-create-attempts-80gb.log"
         ],
-        "next_action": "After Vast credit is restored, rerun this V4 candidate on a non-CN RTX 3090 with cuda_max_good>=12.8. Do not classify V4 as accepted until the MP4 is downloaded, self-checked, and reviewed for lip sync, subtitles/text, single-person identity, and hand/body artifacts."
+        "next_action": "After Vast credit is restored, rerun this V4 candidate on a non-CN RTX 3090 with cuda_max_good>=12.8. Do not classify V4 as accepted until the MP4 is downloaded, self-checked, and reviewed for lip sync, subtitles/text, single-person identity, and hand/body artifacts.",
+        "runninghub_followup": "A later temporary RunningHub V4 test produced obvious bottom pseudo-English letters at 512x768, and a 512x896 variant failed with torch.OutOfMemoryError; V4 is not the current recommendation."
+      },
+      "latest_runninghub_audio_drive_candidate": {
+        "job_name": "ltx23-rh204071-audiodrive-facehand-20260506-04",
+        "validated_at": "2026-05-06T05:35:00+08:00",
+        "status": "best_current_runninghub_fallback_candidate_needs_playback_lipsync_review",
+        "source_workflow_id": "2040718940661354497",
+        "source_workflow_name": "LTX 2.3 音频驱动参考角色伪替换工作流",
+        "anchor_image": "output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_grounded_v6_skip1.png",
+        "reference_video": "output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4",
+        "audio": "素材资产/原音频/10s.wav",
+        "settings": {
+          "detect_body": "disable",
+          "detect_hand": "enable",
+          "detect_face": "enable",
+          "image_conditioning_strengths": [
+            1.0,
+            1.0
+          ],
+          "action_guide_strength": 0.26,
+          "union_control_lora_strength": 0.4,
+          "motion_track_lora_strength": 0.4
+        },
+        "raw_result_path": "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/downloads/03_5135_AnimateDiff_00002_p86-audio_qhlij_1778017218.mp4",
+        "raw_output_resolution": "640x1280",
+        "raw_output_fps": 24,
+        "raw_frame_count": 233,
+        "raw_duration_seconds": 9.708333,
+        "deliverable_path": "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/deliverables/ltx23-rh204071-facehand-04-upperbody-reframe-720x1280.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/output/ltx23-rh204071-facehand-04-upperbody-reframe-720x1280.mp4",
+        "deliverable_resolution": "720x1280",
+        "deliverable_fps": 24,
+        "deliverable_frame_count": 233,
+        "deliverable_duration_seconds": 9.708333,
+        "deliverable_audio": "aac",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/frame_review/03_5135_AnimateDiff_00002_p86-audio_qhlij_1778017218-contact_1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/frame_review/03_5135_AnimateDiff_00002_p86-audio_qhlij_1778017218-tail_8s_10s.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/deliverables/review/upperbody-contact_1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/deliverables/review/upperbody-tail_8s_10s.jpg"
+        ],
+        "visible_text_artifacts": "none_seen_in_1fps_and_tail_contact_sheets",
+        "duplicate_person": "none_seen_in_contact_sheets",
+        "background": "clean photovoltaic background",
+        "mouth_motion": "visible in review sheets, but normal playback is still required for phoneme-level sync acceptance",
+        "tradeoff": "The upper-body crop removes the riskiest feet area; use upperonly-03 as the full-body stability fallback if a full seated body is mandatory.",
+        "rejected_related_jobs": [
+          {
+            "job_name": "ltx23-rh204071-audiodrive-facehand-lowmotion-20260506-05",
+            "reason": "lower motion weights caused legs/feet to kick open and created text-like wall markings"
+          },
+          {
+            "job_name": "ltx23-v4-trisample-cleanref-s048-runninghub-20260506-02",
+            "reason": "bottom pseudo-English letter strings"
+          },
+          {
+            "job_name": "ltx23-v4-trisample-cleanref-s042-runninghub-20260506-03",
+            "reason": "torch.OutOfMemoryError at SamplerCustomAdvanced"
+          }
+        ],
+        "next_action": "Use the deliverable crop for playback review. Do not continue V4 or lowmotion-05 by default; if full-body is mandatory, compare against upperonly-03 rather than accepting leg drift."
       }
     }
   ],
