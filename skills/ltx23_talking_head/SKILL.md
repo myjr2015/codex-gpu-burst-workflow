@@ -193,6 +193,82 @@ Startup notes:
 - `36137290` was destroyed before inference because ports were mapped but HTTP/SSH timed out externally.
 - These were host/startup failures, not LTX workflow failures.
 
+## 2026-05-05 Sitting RGB Anchor V3 Tests
+
+The user rejected the first V3 sample because the source anchor was not a seated full-body transparent-subject composition:
+
+- the run used the old `素材资产/美女图带光伏/美女带背景.png` style anchor
+- the output did stronger hand/action mimic, but the pose did not stay as the seated original-video setup
+- extra-hand risk likely came from a mismatch between the old anchor pose/clothing outline and the seated reference video
+
+New route tested:
+
+- source transparent subject: `素材资产/美女图无背景纯色/纯色坐着.png`
+- composed RGB anchors under `output/ltx23_talking_head_smoke/_anchors/`
+- reference action video: `素材资产/原视频/光伏10s.mp4`
+- V3 action settings: `ActionGuideStrength=0.45`, `ActionLoraStrength=0.65`, `IdentityLoraStrength=0.75`, `IdentityGuidanceScale=2.5`
+
+Paid tests:
+
+- `ltx23-action-mimic-v3-sitting-anchor-20260505-01`
+  - anchor: `ltx23_sitting_rgb_anchor_512x896_bgplate_v4.png`
+  - output passed the seated/full-body and obvious multi-hand checks, but generated pseudo Chinese subtitles in the lower frame
+  - cause estimate: the synthetic gray floor/lower strip plus subtitle-heavy reference video encouraged a subtitle/lower-third region
+- `ltx23-action-mimic-v3-sitting-anchor-v5-20260505-01`
+  - anchor: `ltx23_sitting_rgb_anchor_512x896_bgplate_v5_nobar.png`
+  - output still generated pseudo Chinese subtitles even after removing the gray lower strip
+  - seated/full-body composition stayed acceptable and obvious multi-hand artifacts were not visible in contact sheets
+  - final status: rejected because subtitle artifacts remain
+
+Speed notes from `ltx23-action-mimic-v3-sitting-anchor-v5-20260505-01` on Bulgaria RTX 3090 `instance=36173025`, `machine=49903`, `driver=580.95.05`, `dph_total=0.18333333333333335`:
+
+- Vast reported good general network (`inet_down=730.9 Mbps`, `dlperf=44.37`), but PyPI wheel sources were slow.
+- `onnxruntime_gpu-1.25.1` downloaded `271.3 MB` at only about `127.6 kB/s`; this dominated the slow custom-node bootstrap.
+- `bootstrap.custom_nodes` took `2262s`; `bootstrap.python_dependencies` took `890s`.
+- LTX model downloads were healthy: the `23.2GB` transformer downloaded in `477s`, about `49 MB/s`; all model downloads took `732s`.
+- Prompt execution was `348.45s`; total until download was `4370s`; instance was destroyed and `vastai show instances --raw` returned `[]`.
+
+Conclusion:
+
+- Using a seated full-body RGB anchor fixes the main pose/full-body direction and reduces obvious multi-hand risk.
+- It does not solve subtitle artifacts while the action reference video itself contains large subtitles, banners, and stickers.
+- Do not continue paid V3 action-mimic tests with raw `光伏10s.mp4` as the reference if the acceptance criterion includes no text.
+- Next action is to create or obtain a no-subtitle/no-overlay seated reference-action video, or preprocess the reference so DWPose/action conditioning is not contaminated by text overlays, then rerun V3 with the seated RGB anchor.
+
+## 2026-05-05 V6 Grounded Anchor + Clean Reference Test
+
+Paid run:
+
+- job: `ltx23-v6-grounded-cleanref-fullbody-20260505-01`
+- instance: `36179630`, RTX 3090, host `436128`, machine `57621`, driver `590.48.01`, `dph_total=0.213333333333333`
+- anchor: `output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_bgplate_v6_grounded_synthetic_clean.png`
+- reference action: `output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4`
+- action settings: `ActionGuideStrength=0.40`, `ActionLoraStrength=0.62`, `IdentityLoraStrength=0.75`, `IdentityGuidanceScale=2.5`
+- output: `512x896`, `24fps`, `241` frames, video about `10.041667s`
+- prompt execution: `263.22s`
+- total until download: `1286s`
+- local result: `output/ltx23_talking_head_smoke/ltx23-v6-grounded-cleanref-fullbody-20260505-01/downloads/ltx23_talking_head_smoke-ltx23-v6-grounded-cleanref-fullbody-20260505-01_00001_.mp4`
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-v6-grounded-cleanref-fullbody-20260505-01/output/ltx23_talking_head_smoke-ltx23-v6-grounded-cleanref-fullbody-20260505-01_00001_.mp4`
+- frame review:
+  - `output/ltx23_talking_head_smoke/ltx23-v6-grounded-cleanref-fullbody-20260505-01/frame_review/first_frame.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v6-grounded-cleanref-fullbody-20260505-01/frame_review/output_contact_1fps.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v6-grounded-cleanref-fullbody-20260505-01/frame_review/output_tail_8s_10s.jpg`
+- instance destroyed and `vastai show instances --raw` returned `[]`
+
+Review result:
+
+- The grounded synthetic anchor fixed the obvious floating-chair issue: stool feet and shadows read as floor contact in contact sheets.
+- No visible subtitle, pseudo-Chinese text, lower-third caption, watermark, or UI text appears in the 1fps/tail contact sheets.
+- The clip remains single-person and full seated body.
+- Motion is intentionally conservative because the reference was cleaned and the guide was reduced to `0.40`; expect less gesture amplitude than raw-reference V3.
+- This is the best current visual baseline for "seated full-body + no subtitles + lip-sync/action-mimic candidate"; final acceptance still needs user playback review for mouth sync and motion strength.
+
+Next action:
+
+- If user accepts visual cleanliness but wants stronger hand/body action, do not return to raw `光伏10s.mp4`.
+- Create a cleaner full-body action reference that preserves hands and pose without overlay UI, then raise `ActionGuideStrength` back toward `0.45` and `ActionLoraStrength` toward `0.65`.
+- Keep the v6 grounded anchor style as the default for seated tests until a better real-photo grounded anchor is prepared.
+
 ## Kornia CPU Compatibility Trap
 
 Some cheap 3090 hosts have old CPUs even when the GPU and driver are fine. Example:
