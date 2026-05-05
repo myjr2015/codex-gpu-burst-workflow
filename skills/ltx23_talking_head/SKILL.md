@@ -390,6 +390,17 @@ Runs:
 - `ltx23-rh204071-audiodrive-facehand-lowmotion-20260506-05`
   - settings: guide `0.18`, LoRAs `0.30`.
   - rejected: the legs/feet kicked open and wall markings became text-like; do not use.
+- `ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03`
+  - route: video+audio lip-sync postprocess on top of `facehand-04`; do not regenerate the full LTX scene or background for this mouth-only fix.
+  - RunningHub id: `2046494511848755201` (`精准视频口型同步`).
+  - settings: strict 25fps base video, `silent_padding_sec=0.1`, `lips_expression=1.8`.
+  - deliverable: `output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/deliverables/ltx23-facehand04-latentsync204649-v3-10s-originalaudio-720x1280.mp4`.
+  - R2 deliverable: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/output/ltx23-facehand04-latentsync204649-v3-10s-originalaudio-720x1280.mp4`.
+  - deliverable shape: `720x1280`, `25fps`, `250` frames, video `10.000s`, original audio `10.008s` rewrapped as AAC.
+  - review: contact/tail/artifact sheets show no pseudo subtitles, duplicate person, or polluted background text. The detector boxes are false positives on lips, red window/rail edges, shoes/legs, chair, and background edges.
+  - metric: final proxy file `output/ltx23_talking_head_smoke/_analysis/mouth_audio_comparison_20260506_latentsync204649_deliverable.json`; proxy is not phoneme-level proof.
+  - status: current recommended 10s RunningHub review sample after lip-sync polish.
+  - caveat: if playback still fails mouth sync, try another video+audio lip-sync postprocess on the same clean `facehand-04` visual base instead of asking LTX to redraw the person/background.
 
 Related rejected routes:
 
@@ -404,7 +415,8 @@ Related rejected routes:
 
 Current practical recommendation:
 
-- Use `facehand-04` upper-body reframe as the cleanest RunningHub result for review.
+- Use the `204649` LatentSync polish deliverable as the current mouth-sync review sample.
+- Keep raw `facehand-04` upper-body reframe as the cleanest unpolished visual base.
 - Keep `upperonly-03` as the stable full-body fallback.
 - Do not call the goal final until normal playback checks mouth sync through the whole clip.
 

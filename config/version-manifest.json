@@ -413,6 +413,69 @@
           }
         ],
         "next_action": "Use the deliverable crop for playback review. Do not continue V4 or lowmotion-05 by default; if full-body is mandatory, compare against upperonly-03 rather than accepting leg drift."
+      },
+      "latest_latentsync_lip_polish_candidate": {
+        "job_name": "ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03",
+        "validated_at": "2026-05-06T06:34:00+08:00",
+        "status": "current_recommended_runninghub_facehand_lipsync_polish_needs_playback_review",
+        "source_workflow_id": "2046494511848755201",
+        "source_workflow_name": "精准视频口型同步",
+        "source_video_job": "ltx23-rh204071-audiodrive-facehand-20260506-04",
+        "source_video_path": "output/ltx23_talking_head_smoke/ltx23-rh204071-audiodrive-facehand-20260506-04/deliverables/ltx23-rh204071-facehand-04-upperbody-reframe-720x1280.mp4",
+        "input_video": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-20260506-02/inputs/facehand04_retimed_25fps_10s.mp4",
+        "input_audio": "素材资产/原音频/10s.wav",
+        "parameters": {
+          "fps": 25,
+          "silent_padding_sec": 0.1,
+          "lips_expression": 1.8
+        },
+        "runninghub_raw_output_path": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/downloads/10_Wuji_00002_p85-audio_rcevg_1778019608.mp4",
+        "deliverable_path": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/deliverables/ltx23-facehand04-latentsync204649-v3-10s-originalaudio-720x1280.mp4",
+        "public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/output/ltx23-facehand04-latentsync204649-v3-10s-originalaudio-720x1280.mp4",
+        "deliverable_resolution": "720x1280",
+        "deliverable_fps": 25,
+        "deliverable_frame_count": 250,
+        "deliverable_video_duration_seconds": 10.0,
+        "deliverable_audio_duration_seconds": 10.008,
+        "deliverable_audio": "original 10s.wav rewrapped as AAC",
+        "review_sheets": [
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/deliverables/review/contact_1fps.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/deliverables/review/tail_8s_10s.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-facehand04-strict25-pad01-20260506-03/deliverables/review/artifact_risk/generated-artifact-contact-sheet.jpg"
+        ],
+        "visible_text_artifacts": "none_seen_in_contact_tail_or_artifact_review_sheets",
+        "duplicate_person": "none_seen_in_contact_sheets",
+        "background": "clean photovoltaic background preserved from facehand-04",
+        "tail_mouth_motion": "visible_in_tail_contact_sheet",
+        "artifact_risk_interpretation": "automatic boxes are false positives on lips, red window/rail edges, shoes/legs, chair, and background edges; no subtitle-like text seen in manual review",
+        "proxy_metric_path": "output/ltx23_talking_head_smoke/_analysis/mouth_audio_comparison_20260506_latentsync204649_deliverable.json",
+        "proxy_metric_summary": {
+          "face_detected_ratio": 0.96,
+          "speech_window_count_audio_rms_gt_0p025": 48,
+          "mouth_audio_corr_zero_lag": 0.009137206740261774,
+          "caveat": "automated mouth/audio proxy only; normal playback is still required for phoneme-level acceptance"
+        },
+        "comparison_against_alternatives": {
+          "latentsync204649_v3_raw_output_corr": 0.04158294517340827,
+          "latentsync194075_v4_raw_output_corr": 0.02068044325958075,
+          "facehand04_upperbody_corr_before_lip_polish": -0.12966967711498556,
+          "comparison_path": "output/ltx23_talking_head_smoke/_analysis/mouth_audio_comparison_20260506_latentsync_final_compare.json"
+        },
+        "rejected_or_not_default": [
+          {
+            "job_name": "ltx23-latentsync204649-facehand04-20260506-01",
+            "reason": "visually clean but stretched the output to about 10.56s, so it is not used as the final deliverable"
+          },
+          {
+            "job_name": "ltx23-latentsync204649-facehand04-strict25-20260506-02",
+            "reason": "silent_padding_sec=0 was rejected by the RunningHub workflow; node requires at least 0.1"
+          },
+          {
+            "job_name": "ltx23-latentsync194075-facehand04-strict25-pad01-20260506-04",
+            "reason": "structure and visuals were similar, but the proxy mouth/audio correlation was slightly weaker than 204649-v3"
+          }
+        ],
+        "next_action": "Use this published deliverable as the current 10s RunningHub review sample. If normal playback still fails mouth sync, keep the clean facehand-04 visual base and try another video+audio lip-sync postprocess rather than regenerating the full LTX scene."
       }
     }
   ],
