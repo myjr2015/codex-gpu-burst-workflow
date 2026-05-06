@@ -25,6 +25,10 @@ function encodePath(input) {
     .join("/");
 }
 
+function bashDoubleQuote(value) {
+  return `"${String(value).replace(/(["\\$`])/g, "\\$1")}"`;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.manifest || !options.output) {
@@ -40,6 +44,15 @@ async function main() {
   const inputImageName = manifest?.workflow?.input_image_name || "speaker.png";
   const inputAudioName = manifest?.workflow?.input_audio_name || "speech.wav";
   const inputReferenceVideoName = manifest?.workflow?.input_reference_video_name || "";
+  const actionMimicEnabled = manifest?.workflow?.action_mimic_enabled === true;
+  const motionLoraEnabled = manifest?.workflow?.motion_lora_enabled === true;
+  const motionLoraName = motionLoraEnabled ? (manifest?.workflow?.motion_lora_name || "") : "";
+  const runtimeEnv = [
+    `LTX23_ENABLE_ACTION_MIMIC=${bashDoubleQuote(actionMimicEnabled ? "1" : "0")}`,
+    `LTX23_DOWNLOAD_VBVR=${bashDoubleQuote(motionLoraName ? "1" : "0")}`,
+    `LTX23_MOTION_LORA_NAME=${bashDoubleQuote(motionLoraName)}`,
+    `LTX23_MOTION_LORA_URL=${bashDoubleQuote("")}`,
+  ].join(" ");
 
   if (!publicBase || !prefix) {
     throw new Error("Manifest missing r2.public_base_url or r2.prefix");
@@ -86,7 +99,7 @@ fetch "${url(files.inputAudio)}" "$COMFY_ROOT/input/${inputAudioName}"
 ${inputReferenceVideoName ? `fetch "${url(files.inputReferenceVideo)}" "$COMFY_ROOT/input/${inputReferenceVideoName}"` : ""}
 
 chmod +x "$RUN_DIR/bootstrap_ltx23_talking_head.sh" "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
-INPUT_IMAGE_NAME="${inputImageName}" INPUT_AUDIO_NAME="${inputAudioName}" INPUT_REFERENCE_VIDEO_NAME="${inputReferenceVideoName}" bash "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
+${runtimeEnv} INPUT_IMAGE_NAME="${inputImageName}" INPUT_AUDIO_NAME="${inputAudioName}" INPUT_REFERENCE_VIDEO_NAME="${inputReferenceVideoName}" bash "$RUN_DIR/remote_submit_ltx23_talking_head.sh"
 echo "[onstart-ltx23] finished at $(date -Iseconds)"
 `;
 

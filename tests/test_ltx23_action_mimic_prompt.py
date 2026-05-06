@@ -40,6 +40,12 @@ class Ltx23ActionMimicPromptTests(unittest.TestCase):
                     "stable front-facing vertical camera",
                     "--prompt-guardrails",
                     "single person only",
+                    "--dwpose-detect-body",
+                    "disable",
+                    "--dwpose-detect-hand",
+                    "enable",
+                    "--dwpose-detect-face",
+                    "enable",
                 ],
                 cwd=ROOT,
                 capture_output=True,
@@ -48,11 +54,19 @@ class Ltx23ActionMimicPromptTests(unittest.TestCase):
             )
 
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
 
         self.assertEqual(metadata["positive_prompt_source"], "action_mimic_composed_prompt")
         self.assertEqual(metadata["background_prompt"], background_prompt)
         self.assertIn(background_prompt, metadata["positive_prompt"])
         self.assertIn("stable front-facing vertical camera", metadata["positive_prompt"])
+        self.assertEqual(metadata["dwpose_detect_body"], "disable")
+        self.assertEqual(metadata["dwpose_detect_hand"], "enable")
+        self.assertEqual(metadata["dwpose_detect_face"], "enable")
+
+        dwpose_nodes = [node for node in runtime.values() if node.get("class_type") == "DWPreprocessor"]
+        self.assertGreaterEqual(len(dwpose_nodes), 1)
+        self.assertTrue(all(node["inputs"]["detect_body"] == "disable" for node in dwpose_nodes))
 
 
 if __name__ == "__main__":

@@ -62,6 +62,15 @@ param(
 
     [int]$DwposeResolution = 512,
 
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectBody = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectHand = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectFace = "enable",
+
     [string[]]$MountArgs = @(),
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/ltx23_talking_head_smoke" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/ltx23_talking_head_smoke" }),
@@ -206,7 +215,10 @@ if (-not $SkipStage) {
             "-ActionLoraStrength", $ActionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
             "-IdentityLoraStrength", $IdentityLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
             "-IdentityGuidanceScale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
-            "-DwposeResolution", "$DwposeResolution"
+            "-DwposeResolution", "$DwposeResolution",
+            "-DwposeDetectBody", $DwposeDetectBody,
+            "-DwposeDetectHand", $DwposeDetectHand,
+            "-DwposeDetectFace", $DwposeDetectFace
         )
         if (-not [string]::IsNullOrWhiteSpace($ActionMimicWorkflowSource)) {
             $stageArgs += @("-ActionMimicWorkflowSource", $ActionMimicWorkflowSource)

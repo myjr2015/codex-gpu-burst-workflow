@@ -21,6 +21,15 @@ param(
 
     [double]$IdentityGuidanceScale = 2.5,
 
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectBody = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectHand = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectFace = "enable",
+
     [double]$MaxDphTotal = 0.15,
 
     [int]$DiskGb = 180,
@@ -65,7 +74,10 @@ $commonArgs = @(
     "-ActionGuideStrength", $ActionGuideStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
     "-ActionLoraStrength", $ActionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
     "-IdentityLoraStrength", $IdentityLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
-    "-IdentityGuidanceScale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+    "-IdentityGuidanceScale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
+    "-DwposeDetectBody", $DwposeDetectBody,
+    "-DwposeDetectHand", $DwposeDetectHand,
+    "-DwposeDetectFace", $DwposeDetectFace
 )
 
 if ($Seed -ge 0) {

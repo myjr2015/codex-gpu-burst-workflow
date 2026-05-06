@@ -236,6 +236,19 @@ Paid V3 `10s` probe:
 - automatic artifact scan reports one high full-clip color window; treat it as a review prompt, not as proof of subtitle contamination, because this detector often flags lips, red shoes, solar-panel edges, stool/leg contact points, and background blocks in this branch.
 - final acceptance still requires normal playback review for phoneme-level mouth sync and hand naturalness.
 
+Full-body LatentSync reframe follow-up:
+
+- reason: user rejected one-foot framing as incomplete, so do not promote tight crops unless both feet remain visible.
+- source base: `ltx23-nosub-vbvr-s03-fullbody-nocn-bg-20260506-07/deliverables/ltx23-nosub-vbvr-s03-fullbody-07-stablehead-10s-originalaudio.mp4`.
+- current full-body/feet candidate: `ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03`.
+- output: `720x1280`, `25fps`, `250` frames, video `10.000s`, original audio `10.008s`.
+- parameters: zoom110 bottom-preserving reframe, RunningHub `2046494511848755201`, `inference_steps=25`, `silent_padding_sec=0.1`, `lips_expression=2.2`.
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/output/ltx23-vbvr07-zoom110-lip22-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4`
+- fallback if lip22 playback looks overdriven: `ltx23-latentsync204649-vbvr07-zoom110-step25-pad01-20260506-02`, same zoom110/step25 but `lips_expression=1.8`; R2 result `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-step25-pad01-20260506-02/output/ltx23-vbvr07-zoom110-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4`.
+- review: 2fps full-body, 4fps feet, 2fps face, and generated-artifact sheets show both red shoes remain visible, no bottom subtitle bar, no pseudo Chinese/English text, no duplicate person, and visible mouth-shape changes. Artifact detector boxes are mainly lips, red shoes, hands, chair legs, panel edges, and rooftop/background boundaries.
+- caveat: contact sheets still cannot prove phoneme-level mouth sync; require normal playback before calling this final.
+- keep instance `36231273` running unless the user explicitly asks to destroy it.
+
 Recovery lessons from this run:
 
 - If pip reports `THESE PACKAGES DO NOT MATCH THE HASHES` while installing `opencv-python` / `imageio-ffmpeg` for `ComfyUI-VideoHelperSuite`, purge the pip cache and retry with `--no-cache-dir`; this can be a bad or partial pip cache, not a bad workflow.

@@ -38,6 +38,8 @@ class Ltx23V3SmokeWrapperTests(unittest.TestCase):
         self.assertIn("workflows\\LTX2.3动作模仿+音频对口型-V3候选.json", text)
         self.assertIn("2044017351640748034", text)
         self.assertIn("-BackgroundPrompt", text)
+        self.assertIn("-DwposeDetectBody", text)
+        self.assertIn("[string]$DwposeDetectBody = \"enable\"", text)
         self.assertNotIn("Qwen3-VL", text)
         self.assertNotIn("PromptRelay", text)
 

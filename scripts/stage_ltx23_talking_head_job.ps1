@@ -52,6 +52,15 @@ param(
 
     [int]$DwposeResolution = 512,
 
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectBody = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectHand = "enable",
+
+    [ValidateSet("enable", "disable")]
+    [string]$DwposeDetectFace = "enable",
+
     [switch]$NoTrimAudio,
 
     [string]$R2Prefix = $(if ($env:ASSET_S3_PREFIX) { $env:ASSET_S3_PREFIX.TrimEnd('/') + "/ltx23_talking_head_smoke" } elseif ($env:R2_PREFIX) { $env:R2_PREFIX } else { "runcomfy-inputs/ltx23_talking_head_smoke" }),
@@ -248,7 +257,10 @@ if ($ActionMimic) {
         "--action-lora-strength", $ActionLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
         "--identity-lora-strength", $IdentityLoraStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture),
         "--identity-guidance-scale", $IdentityGuidanceScale.ToString([System.Globalization.CultureInfo]::InvariantCulture),
-        "--dwpose-resolution", "$DwposeResolution"
+        "--dwpose-resolution", "$DwposeResolution",
+        "--dwpose-detect-body", $DwposeDetectBody,
+        "--dwpose-detect-hand", $DwposeDetectHand,
+        "--dwpose-detect-face", $DwposeDetectFace
     )
 }
 if (-not [string]::IsNullOrWhiteSpace($PositivePrompt)) {
@@ -315,6 +327,9 @@ $manifest = [ordered]@{
         identity_lora_strength = $(if ($ActionMimic) { $runtimeMetadata.identity_lora_strength } else { $null })
         identity_guidance_scale = $(if ($ActionMimic) { $runtimeMetadata.identity_guidance_scale } else { $null })
         dwpose_resolution = $(if ($ActionMimic) { $runtimeMetadata.dwpose_resolution } else { $null })
+        dwpose_detect_body = $(if ($ActionMimic) { $runtimeMetadata.dwpose_detect_body } else { $null })
+        dwpose_detect_hand = $(if ($ActionMimic) { $runtimeMetadata.dwpose_detect_hand } else { $null })
+        dwpose_detect_face = $(if ($ActionMimic) { $runtimeMetadata.dwpose_detect_face } else { $null })
         positive_prompt_source = $runtimeMetadata.positive_prompt_source
         positive_prompt = $runtimeMetadata.positive_prompt
         speaker_prompt = $runtimeMetadata.speaker_prompt

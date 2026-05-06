@@ -607,6 +607,50 @@
         ],
         "next_action": "Playback-review this 10s sample for mouth sync and hand naturalness. If acceptable, reuse the kept instance for parameter-only follow-up runs before destroying it."
       },
+      "latest_fullbody_latentsync_zoom110_followup": {
+        "validated_at": "2026-05-06T16:45:00+08:00",
+        "status": "candidate_fullbody_feet_preserved_needs_playback_mouth_review",
+        "source_visual_base_job": "ltx23-nosub-vbvr-s03-fullbody-nocn-bg-20260506-07",
+        "source_visual_base_path": "output/ltx23_talking_head_smoke/ltx23-nosub-vbvr-s03-fullbody-nocn-bg-20260506-07/deliverables/ltx23-nosub-vbvr-s03-fullbody-07-stablehead-10s-originalaudio.mp4",
+        "lip_sync_workflow_id": "2046494511848755201",
+        "lip_sync_workflow_name": "精准视频口型同步",
+        "crop_strategy": "zoom110 conservative bottom-preserving 720x1280 reframe from the stable full-body base",
+        "current_recommended_job": "ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03",
+        "current_recommended_deliverable": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/deliverables/ltx23-vbvr07-zoom110-lip22-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4",
+        "current_recommended_public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/output/ltx23-vbvr07-zoom110-lip22-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4",
+        "fallback_job": "ltx23-latentsync204649-vbvr07-zoom110-step25-pad01-20260506-02",
+        "fallback_deliverable": "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-step25-pad01-20260506-02/deliverables/ltx23-vbvr07-zoom110-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4",
+        "fallback_public_url": "https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-step25-pad01-20260506-02/output/ltx23-vbvr07-zoom110-latentsync204649-step25-v1-10s-originalaudio-720x1280.mp4",
+        "output_resolution": "720x1280",
+        "output_fps": 25,
+        "frame_count": 250,
+        "video_duration_seconds": 10.0,
+        "audio_duration_seconds": 10.008,
+        "latentsync_parameters": {
+          "silent_padding_sec": 0.1,
+          "inference_steps": 25,
+          "lips_expression": 2.2
+        },
+        "fallback_latentsync_parameters": {
+          "silent_padding_sec": 0.1,
+          "inference_steps": 25,
+          "lips_expression": 1.8
+        },
+        "visual_review": {
+          "feet": "both red shoes remain visible throughout 4fps feet contact sheet; no one-foot framing issue seen",
+          "fullbody": "seated full body stays in frame with conservative lower margin",
+          "text_artifacts": "no bottom subtitle bar, pseudo Chinese text, pseudo English text, duplicate person, or background text seen in fullbody and artifact sheets",
+          "artifact_detector": "risk boxes mostly hit lips, red shoes, hands, chair legs, solar-panel edges, and rooftop/background boundaries",
+          "mouth": "mouth-shape variation is visible in 2fps face sheet; phoneme-level sync still requires normal playback"
+        },
+        "qa_artifacts": [
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/qa/fullbody_2fps_contact.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/qa/face_2fps_contact.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/qa/feet_4fps_contact.jpg",
+          "output/ltx23_talking_head_smoke/ltx23-latentsync204649-vbvr07-zoom110-lip22-step25-pad01-20260506-03/artifact_risk_deliverable/generated-artifact-contact-sheet.jpg"
+        ],
+        "notes": "This follow-up was added because the user rejected one-foot framing as incomplete. Prefer the lip22 zoom110 sample for full-body/feet review; keep zoom118/zoom125 only as tighter-face alternatives if playback proves zoom110 mouth detail too small."
+      },
       "latest_runninghub_action_template_followup": {
         "validated_at": "2026-05-06T09:25:00+08:00",
         "status": "rejected_not_better_than_204071_facehand_plus_204649_lipsync",

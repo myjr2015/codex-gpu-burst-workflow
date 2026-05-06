@@ -89,6 +89,17 @@ function toNumber(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toEnableDisable(value, fallback = "enable") {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["enable", "enabled", "true", "1", "yes"].includes(normalized)) {
+    return "enable";
+  }
+  if (["disable", "disabled", "false", "0", "no"].includes(normalized)) {
+    return "disable";
+  }
+  return fallback;
+}
+
 function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -334,6 +345,9 @@ function patchPrompt(
     identityLoraStrength,
     identityGuidanceScale,
     dwposeResolution,
+    dwposeDetectBody,
+    dwposeDetectHand,
+    dwposeDetectFace,
   },
 ) {
   const prepared = cloneJson(prompt);
@@ -429,9 +443,9 @@ function patchPrompt(
 
   for (const [, node] of findNodes(prepared, "DWPreprocessor")) {
     node.inputs.image = [loadVideoId, 0];
-    node.inputs.detect_hand = "enable";
-    node.inputs.detect_body = "enable";
-    node.inputs.detect_face = "enable";
+    node.inputs.detect_hand = dwposeDetectHand;
+    node.inputs.detect_body = dwposeDetectBody;
+    node.inputs.detect_face = dwposeDetectFace;
     node.inputs.resolution = dwposeResolution;
     node.inputs.bbox_detector = "yolox_l.torchscript.pt";
     node.inputs.pose_estimator = "dw-ll_ucoco_384_bs5.torchscript.pt";
@@ -569,6 +583,9 @@ function patchPrompt(
       identity_lora_strength: identityLoraStrength,
       identity_guidance_scale: identityGuidanceScale,
       dwpose_resolution: dwposeResolution,
+      dwpose_detect_body: dwposeDetectBody,
+      dwpose_detect_hand: dwposeDetectHand,
+      dwpose_detect_face: dwposeDetectFace,
       patched_positive_text_nodes: textPatch.positivePatched,
       patched_negative_text_nodes: textPatch.negativePatched,
       action_guide_node_count: actionGuideCount,
@@ -614,6 +631,9 @@ async function main() {
     identityLoraStrength: toNumber(options["identity-lora-strength"], 0.75),
     identityGuidanceScale: toNumber(options["identity-guidance-scale"], 2.5),
     dwposeResolution: toInteger(options["dwpose-resolution"], 512),
+    dwposeDetectBody: toEnableDisable(options["dwpose-detect-body"], "enable"),
+    dwposeDetectHand: toEnableDisable(options["dwpose-detect-hand"], "enable"),
+    dwposeDetectFace: toEnableDisable(options["dwpose-detect-face"], "enable"),
   });
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
