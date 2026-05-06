@@ -193,6 +193,33 @@ Startup notes:
 - `36137290` was destroyed before inference because ports were mapped but HTTP/SSH timed out externally.
 - These were host/startup failures, not LTX workflow failures.
 
+## 2026-05-06 V3 10s VL Background Prepare Wrapper
+
+Use this wrapper for the next self-hosted V3 `10s` probe when the user says to use the VL-reversed background directly:
+
+- entry: `scripts/run_ltx23_v3_10s_smoke.ps1`
+- default mode: prepare-only; it stages workflow/runtime files locally and does not rent Vast unless `-RunPaid` is explicitly passed
+- workflow: `workflows/LTX2.3动作模仿+音频对口型-V3候选.json`
+- RunningHub source id: `2044017351640748034`
+- required background input: `-BackgroundPromptPath`, normally `output/ltx23_talking_head_smoke/_vl_background_prompts/光伏10s_vl_background_prompt.txt`
+- fixed probe size: `512x896`, `24fps`, `10s` / `241` frames
+- fixed conservative V3 settings: `ActionGuideStrength=0.45`, `ActionLoraStrength=0.65`, `IdentityLoraStrength=0.75`, `IdentityGuidanceScale=2.5`
+- paid defaults if explicitly enabled: RTX 3090, `DiskGb=180`, `MaxDphTotal=0.15`, Vast search includes `geolocation notin [CN]`
+
+Prepare-only validation:
+
+- job: `_test-ltx23-v3-10s-vlbg-prepare`
+- status: local prepare passed; no paid Vast GPU was launched
+- metadata: `positive_prompt_source=action_mimic_composed_prompt`
+- confirmed: `background_prompt` and final `positive_prompt` both include the VL background phrase `rooftop photovoltaic installation`
+- prompt runtime remains prompt-only: no Qwen3-VL, Gemini, PromptRelay, or prompt-generation nodes are added to ComfyUI runtime
+
+Important fix:
+
+- `stage_ltx23_talking_head_job.ps1` already passed `--background-prompt` in action-mimic mode, but `scripts/prepare_ltx23_action_mimic_prompt.mjs` used to ignore it and record `positive_prompt_source=action_mimic_override`.
+- As of this wrapper validation, action-mimic prepare composes `speaker/background/camera/guardrails` when `-PositivePrompt` is not provided, and keeps explicit `-PositivePrompt` as a full override.
+- Do not run a paid V3 `10s` probe until prepare-only metadata shows `action_mimic_composed_prompt` and the intended VL background text.
+
 ## 2026-05-05 Sitting RGB Anchor V3 Tests
 
 The user rejected the first V3 sample because the source anchor was not a seated full-body transparent-subject composition:

@@ -86,7 +86,7 @@
       "supported_runtime_strategies": [
         "1.0-cold"
       ],
-      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime. Direct transparent RGBA input plus background prompt is rejected after ltx23-vlbg-transparent-vbvr-20260505-03 because pseudo English subtitles reappeared; use a clean RGB anchor composed from the transparent subject and no-text background plate before the next paid smoke. V4 three-sample IDLoRA workflow 2044022005221036033 is wired through ActionMimicWorkflowSource/ActionMimicWorkflowId, but as of 2026-05-06 it has only passed local stage; paid inference was blocked by Vast account credit.",
+      "notes": "Isolated LTX2.3 self-host route for single image plus audio talking-head smoke tests. The first baseline 2043593704170070018 self-hosted successfully on RTX 3090 but was rejected twice because of pseudo subtitles/text. The current candidate uses the no-subtitle workflow 2040333916862685186; local prepare folds RunningHub helper nodes, replaces VHS_VideoCombine with CreateVideo plus SaveVideo, trims staged audio to the target duration, keeps LTX2_NAG, installs ComfyUI-KJNodes during bootstrap, and pins kornia==0.7.1 to avoid kornia_rs illegal-instruction crashes on old 3090 host CPUs. VBVR motion LoRA strength 0.60 is the current low-risk gesture preset. The branch supports a prompt-only background module through composed speaker/background/camera/guardrail prompt fields, without adding PromptRelay, Qwen3-VL, Gemini, or other prompt-generation model nodes to the self-host runtime. Direct transparent RGBA input plus background prompt is rejected after ltx23-vlbg-transparent-vbvr-20260505-03 because pseudo English subtitles reappeared; use a clean RGB anchor composed from the transparent subject and no-text background plate before the next paid smoke. V3 action-mimic 10s now has a dedicated prepare-first wrapper scripts/run_ltx23_v3_10s_smoke.ps1 that requires a VL-derived BackgroundPromptPath and does not rent Vast unless -RunPaid is provided. V4 three-sample IDLoRA workflow 2044022005221036033 is wired through ActionMimicWorkflowSource/ActionMimicWorkflowId, but as of 2026-05-06 it has only passed local stage; paid inference was blocked by Vast account credit.",
       "latest_smoke": {
         "job_name": "ltx23-nosub-nag-20260504-01",
         "validated_at": "2026-05-04T14:42:31+08:00",
@@ -528,6 +528,38 @@
         ],
         "tradeoff": "Use this sample when the user prioritizes stronger action mimic. Keep 204071 facehand-04 plus 204649 as the more conservative stable-mouth fallback if hand artifacts are judged too risky.",
         "next_action": "Playback-review this published 10s sample for phoneme-level mouth sync and hand naturalness. If it still fails, return to a cleaner/stronger action reference or self-hosted V3 once Vast is stable; do not rerun 204869, 204664, or 203919 by only changing small strengths."
+      },
+      "latest_v3_10s_vl_background_prepare": {
+        "job_name": "_test-ltx23-v3-10s-vlbg-prepare",
+        "validated_at": "2026-05-06T16:42:33+08:00",
+        "status": "prepare_only_validated_no_paid_gpu",
+        "entry": "scripts/run_ltx23_v3_10s_smoke.ps1",
+        "requires_run_paid_for_vast": true,
+        "source_workflow": "workflows/LTX2.3动作模仿+音频对口型-V3候选.json",
+        "source_workflow_id": "2044017351640748034",
+        "background_prompt_path": "output/ltx23_talking_head_smoke/_vl_background_prompts/光伏10s_vl_background_prompt.txt",
+        "background_prompt_source": "VL-style review of output/ltx23_talking_head_smoke/_anchors/reference_光伏10s_1fps_sheet.jpg; background-only scene description, excluding people, subtitles, stickers, UI, logos, and text overlays",
+        "input_anchor_image": "output/ltx23_talking_head_smoke/_anchors/ltx23_sitting_rgb_anchor_512x896_bgplate_v6_grounded_synthetic_clean.png",
+        "input_audio": "素材资产/原音频/10s.wav",
+        "input_reference_video": "output/ltx23_talking_head_smoke/_references/光伏10s_clean_reference_v6_skip1.mp4",
+        "output_resolution": "512x896",
+        "output_fps": 24,
+        "frame_count": 241,
+        "expected_video_seconds": 10.041667,
+        "positive_prompt_source": "action_mimic_composed_prompt",
+        "action_guide_strength": 0.45,
+        "action_lora_strength": 0.65,
+        "identity_lora_strength": 0.75,
+        "identity_guidance_scale": 2.5,
+        "paid_gpu_launched": false,
+        "vast_defaults": {
+          "gpu": "RTX 3090 24GB",
+          "disk_gb": 180,
+          "max_dph_total": 0.15,
+          "search_geo": "geolocation notin [CN]"
+        },
+        "local_metadata_path": "output/ltx23_talking_head_smoke/_test-ltx23-v3-10s-vlbg-prepare/workflow_runtime.metadata.json",
+        "implementation_note": "scripts/prepare_ltx23_action_mimic_prompt.mjs now composes speaker/background/camera/guardrail prompt fields in action-mimic mode. Before this fix, stage passed --background-prompt but action-mimic metadata remained action_mimic_override and ignored the VL background."
       },
       "latest_runninghub_action_template_followup": {
         "validated_at": "2026-05-06T09:25:00+08:00",
