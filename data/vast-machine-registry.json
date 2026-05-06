@@ -304,7 +304,29 @@
       "warmstart_hit_models": false,
       "warmstart_hit_torch": false,
       "updated_at": "2026-05-06T01:33:48"
+    },
+    {
+      "machine_id": 49870,
+      "host_id": 203531,
+      "offer_id": null,
+      "gpu_name": "RTX 3090",
+      "gpu_ram": 24576,
+      "driver_version": "570.195.03",
+      "geolocation": "Bulgaria, BG",
+      "verification": "verified",
+      "dph_total": 0.18333333333333335,
+      "job_name": "ltx23-v3-10s-vlbg-nocn-us-20260506-01",
+      "instance_id": 36231273,
+      "result": "succeeded",
+      "last_success_at": "2026-05-06T18:19:29",
+      "total_until_download_seconds": 3989.0,
+      "instance_started_to_submit_seconds": null,
+      "prompt_execution": "00:06:13.6860000",
+      "warmstart_hit_custom_nodes": false,
+      "warmstart_hit_models": false,
+      "warmstart_hit_torch": false,
+      "updated_at": "2026-05-06T18:30:20"
     }
   ],
-  "updated_at": "2026-05-06T01:33:48"
+  "updated_at": "2026-05-06T18:30:20"
 }
