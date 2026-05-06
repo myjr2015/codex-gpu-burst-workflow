@@ -10,6 +10,7 @@ c_drive_backup_before_restore/
 .npm-cache/
 .playwright/
 .superpowers/
+.worktrees/
 .venv-faster-whisper/
 tmp/
 .tmp/
