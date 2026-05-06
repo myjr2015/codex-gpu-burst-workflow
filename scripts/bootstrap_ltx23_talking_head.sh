@@ -14,6 +14,15 @@ LTX23_ENABLE_ACTION_MIMIC="${LTX23_ENABLE_ACTION_MIMIC:-0}"
 
 mkdir -p "$MODELS_DIR" "$RUN_DIR" "$COMFY_ROOT/input" "$COMFY_ROOT/output" "$COMFY_ROOT/custom_nodes"
 
+prefer_host_cuda_driver_libs() {
+  local host_lib_dir="${HOST_CUDA_DRIVER_LIB_DIR:-/usr/lib/x86_64-linux-gnu}"
+  local cuda_target_lib_dir="${CUDA_TARGET_LIB_DIR:-/usr/local/cuda/targets/x86_64-linux/lib}"
+  local existing="${LD_LIBRARY_PATH:-}"
+
+  export LD_LIBRARY_PATH="$host_lib_dir:$cuda_target_lib_dir:$existing"
+  echo "[bootstrap-ltx23] LD_LIBRARY_PATH prefers host CUDA driver libs: $host_lib_dir"
+}
+
 stage_event() {
   local stage_name="$1"
   local stage_status="$2"
@@ -21,10 +30,32 @@ stage_event() {
 }
 
 pip_install() {
+  local log_path="$RUN_DIR/pip-install-$(date +%s%N).log"
+
+  set +e
   python3 -m pip install \
     --timeout "$PIP_TIMEOUT" \
     --retries "$PIP_RETRIES" \
-    "$@"
+    "$@" 2>&1 | tee "$log_path"
+  local status="${PIPESTATUS[0]}"
+  set -e
+
+  if [ "$status" -eq 0 ]; then
+    return 0
+  fi
+
+  if grep -q "THESE PACKAGES DO NOT MATCH THE HASHES" "$log_path"; then
+    echo "[bootstrap-ltx23] pip hash mismatch detected; purging pip cache and retrying without cache"
+    python3 -m pip cache purge || true
+    python3 -m pip install \
+      --no-cache-dir \
+      --timeout "$PIP_TIMEOUT" \
+      --retries "$PIP_RETRIES" \
+      "$@"
+    return $?
+  fi
+
+  return "$status"
 }
 
 python_has_module() {
@@ -142,8 +173,6 @@ managed_prefixes = (
 slow_optional_prefixes = (
     "comfyui_embedded_docs",
     "comfyui-embedded-docs",
-    "comfyui_frontend_package",
-    "comfyui-frontend-package",
     "comfyui_workflow_templates",
     "comfyui-workflow-templates",
     "comfyui_workflow_templates_media_api",
@@ -327,6 +356,7 @@ install_custom_node_repo() {
 }
 
 echo "[bootstrap-ltx23] start"
+prefer_host_cuda_driver_libs
 
 if [ "$LTX_UPDATE_COMFYUI" = "1" ] && [ -d "$COMFY_APP_ROOT/.git" ]; then
   echo "[bootstrap-ltx23] updating ComfyUI app checkout"
@@ -358,6 +388,7 @@ ensure_python_package "spandrel" "spandrel"
 ensure_python_package "torchao" "torchao"
 ensure_python_package "torchsde" "torchsde"
 ensure_python_package "pydantic>=2.11.10" "pydantic"
+ensure_python_package "comfyui-frontend-package==1.42.11" "comfyui_frontend_package"
 stage_event "bootstrap.python_dependencies" "end"
 
 echo "[bootstrap-ltx23] installing custom nodes"

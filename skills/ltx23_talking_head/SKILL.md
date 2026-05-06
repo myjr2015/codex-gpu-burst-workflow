@@ -220,6 +220,29 @@ Important fix:
 - As of this wrapper validation, action-mimic prepare composes `speaker/background/camera/guardrails` when `-PositivePrompt` is not provided, and keeps explicit `-PositivePrompt` as a full override.
 - Do not run a paid V3 `10s` probe until prepare-only metadata shows `action_mimic_composed_prompt` and the intended VL background text.
 
+Paid V3 `10s` probe:
+
+- job: `ltx23-v3-10s-vlbg-nocn-us-20260506-01`
+- status: self-hosted Vast run succeeded, downloaded locally, and published to R2; instance intentionally kept running for follow-up parameter edits.
+- instance: `36231273`, Bulgaria RTX 3090, host `203531`, machine `49870`, driver `570.195.03`, `dph_total=0.18333333333333335`, `8188 -> 27065`.
+- output: `512x896`, `24fps`, `241` frames, video `10.041667s`, audio `10.000000s`.
+- prompt execution: `373.686s`.
+- local result: `output/ltx23_talking_head_smoke/ltx23-v3-10s-vlbg-nocn-us-20260506-01/downloads/ltx23_talking_head_smoke-ltx23-v3-10s-vlbg-nocn-us-20260506-01_00001_.mp4`
+- R2 result: `https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/ltx23_talking_head_smoke/ltx23-v3-10s-vlbg-nocn-us-20260506-01/output/ltx23_talking_head_smoke-ltx23-v3-10s-vlbg-nocn-us-20260506-01_00001_.mp4`
+- review artifacts:
+  - `output/ltx23_talking_head_smoke/ltx23-v3-10s-vlbg-nocn-us-20260506-01/frame_review/output_contact_1fps.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v3-10s-vlbg-nocn-us-20260506-01/frame_review/output_tail_8s_10s.jpg`
+  - `output/ltx23_talking_head_smoke/ltx23-v3-10s-vlbg-nocn-us-20260506-01/artifact_risk/generated-artifact-contact-sheet.jpg`
+- automatic artifact scan reports one high full-clip color window; treat it as a review prompt, not as proof of subtitle contamination, because this detector often flags lips, red shoes, solar-panel edges, stool/leg contact points, and background blocks in this branch.
+- final acceptance still requires normal playback review for phoneme-level mouth sync and hand naturalness.
+
+Recovery lessons from this run:
+
+- If pip reports `THESE PACKAGES DO NOT MATCH THE HASHES` while installing `opencv-python` / `imageio-ffmpeg` for `ComfyUI-VideoHelperSuite`, purge the pip cache and retry with `--no-cache-dir`; this can be a bad or partial pip cache, not a bad workflow.
+- On driver `570.195.03`, ComfyUI can hit CUDA `Error 804` when `/usr/local/cuda-12.9/compat/libcuda.so` shadows the host driver library. Prefer `/usr/lib/x86_64-linux-gnu` before CUDA compat paths in `LD_LIBRARY_PATH`, then restart ComfyUI before destroying the instance.
+- Do not filter out `comfyui-frontend-package` from ComfyUI core requirements for LTX2.3; `comfyui-frontend-package==1.42.11` was required for this run to start ComfyUI cleanly.
+- When the user explicitly asks to keep the machine, skip destroy after download/publish and report that the instance is still billing.
+
 ## 2026-05-05 Sitting RGB Anchor V3 Tests
 
 The user rejected the first V3 sample because the source anchor was not a seated full-body transparent-subject composition:
@@ -360,7 +383,7 @@ Code changes made for V4:
 - `stage_ltx23_talking_head_job.ps1` can switch the action-mimic workflow source/id instead of hardcoding V3.
 - `run_ltx23_talking_head_smoke_end_to_end.ps1` forwards those V4 workflow arguments into stage.
 - `launch_ltx23_talking_head_vast_job.ps1` splits comma-separated `ExtraEnv` and allows `LTX_UPDATE_COMFYUI=0`.
-- `bootstrap_ltx23_talking_head.sh` keeps ComfyUI core requirements, filters slow optional frontend/template/docs packages, and downloads `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` when the V4 runtime references it.
+- `bootstrap_ltx23_talking_head.sh` keeps ComfyUI core requirements and the required frontend package, filters slow optional docs/template packages, and downloads `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` when the V4 runtime references it.
 - `create_vast_instance_minimal.ps1` treats Vast CLI text beginning with `Failed with error` as a real create failure, even if the CLI exits `0`.
 
 Paid attempt status:

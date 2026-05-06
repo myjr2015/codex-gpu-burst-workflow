@@ -21,10 +21,20 @@ stage_event() {
   echo "[stage] $(date -Iseconds) $stage_name $stage_status"
 }
 
+prefer_host_cuda_driver_libs() {
+  local host_lib_dir="${HOST_CUDA_DRIVER_LIB_DIR:-/usr/lib/x86_64-linux-gnu}"
+  local cuda_target_lib_dir="${CUDA_TARGET_LIB_DIR:-/usr/local/cuda/targets/x86_64-linux/lib}"
+  local existing="${LD_LIBRARY_PATH:-}"
+
+  export LD_LIBRARY_PATH="$host_lib_dir:$cuda_target_lib_dir:$existing"
+  echo "[remote-ltx23] LD_LIBRARY_PATH prefers host CUDA driver libs: $host_lib_dir"
+}
+
 echo "[remote-ltx23] started at $(date -Iseconds)"
 echo "[remote-ltx23] comfy app root: $COMFY_APP_ROOT"
 echo "[remote-ltx23] comfy data root: $COMFY_ROOT"
 echo "[remote-ltx23] run dir: $RUN_DIR"
+prefer_host_cuda_driver_libs
 
 if [ ! -f "$WORKFLOW_PATH" ]; then
   echo "[remote-ltx23] missing workflow: $WORKFLOW_PATH" >&2
@@ -71,7 +81,7 @@ cd "$COMFY_APP_ROOT"
 rm -f "$COMFY_LOG_PATH" "$COMFY_PID_PATH"
 (
   cd "$COMFY_APP_ROOT"
-  PYTHONUNBUFFERED=1 python3 -u main.py --listen 0.0.0.0 --port 8188 2>&1 | tee -a "$COMFY_LOG_PATH"
+  PYTHONUNBUFFERED=1 LD_LIBRARY_PATH="$LD_LIBRARY_PATH" python3 -u main.py --listen 0.0.0.0 --port 8188 2>&1 | tee -a "$COMFY_LOG_PATH"
 ) &
 COMFY_PID="$!"
 echo "$COMFY_PID" > "$COMFY_PID_PATH"

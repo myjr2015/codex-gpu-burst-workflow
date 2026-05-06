@@ -59,9 +59,19 @@ These failures were observed on the same branch:
   - Action: for `wan_2_2_animate`, exclude `CN` when searching Vast offers unless the user explicitly re-allows it; treat `TR` by actual speed and bootstrap logs
 
 - Symptom: ComfyUI exits with `cudaGetDeviceCount Error 804`
-  - Root cause: host driver and container CUDA stack are incompatible
+  - Root cause: either the host driver and container CUDA stack are incompatible, or the container's CUDA compat library is shadowing the real host `libcuda.so`
   - Evidence seen on a failed host: `570.211.01`
-  - Action: record `driver_version` for diagnostics; if Error 804 appears in real logs, stop and destroy
+  - Evidence seen on a rescued LTX2.3 host: `570.195.03` worked after putting `/usr/lib/x86_64-linux-gnu` before `/usr/local/cuda-12.9/compat` in `LD_LIBRARY_PATH`
+  - Action: record `driver_version` for diagnostics; on LTX2.3 first restart ComfyUI with host driver libs preferred in `LD_LIBRARY_PATH`; destroy only if CUDA 804 persists after that. On old Wan/KJ paths without this known compat-shadow signal, stop and destroy.
+
+- Symptom: LTX2.3 custom-node requirements fail with `THESE PACKAGES DO NOT MATCH THE HASHES` while installing `opencv-python`, `opencv-python-headless`, or `imageio-ffmpeg`
+  - Root cause: a stale or partial pip cache on the rented instance can serve a corrupted wheel
+  - Evidence from `ltx23-v3-10s-vlbg-nocn-us-20260506-01`: `ComfyUI-VideoHelperSuite` install failed on `opencv_python`; purging pip cache and retrying `pip install --no-cache-dir opencv-python imageio-ffmpeg` rescued the same instance
+  - Action: purge pip cache and retry with `--no-cache-dir` before destroying; keep this retry in `scripts/bootstrap_ltx23_talking_head.sh`
+
+- Symptom: LTX2.3 bootstrap succeeds but ComfyUI exits with `comfyui-frontend-package is not installed`
+  - Root cause: the LTX bootstrap filtered `comfyui-frontend-package` as optional even though current ComfyUI expects the frontend package at startup
+  - Action: do not filter `comfyui-frontend-package` from core ComfyUI requirements; install `comfyui-frontend-package==1.42.11` for the current LTX2.3 base
 
 - Symptom: ComfyUI gets deeper into startup, then crashes with `ModuleNotFoundError: torchsde`
   - Root cause: bootstrap missed a core Comfy sampler dependency
