@@ -32,11 +32,36 @@ function Read-ProjectApiBackup {
         return $entries
     }
 
-    $lines = @(Get-Content -LiteralPath $Path | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $lines = @(Get-Content -LiteralPath $Path | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     for ($i = 0; $i -lt $lines.Count) {
         $site = $lines[$i].Trim()
         if ([string]::IsNullOrWhiteSpace($site)) {
             $i += 1
+            continue
+        }
+
+        if ($site -eq "Cloudflare") {
+            $next = if ($i + 1 -lt $lines.Count) { $lines[$i + 1].Trim() } else { "" }
+            if (-not [string]::IsNullOrWhiteSpace($next)) {
+                $entries["Cloudflare"] = $next
+                $entries["Cloudflare API Token"] = $next
+            }
+            $i += 2
+            continue
+        }
+
+        if ($site -eq "Cloudflare_R2") {
+            $accessKeyId = if ($i + 1 -lt $lines.Count) { $lines[$i + 1].Trim() } else { "" }
+            $secretAccessKey = if ($i + 2 -lt $lines.Count) { $lines[$i + 2].Trim() } else { "" }
+            if (-not [string]::IsNullOrWhiteSpace($accessKeyId)) {
+                $entries["Cloudflare_R2 AccessKeyId"] = $accessKeyId
+                $entries["Cloudflare R2 AccessKeyId"] = $accessKeyId
+            }
+            if (-not [string]::IsNullOrWhiteSpace($secretAccessKey)) {
+                $entries["Cloudflare_R2 SecretAccessKey"] = $secretAccessKey
+                $entries["Cloudflare R2 SecretAccessKey"] = $secretAccessKey
+            }
+            $i += if ([string]::IsNullOrWhiteSpace($secretAccessKey)) { 2 } else { 3 }
             continue
         }
 
@@ -93,16 +118,32 @@ function Read-ProjectApiBackup {
 function Set-ProcessEnvIfMissing {
     param(
         [string]$Name,
-        [string]$Value
+        [string]$Value,
+        [switch]$Force
     )
 
     if ([string]::IsNullOrWhiteSpace($Name) -or [string]::IsNullOrWhiteSpace($Value)) {
         return
     }
 
-    if (-not [Environment]::GetEnvironmentVariable($Name, "Process")) {
+    if ($Force -or -not [Environment]::GetEnvironmentVariable($Name, "Process")) {
         [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
     }
+}
+
+function Get-ProjectApiBackupEntry {
+    param(
+        [hashtable]$Entries,
+        [string[]]$Names
+    )
+
+    foreach ($name in $Names) {
+        if ($Entries.ContainsKey($name) -and -not [string]::IsNullOrWhiteSpace($Entries[$name])) {
+            return $Entries[$name]
+        }
+    }
+
+    return ""
 }
 
 function Import-ProjectApiBackup {
@@ -115,14 +156,19 @@ function Import-ProjectApiBackup {
         return
     }
 
+    $cloudflareApiToken = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare API Token", "Cloudflare")
+    $cloudflareAccountId = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare Account ID")
+    $r2AccessKeyId = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare R2 AccessKeyId", "Cloudflare_R2 AccessKeyId", "Cloudflare_R2")
+    $r2SecretAccessKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare R2 SecretAccessKey", "Cloudflare_R2 SecretAccessKey")
+
     Set-ProcessEnvIfMissing -Name "RUNCOMFY_API_KEY" -Value $entries["RunComfy"]
-    Set-ProcessEnvIfMissing -Name "CLOUDFLARE_API_TOKEN" -Value $entries["Cloudflare API Token"]
-    Set-ProcessEnvIfMissing -Name "CLOUDFLARE_ACCOUNT_ID" -Value $entries["Cloudflare Account ID"]
-    Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCOUNT_ID" -Value $entries["Cloudflare Account ID"]
-    Set-ProcessEnvIfMissing -Name "R2_ACCESS_KEY_ID" -Value $entries["Cloudflare R2 AccessKeyId"]
-    Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCESS_KEY_ID" -Value $entries["Cloudflare R2 AccessKeyId"]
-    Set-ProcessEnvIfMissing -Name "R2_SECRET_ACCESS_KEY" -Value $entries["Cloudflare R2 SecretAccessKey"]
-    Set-ProcessEnvIfMissing -Name "ASSET_S3_SECRET_ACCESS_KEY" -Value $entries["Cloudflare R2 SecretAccessKey"]
+    Set-ProcessEnvIfMissing -Name "CLOUDFLARE_API_TOKEN" -Value $cloudflareApiToken
+    Set-ProcessEnvIfMissing -Name "CLOUDFLARE_ACCOUNT_ID" -Value $cloudflareAccountId -Force
+    Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCOUNT_ID" -Value $cloudflareAccountId -Force
+    Set-ProcessEnvIfMissing -Name "R2_ACCESS_KEY_ID" -Value $r2AccessKeyId -Force
+    Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCESS_KEY_ID" -Value $r2AccessKeyId -Force
+    Set-ProcessEnvIfMissing -Name "R2_SECRET_ACCESS_KEY" -Value $r2SecretAccessKey -Force
+    Set-ProcessEnvIfMissing -Name "ASSET_S3_SECRET_ACCESS_KEY" -Value $r2SecretAccessKey -Force
     Set-ProcessEnvIfMissing -Name "VAST_API_KEY" -Value $entries["Vast.ai"]
     Set-ProcessEnvIfMissing -Name "GITHUB_TOKEN" -Value $entries["GitHub"]
     Set-ProcessEnvIfMissing -Name "GH_TOKEN" -Value $entries["GitHub"]

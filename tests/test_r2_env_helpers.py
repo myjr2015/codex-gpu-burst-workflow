@@ -61,16 +61,19 @@ class R2EnvHelperTests(unittest.TestCase):
             api_path = temp_root / "api.txt"
             env_path.write_text("ASSET_S3_BUCKET=test-bucket\n", encoding="utf-8")
             api_path.write_text(
-                "Cloudflare R2 AccessKeyId\napi-access-key\n\n"
-                "Cloudflare R2 SecretAccessKey\napi-secret-key\n\n",
+                "Cloudflare\ncf-api-token\n\n"
+                "Cloudflare Account ID\n4aa19d68af34d61d2fac61c5da4d2c45\n\n"
+                "Cloudflare_R2\napi-access-key\napi-secret-key\n\n",
                 encoding="utf-8",
             )
             command = (
                 f". '{helper_path}'; "
-                "Remove-Item Env:ASSET_S3_ACCESS_KEY_ID -ErrorAction SilentlyContinue; "
-                "Remove-Item Env:ASSET_S3_SECRET_ACCESS_KEY -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:CLOUDFLARE_API_TOKEN -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:CLOUDFLARE_ACCOUNT_ID -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:R2_ACCESS_KEY_ID -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:R2_SECRET_ACCESS_KEY -ErrorAction SilentlyContinue; "
                 f"Import-ProjectDotEnv -Path '{env_path}'; "
-                "$result = @{ access=$env:ASSET_S3_ACCESS_KEY_ID; secret=$env:ASSET_S3_SECRET_ACCESS_KEY }; "
+                "$result = @{ token=$env:CLOUDFLARE_API_TOKEN; account=$env:CLOUDFLARE_ACCOUNT_ID; access=$env:R2_ACCESS_KEY_ID; secret=$env:R2_SECRET_ACCESS_KEY }; "
                 "ConvertTo-Json -InputObject $result -Compress"
             )
 
@@ -84,7 +87,56 @@ class R2EnvHelperTests(unittest.TestCase):
 
             self.assertEqual(
                 json.loads(completed.stdout.strip()),
-                {"access": "api-access-key", "secret": "api-secret-key"},
+                {
+                    "token": "cf-api-token",
+                    "account": "4aa19d68af34d61d2fac61c5da4d2c45",
+                    "access": "api-access-key",
+                    "secret": "api-secret-key",
+                },
+            )
+
+    def test_import_project_dotenv_prefers_api_txt_for_r2_over_stale_env_values(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            api_path = temp_root / "api.txt"
+            env_path.write_text(
+                "CLOUDFLARE_ACCOUNT_ID=old-account\n"
+                "R2_ACCESS_KEY_ID=old-access\n"
+                "R2_SECRET_ACCESS_KEY=old-secret\n",
+                encoding="utf-8",
+            )
+            api_path.write_text(
+                "Cloudflare Account ID\nnew-account\n\n"
+                "Cloudflare_R2\nnew-access\nnew-secret\n\n",
+                encoding="utf-8",
+            )
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:CLOUDFLARE_ACCOUNT_ID -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:R2_ACCESS_KEY_ID -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:R2_SECRET_ACCESS_KEY -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "$result = @{ account=$env:CLOUDFLARE_ACCOUNT_ID; access=$env:R2_ACCESS_KEY_ID; secret=$env:R2_SECRET_ACCESS_KEY }; "
+                "ConvertTo-Json -InputObject $result -Compress"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads(completed.stdout.strip()),
+                {
+                    "account": "new-account",
+                    "access": "new-access",
+                    "secret": "new-secret",
+                },
             )
 
 
