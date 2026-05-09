@@ -102,7 +102,7 @@ foreach ($required in @($r2HelperPath, $runnerScript, $stageScript)) {
 }
 
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 
 function Invoke-ReferenceRiskPreflight {
     param(

@@ -9,7 +9,7 @@ $repoRoot = (Resolve-Path ".").Path
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 if (Test-Path -LiteralPath $r2HelperPath) {
     . $r2HelperPath
-    Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+    Import-ProjectLocalConfig -RootPath $repoRoot
 }
 
 vastai destroy instance $InstanceId --yes --raw

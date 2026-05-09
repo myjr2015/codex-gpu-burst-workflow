@@ -83,7 +83,7 @@ if (-not (Test-Path -LiteralPath $r2HelperPath)) {
 }
 
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 if ([string]::IsNullOrWhiteSpace($R2Prefix) -and $env:ASSET_S3_PREFIX) {
     $R2Prefix = $env:ASSET_S3_PREFIX.TrimEnd("/") + "/wan_2_2_animate"
 }

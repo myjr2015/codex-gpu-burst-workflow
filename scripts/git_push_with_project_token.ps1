@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $r2HelperPath)) {
 }
 
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 
 $token = if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) {
     $env:GITHUB_TOKEN
@@ -22,7 +22,7 @@ $token = if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($token)) {
-    throw "GitHub token missing. Add a GitHub entry to .env or api.txt."
+    throw "GitHub token missing. Add a GitHub entry to api.txt."
 }
 
 $askPass = Join-Path $env:TEMP ("git-askpass-" + [guid]::NewGuid().ToString("N") + ".cmd")

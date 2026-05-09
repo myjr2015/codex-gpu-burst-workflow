@@ -315,13 +315,14 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 
 1. 根目录 `config.json`：只放非密钥运行配置，例如 API base URL、本机工具路径、R2 bucket / public URL / prefix、转写和重写模型名。
 2. 根目录 `api.txt`：只放平台账号、token、key、secret。
-3. `.env`：仅作为旧脚本兼容兜底；新增配置和新增密钥默认不要再写入 `.env`。
+3. `.env`：不再作为读取来源；不要新建、恢复或维护 `.env`。即使本地存在，也会被项目读取入口忽略。
 
 PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动读取：
 
 1. 先读根目录 `config.json`
 2. 再读根目录 `api.txt`
-3. 最后才读 `.env` 补旧值
+
+当前推荐函数是 `Import-ProjectLocalConfig`。旧函数名 `Import-ProjectDotEnv` 只保留给老脚本兼容，它不会解析 `.env` 文件。
 
 `api.txt` 是本地明文备份，只允许使用这种格式：
 
@@ -348,19 +349,18 @@ r2_secret_access_key
 
 - 不要把 `api.txt` 内容打印到聊天或终端。
 - 不要提交 `api.txt`，它必须保持在 `.gitignore`。
-- 新增平台 key 时，写入 `api.txt`；不要再同步到 `.env`。
-- 新增非密钥配置时，写入根目录 `config.json`；不要再新增 `.env` 字段。
+- 新增平台 key 时，只写入 `api.txt`。
+- 新增非密钥配置时，只写入根目录 `config.json`。
 - Hugging Face / faster-whisper 模型缓存默认通过 `config.json` 的 `HF_HOME` 固定到根目录 `.cache/huggingface`，不要再让它回落到 `C:\Users\myjr2\.cache\huggingface`。
-- PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
-- R2 相关入口会优先使用 `api.txt` 里的 `Cloudflare Account ID` 和 `Cloudflare_R2` 块，避免旧 `.env` 里的 R2 值阻塞发布或上传。
-- 早期 RunComfy / Node CLI 入口已移除；当前生产密钥 fallback 以 PowerShell helper 为准。
+- R2 相关入口使用 `api.txt` 里的 `Cloudflare Account ID` 和 `Cloudflare_R2` 块。
+- 早期 RunComfy / Node CLI 入口已移除；当前生产密钥读取以 PowerShell helper 为准。
 
 ## GitHub 推送兜底
 
 普通 `git push` 在 Windows 上可能会调用 Git Credential Manager 弹出 GitHub 登录窗口。
 Git 本身不会自动读取本项目的 `api.txt`。
 
-如果需要用本地 `api.txt` / `.env` 里的 GitHub token 非交互推送，使用：
+如果需要用本地 `api.txt` 里的 GitHub token 非交互推送，使用：
 
 ```powershell
 pwsh -File .\scripts\git_push_with_project_token.ps1

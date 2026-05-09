@@ -13,24 +13,6 @@ DEFAULT_BASE_URL = "https://www.runninghub.cn"
 DEFAULT_TIMEOUT = 120
 
 
-def load_dotenv(path):
-    values = {}
-    if not path.exists():
-        return values
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, value = line.split("=", 1)
-        name = name.strip()
-        value = value.strip()
-        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
-            value = value[1:-1]
-        if name:
-            values[name] = value
-    return values
-
-
 def load_api_backup(path):
     entries = {}
     if not path.exists():
@@ -61,13 +43,7 @@ def resolve_api_key(repo_root, explicit):
         if value:
             return value
 
-    dotenv_values = load_dotenv(repo_root / ".env")
-    for name in ("RUNNINGHUB_API_KEY", "RUNNINGHUB_KEY"):
-        value = dotenv_values.get(name)
-        if value:
-            return value
-
-    raise RuntimeError("Missing RunningHub API key in env, api.txt, or legacy .env.")
+    raise RuntimeError("Missing RunningHub API key in process environment or api.txt.")
 
 
 def write_json(path, data):

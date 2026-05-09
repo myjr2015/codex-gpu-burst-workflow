@@ -157,9 +157,10 @@ pytest -q
 
 1. 根目录 `config.json`：非密钥运行配置。
 2. 根目录 `api.txt`：平台账号、token、key、secret，本地私有。
-3. `.env`：旧兼容兜底，新配置不要再写这里。
+3. `.env`：不再读取；不要新建、恢复或维护。
 
-PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 读取顺序为：`config.json` -> `api.txt` -> `.env`。
+PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 读取顺序为：`config.json` -> `api.txt`。
+旧函数名 `Import-ProjectDotEnv` 只保留给老脚本兼容，不会解析 `.env` 文件。
 不要打印或提交 `api.txt`。
 
 Hugging Face / faster-whisper 模型缓存通过 `config.json` 里的 `HF_HOME` 固定到：

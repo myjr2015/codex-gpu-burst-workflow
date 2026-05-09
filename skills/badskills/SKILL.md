@@ -213,14 +213,15 @@ These failures were observed on the same branch:
   - Action: watch scripts must tolerate empty log output and print `<no relevant log lines yet>` instead of stopping the run
 
 - Symptom: local download succeeds, but `publish` fails with `Cannot bind argument to parameter 'ScriptArgs' because it is an empty string`
-  - Root cause: the controller `.env` used `ASSET_S3_*` names while the wrapper defaulted to `CLOUDFLARE_*` / `R2_*`, so empty credential values were still appended into `PublishArgs`
+  - Root cause: old controller configuration used `ASSET_S3_*` names while the wrapper defaulted to `CLOUDFLARE_*` / `R2_*`, so empty credential values were still appended into `PublishArgs`
   - Action: support `ASSET_S3_*` fallback in stage and publish scripts, and never append an arg pair when the value is blank
 
-- Symptom: `.env` is missing a platform key even though the user already backed it up locally
-  - Root cause: the key may only exist in root `api.txt`, which is intentionally ignored by Git
+- Symptom: a helper command is missing a platform key even though the user already backed it up locally
+  - Root cause: the key should exist in root `api.txt`, which is intentionally ignored by Git
   - Action:
     - read root `config.json` for non-secret runtime config
-    - read root `api.txt` for platform credentials before falling back to legacy `.env`
+    - read root `api.txt` for platform credentials
+    - do not read `.env`; it is no longer a project config source
     - never print key values; report only site names
     - keep `api.txt` in two-line repeated format: site name, then key
 
@@ -230,18 +231,18 @@ These failures were observed on the same branch:
     - do not print the token
     - stop the stuck Git process if needed
     - use `pwsh -File .\scripts\git_push_with_project_token.ps1`
-    - the helper loads `.env` / `api.txt`, passes the token through a temporary `GIT_ASKPASS`, then cleans it up
+    - the helper loads `config.json` / `api.txt`, passes the token through a temporary `GIT_ASKPASS`, then cleans it up
 
 - Symptom: standalone Vast helper commands such as `watch_vast_workflow_job.ps1` fail with `403: This action requires login`
-  - Root cause: the helper was run outside the main wrapper process, so `VAST_API_KEY` from `.env` / `api.txt` was not loaded into that process
+  - Root cause: the helper was run outside the main wrapper process, so `VAST_API_KEY` from `api.txt` was not loaded into that process
   - Action:
     - each standalone Vast PowerShell helper should import `scripts/r2_env_helpers.ps1`
-    - call `Import-ProjectDotEnv` before invoking `vastai`
+    - call `Import-ProjectLocalConfig` before invoking `vastai`
     - never paste the Vast key into command arguments
 
 - Symptom: KJ launch creates the instance, then fails while reading `vastai show instances --raw` with `403: This action requires login` or JSON parse errors beginning with `Failed with error 403`
   - Root cause: the child create-instance helper loaded `VAST_API_KEY`, but the parent launch script did not import local credentials before its follow-up `vastai show instances` polling
-  - Action: import `scripts/r2_env_helpers.ps1` and call `Import-ProjectDotEnv` in every script that calls `vastai`, including launch wrappers after instance creation
+  - Action: import `scripts/r2_env_helpers.ps1` and call `Import-ProjectLocalConfig` in every script that calls `vastai`, including launch wrappers after instance creation
 
 - Symptom: a manual pre-check says machine-registry `miss`, but the actual launched run immediately selects a previously successful machine
   - Root cause: Vast offer availability changed between the manual check and the real launch; the earlier result became stale

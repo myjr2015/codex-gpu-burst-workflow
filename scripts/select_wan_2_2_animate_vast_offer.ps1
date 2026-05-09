@@ -16,7 +16,7 @@ $repoRoot = (Resolve-Path ".").Path
 $r2HelperPath = Join-Path $repoRoot "scripts\r2_env_helpers.ps1"
 if (Test-Path -LiteralPath $r2HelperPath) {
     . $r2HelperPath
-    Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+    Import-ProjectLocalConfig -RootPath $repoRoot
 }
 $registryResolved = Join-Path $repoRoot $RegistryPath
 $selectorPy = Join-Path $repoRoot "scripts\vast_machine_registry.py"

@@ -21,7 +21,7 @@ $repoRootForEnv = (Resolve-Path ".").Path
 $r2HelperPathForEnv = Join-Path $repoRootForEnv "scripts\r2_env_helpers.ps1"
 if (Test-Path -LiteralPath $r2HelperPathForEnv) {
     . $r2HelperPathForEnv
-    Import-ProjectDotEnv -Path (Join-Path $repoRootForEnv ".env")
+    Import-ProjectLocalConfig -RootPath $repoRootForEnv
 }
 
 function Get-JobPaths {

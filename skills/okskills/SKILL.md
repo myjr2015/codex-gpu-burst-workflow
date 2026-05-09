@@ -194,7 +194,7 @@ Keep responsibilities separate:
 Local runtime config and credentials are split:
 1. root `config.json` stores non-secret runtime config
 2. root `api.txt` stores platform accounts, tokens, keys, and secrets
-3. `.env` is legacy fallback only
+3. `.env` is no longer read; do not create or maintain it
 
 Hugging Face / faster-whisper model cache is pinned by `HF_HOME` in root `config.json`:
 

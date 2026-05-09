@@ -61,7 +61,7 @@ foreach ($required in @($manifestPath, $generator, $createScript, $helpersPath, 
 
 . $helpersPath
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 
 & node $generator --manifest $manifestPath --output $onstartPath
 if ($LASTEXITCODE -ne 0) {

@@ -50,7 +50,7 @@ foreach ($required in @($createScript, $destroyScript)) {
 
 if (Test-Path -LiteralPath $r2HelperPath) {
     . $r2HelperPath
-    Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+    Import-ProjectLocalConfig -RootPath $repoRoot
 }
 
 function Get-RegistryBlacklist {

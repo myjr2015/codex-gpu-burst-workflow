@@ -76,7 +76,7 @@ foreach ($required in @($r2HelperPath, $selectorScript, $runnerScript, $stageScr
 }
 
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 
 if ($PrepareOnly) {
     & pwsh -File $stageScript `

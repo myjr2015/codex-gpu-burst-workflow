@@ -26,7 +26,7 @@ if (-not (Test-Path -LiteralPath $r2HelperPath)) {
 }
 
 . $r2HelperPath
-Import-ProjectDotEnv -Path (Join-Path $repoRoot ".env")
+Import-ProjectLocalConfig -RootPath $repoRoot
 if ([string]::IsNullOrWhiteSpace($R2AccessKeyId) -and $env:ASSET_S3_ACCESS_KEY_ID) {
     $R2AccessKeyId = $env:ASSET_S3_ACCESS_KEY_ID
 }

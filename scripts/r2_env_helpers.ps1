@@ -220,17 +220,19 @@ function Import-ProjectConfigJson {
     }
 }
 
-function Import-ProjectDotEnv {
+function Import-ProjectLocalConfig {
     param(
-        [string]$Path = ".\.env",
+        [string]$RootPath = ".",
         [string]$ApiBackupPath = "",
         [string]$ConfigPath = ""
     )
 
-    $baseDir = if ([string]::IsNullOrWhiteSpace($Path)) { "." } else { Split-Path -Parent $Path }
-    if ([string]::IsNullOrWhiteSpace($baseDir)) {
-        $baseDir = "."
+    if ([string]::IsNullOrWhiteSpace($RootPath)) {
+        $RootPath = "."
     }
+
+    $resolvedRoot = Resolve-Path -LiteralPath $RootPath -ErrorAction SilentlyContinue
+    $baseDir = if ($resolvedRoot) { $resolvedRoot.ProviderPath } else { $RootPath }
 
     if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
         $ConfigPath = Join-Path $baseDir "config.json"
@@ -243,23 +245,20 @@ function Import-ProjectDotEnv {
     }
 
     Import-ProjectApiBackup -Path $ApiBackupPath
+}
 
-    if (Test-Path -LiteralPath $Path) {
-        foreach ($line in Get-Content -LiteralPath $Path) {
-            $trimmed = $line.Trim()
-            if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
-                continue
-            }
-            $parts = $trimmed -split "=", 2
-            if ($parts.Count -ne 2) {
-                continue
-            }
-            $name = $parts[0].Trim()
-            $value = $parts[1].Trim()
-            if (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'"))) {
-                $value = $value.Substring(1, $value.Length - 2)
-            }
-            Set-ProcessEnvIfMissing -Name $name -Value $value
-        }
+function Import-ProjectDotEnv {
+    param(
+        [string]$Path = ".\.env",
+        [string]$ApiBackupPath = "",
+        [string]$ConfigPath = ""
+    )
+
+    # Compatibility wrapper only. This function no longer parses .env files.
+    $baseDir = if ([string]::IsNullOrWhiteSpace($Path)) { "." } else { Split-Path -Parent $Path }
+    if ([string]::IsNullOrWhiteSpace($baseDir)) {
+        $baseDir = "."
     }
+
+    Import-ProjectLocalConfig -RootPath $baseDir -ApiBackupPath $ApiBackupPath -ConfigPath $ConfigPath
 }

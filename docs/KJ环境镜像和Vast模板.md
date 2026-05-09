@@ -63,8 +63,9 @@ pwsh -File .\scripts\bootstrap_github_actions_dockerhub.ps1
 
 密钥读取规则：
 
-- 先读 `.env`
-- 再读 `api.txt`
+- 非密钥配置读根目录 `config.json`
+- 密钥只读根目录 `api.txt`
+- `.env` 不再读取，存在也会被忽略
 - 当前默认走 DockerHub v3，因为 GHCR v3 在本地/Vast 拉取侧需要 `read:packages`，当前本地 GitHub token scopes 只有 `gist, repo, workflow`，manifest 检查会返回 `401`。
 - `DockerHub` 对应 DockerHub token。
 - `DockerHub Username` 对应 DockerHub 用户名。
@@ -93,7 +94,7 @@ pwsh -File .\scripts\create_vast_wan22_kj_env_template.ps1 `
 -PrivateRegistryLogin -RegistryHost docker.io -RegistryUsername j1c2k3
 ```
 
-`RegistryToken` 默认从 `.env` / `api.txt` 的 DockerHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
+`RegistryToken` 默认从 `api.txt` 的 DockerHub token 读取，不要把 token 写进命令行。实例创建脚本会对命令输出做脱敏。
 
 创建后记录返回的 `template_hash_id`，然后设置：
 
