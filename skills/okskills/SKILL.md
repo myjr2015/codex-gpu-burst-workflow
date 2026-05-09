@@ -189,11 +189,12 @@ Keep responsibilities separate:
 - Vast:
   - temporary execution only
 
-## Local Key Fallback
+## Local Config And Key Fallback
 
-Credential lookup order for this branch:
-1. read `.env`
-2. if the needed key is still missing, read root `api.txt`
+Local runtime config and credentials are split:
+1. root `config.json` stores non-secret runtime config
+2. root `api.txt` stores platform accounts, tokens, keys, and secrets
+3. `.env` is legacy fallback only
 
 `api.txt` is local-only and must stay ignored by Git.
 Its format is exactly:
@@ -205,15 +206,19 @@ key
 
 Known site names used by the automation:
 - `RunComfy`
+- `RunComfy.com`
 - `Cloudflare API Token`
 - `Cloudflare Account ID`
 - `Cloudflare R2 AccessKeyId`
 - `Cloudflare R2 SecretAccessKey`
+- `Cloudflare_R2`
 - `Vast.ai`
 - `GitHub`
 - `GitHub PAT 用户给过`
 - `DockerHub`
 - `RunPod`
+- `runpod.io`
+- `runninghub.cn`
 
 Do not print `api.txt` values in logs or chat.
 Only report which site names exist.

@@ -151,14 +151,16 @@ Python 测试：
 pytest -q
 ```
 
-## 密钥
+## 本地配置和密钥
 
-本地密钥读取顺序：
+本地配置和密钥分开管理：
 
-1. `.env`
-2. 根目录 `api.txt`
+1. 根目录 `config.json`：非密钥运行配置。
+2. 根目录 `api.txt`：平台账号、token、key、secret，本地私有。
+3. `.env`：旧兼容兜底，新配置不要再写这里。
 
-不要打印或提交 `api.txt`。PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 做 fallback。
+PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 读取顺序为：`config.json` -> `api.txt` -> `.env`。
+不要打印或提交 `api.txt`。
 
 ## 收尾
 

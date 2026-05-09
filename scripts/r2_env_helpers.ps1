@@ -160,8 +160,12 @@ function Import-ProjectApiBackup {
     $cloudflareAccountId = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare Account ID")
     $r2AccessKeyId = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare R2 AccessKeyId", "Cloudflare_R2 AccessKeyId", "Cloudflare_R2")
     $r2SecretAccessKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("Cloudflare R2 SecretAccessKey", "Cloudflare_R2 SecretAccessKey")
+    $runComfyApiKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("RunComfy", "RunComfy.com", "RunComfy API Key")
+    $runningHubApiKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("RunningHub", "runninghub", "runninghub.cn", "RunningHub API Key")
+    $vastApiKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("Vast.ai", "vast.ai", "Vast")
+    $runPodApiKey = Get-ProjectApiBackupEntry -Entries $entries -Names @("RunPod", "runpod.io", "RunPod API Key")
 
-    Set-ProcessEnvIfMissing -Name "RUNCOMFY_API_KEY" -Value $entries["RunComfy"]
+    Set-ProcessEnvIfMissing -Name "RUNCOMFY_API_KEY" -Value $runComfyApiKey
     Set-ProcessEnvIfMissing -Name "CLOUDFLARE_API_TOKEN" -Value $cloudflareApiToken
     Set-ProcessEnvIfMissing -Name "CLOUDFLARE_ACCOUNT_ID" -Value $cloudflareAccountId -Force
     Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCOUNT_ID" -Value $cloudflareAccountId -Force
@@ -169,7 +173,9 @@ function Import-ProjectApiBackup {
     Set-ProcessEnvIfMissing -Name "ASSET_S3_ACCESS_KEY_ID" -Value $r2AccessKeyId -Force
     Set-ProcessEnvIfMissing -Name "R2_SECRET_ACCESS_KEY" -Value $r2SecretAccessKey -Force
     Set-ProcessEnvIfMissing -Name "ASSET_S3_SECRET_ACCESS_KEY" -Value $r2SecretAccessKey -Force
-    Set-ProcessEnvIfMissing -Name "VAST_API_KEY" -Value $entries["Vast.ai"]
+    Set-ProcessEnvIfMissing -Name "VAST_API_KEY" -Value $vastApiKey
+    Set-ProcessEnvIfMissing -Name "RUNNINGHUB_API_KEY" -Value $runningHubApiKey
+    Set-ProcessEnvIfMissing -Name "RUNNINGHUB_KEY" -Value $runningHubApiKey
     Set-ProcessEnvIfMissing -Name "GITHUB_TOKEN" -Value $entries["GitHub"]
     Set-ProcessEnvIfMissing -Name "GH_TOKEN" -Value $entries["GitHub"]
     if (-not [Environment]::GetEnvironmentVariable("GITHUB_TOKEN", "Process")) {
@@ -180,15 +186,63 @@ function Import-ProjectApiBackup {
     }
     Set-ProcessEnvIfMissing -Name "DOCKERHUB_TOKEN" -Value $entries["DockerHub"]
     Set-ProcessEnvIfMissing -Name "DOCKERHUB_USERNAME" -Value $entries["DockerHub Username"]
-    Set-ProcessEnvIfMissing -Name "RUNPOD_API_KEY" -Value $entries["RunPod"]
+    Set-ProcessEnvIfMissing -Name "RUNPOD_API_KEY" -Value $runPodApiKey
     Set-ProcessEnvIfMissing -Name "OPENAI_API_KEY" -Value $entries["OpenAI"]
+}
+
+function Import-ProjectConfigJson {
+    param(
+        [string]$Path = ".\config.json"
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $raw = Get-Content -LiteralPath $Path -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return
+    }
+
+    $config = $raw | ConvertFrom-Json -ErrorAction Stop
+    foreach ($property in $config.PSObject.Properties) {
+        $name = $property.Name.Trim()
+        $value = $property.Value
+        if ([string]::IsNullOrWhiteSpace($name) -or $null -eq $value) {
+            continue
+        }
+
+        if ($value -is [System.Array] -or $value -is [System.Management.Automation.PSCustomObject]) {
+            continue
+        }
+
+        Set-ProcessEnvIfMissing -Name $name -Value ([string]$value)
+    }
 }
 
 function Import-ProjectDotEnv {
     param(
         [string]$Path = ".\.env",
-        [string]$ApiBackupPath = ""
+        [string]$ApiBackupPath = "",
+        [string]$ConfigPath = ""
     )
+
+    $baseDir = if ([string]::IsNullOrWhiteSpace($Path)) { "." } else { Split-Path -Parent $Path }
+    if ([string]::IsNullOrWhiteSpace($baseDir)) {
+        $baseDir = "."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+        $ConfigPath = Join-Path $baseDir "config.json"
+    }
+
+    Import-ProjectConfigJson -Path $ConfigPath
+
+    if ([string]::IsNullOrWhiteSpace($ApiBackupPath)) {
+        $ApiBackupPath = Join-Path $baseDir "api.txt"
+    }
+
+    Import-ProjectApiBackup -Path $ApiBackupPath
 
     if (Test-Path -LiteralPath $Path) {
         foreach ($line in Get-Content -LiteralPath $Path) {
@@ -208,14 +262,4 @@ function Import-ProjectDotEnv {
             Set-ProcessEnvIfMissing -Name $name -Value $value
         }
     }
-
-    if ([string]::IsNullOrWhiteSpace($ApiBackupPath)) {
-        $baseDir = if ([string]::IsNullOrWhiteSpace($Path)) { "." } else { Split-Path -Parent $Path }
-        if ([string]::IsNullOrWhiteSpace($baseDir)) {
-            $baseDir = "."
-        }
-        $ApiBackupPath = Join-Path $baseDir "api.txt"
-    }
-
-    Import-ProjectApiBackup -Path $ApiBackupPath
 }

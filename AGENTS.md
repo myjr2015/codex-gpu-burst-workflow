@@ -309,12 +309,19 @@ pwsh -File .\scripts\watch_vast_workflow_job.ps1 `
 - 新 workflow 要上 Vast 跑时，必须先确认输入节点、输出文件匹配、依赖节点和模型清单，再新增 profile 或专用 stage 脚本。
 - `output/wan_2_2_animate/<job_name>/workflow_canvas.json` 和 `workflow_runtime.json` 是每次运行自动生成的副本，不要当源文件维护。
 
-## 本地密钥兜底
+## 本地配置和密钥
 
-本地 key 读取顺序：
+本地运行配置和密钥分开管理：
 
-1. 先读 `.env`
-2. 如果 `.env` 没有对应 key，再读根目录 `api.txt`
+1. 根目录 `config.json`：只放非密钥运行配置，例如 API base URL、本机工具路径、R2 bucket / public URL / prefix、转写和重写模型名。
+2. 根目录 `api.txt`：只放平台账号、token、key、secret。
+3. `.env`：仅作为旧脚本兼容兜底；新增配置和新增密钥默认不要再写入 `.env`。
+
+PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动读取：
+
+1. 先读根目录 `config.json`
+2. 再读根目录 `api.txt`
+3. 最后才读 `.env` 补旧值
 
 `api.txt` 是本地明文备份，只允许使用这种格式：
 
@@ -341,7 +348,8 @@ r2_secret_access_key
 
 - 不要把 `api.txt` 内容打印到聊天或终端。
 - 不要提交 `api.txt`，它必须保持在 `.gitignore`。
-- 新增平台 key 时，先写入 `api.txt`，再按需同步到 `.env`。
+- 新增平台 key 时，写入 `api.txt`；不要再同步到 `.env`。
+- 新增非密钥配置时，写入根目录 `config.json`；不要再新增 `.env` 字段。
 - PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
 - R2 相关入口会优先使用 `api.txt` 里的 `Cloudflare Account ID` 和 `Cloudflare_R2` 块，避免旧 `.env` 里的 R2 值阻塞发布或上传。
 - 早期 RunComfy / Node CLI 入口已移除；当前生产密钥 fallback 以 PowerShell helper 为准。

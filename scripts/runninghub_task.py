@@ -55,19 +55,19 @@ def resolve_api_key(repo_root, explicit):
         if value:
             return value
 
-    dotenv_values = load_dotenv(repo_root / ".env")
-    for name in ("RUNNINGHUB_API_KEY", "RUNNINGHUB_KEY"):
-        value = dotenv_values.get(name)
-        if value:
-            return value
-
     backup_values = load_api_backup(repo_root / "api.txt")
     for name in ("RunningHub", "runninghub", "runninghub.cn", "RunningHub API Key"):
         value = backup_values.get(name)
         if value:
             return value
 
-    raise RuntimeError("Missing RunningHub API key in env, .env, or api.txt.")
+    dotenv_values = load_dotenv(repo_root / ".env")
+    for name in ("RUNNINGHUB_API_KEY", "RUNNINGHUB_KEY"):
+        value = dotenv_values.get(name)
+        if value:
+            return value
+
+    raise RuntimeError("Missing RunningHub API key in env, api.txt, or legacy .env.")
 
 
 def write_json(path, data):

@@ -219,8 +219,8 @@ These failures were observed on the same branch:
 - Symptom: `.env` is missing a platform key even though the user already backed it up locally
   - Root cause: the key may only exist in root `api.txt`, which is intentionally ignored by Git
   - Action:
-    - read `.env` first
-    - if the required key is blank, read `api.txt`
+    - read root `config.json` for non-secret runtime config
+    - read root `api.txt` for platform credentials before falling back to legacy `.env`
     - never print key values; report only site names
     - keep `api.txt` in two-line repeated format: site name, then key
 

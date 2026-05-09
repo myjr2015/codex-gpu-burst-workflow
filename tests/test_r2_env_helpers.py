@@ -53,6 +53,137 @@ class R2EnvHelperTests(unittest.TestCase):
 
             self.assertEqual(completed.stdout.strip(), "test-key")
 
+    def test_import_project_dotenv_reads_root_config_json_when_env_is_missing(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            config_path = temp_root / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "ASSET_S3_BUCKET": "json-bucket",
+                        "RUNCOMFY_BASE_URL": "https://api.example.test/v1",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:ASSET_S3_BUCKET -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:RUNCOMFY_BASE_URL -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "$result = @{ bucket=$env:ASSET_S3_BUCKET; baseUrl=$env:RUNCOMFY_BASE_URL }; "
+                "ConvertTo-Json -InputObject $result -Compress"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads(completed.stdout.strip()),
+                {
+                    "bucket": "json-bucket",
+                    "baseUrl": "https://api.example.test/v1",
+                },
+            )
+
+    def test_import_project_dotenv_prefers_config_json_over_legacy_env_values(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            config_path = temp_root / "config.json"
+            env_path.write_text("ASSET_S3_BUCKET=legacy-bucket\n", encoding="utf-8")
+            config_path.write_text(json.dumps({"ASSET_S3_BUCKET": "json-bucket"}), encoding="utf-8")
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:ASSET_S3_BUCKET -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "Write-Output $env:ASSET_S3_BUCKET"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(completed.stdout.strip(), "json-bucket")
+
+    def test_import_project_dotenv_maps_common_api_txt_site_aliases(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            api_path = temp_root / "api.txt"
+            api_path.write_text(
+                "RunComfy.com\nruncomfy-key\n\n"
+                "runninghub.cn\nrunninghub-key\n\n"
+                "runpod.io\nrunpod-key\n\n",
+                encoding="utf-8",
+            )
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:RUNCOMFY_API_KEY -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:RUNNINGHUB_API_KEY -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:RUNNINGHUB_KEY -ErrorAction SilentlyContinue; "
+                "Remove-Item Env:RUNPOD_API_KEY -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "$result = @{ runcomfy=$env:RUNCOMFY_API_KEY; runninghub=$env:RUNNINGHUB_API_KEY; runninghubAlias=$env:RUNNINGHUB_KEY; runpod=$env:RUNPOD_API_KEY }; "
+                "ConvertTo-Json -InputObject $result -Compress"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(
+                json.loads(completed.stdout.strip()),
+                {
+                    "runcomfy": "runcomfy-key",
+                    "runninghub": "runninghub-key",
+                    "runninghubAlias": "runninghub-key",
+                    "runpod": "runpod-key",
+                },
+            )
+
+    def test_import_project_dotenv_prefers_api_txt_over_legacy_env_for_secret_values(self):
+        helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            env_path = temp_root / ".env"
+            api_path = temp_root / "api.txt"
+            env_path.write_text("RUNCOMFY_API_KEY=legacy-runcomfy-key\n", encoding="utf-8")
+            api_path.write_text("RunComfy.com\napi-runcomfy-key\n\n", encoding="utf-8")
+            command = (
+                f". '{helper_path}'; "
+                "Remove-Item Env:RUNCOMFY_API_KEY -ErrorAction SilentlyContinue; "
+                f"Import-ProjectDotEnv -Path '{env_path}'; "
+                "Write-Output $env:RUNCOMFY_API_KEY"
+            )
+
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-Command", command],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            self.assertEqual(completed.stdout.strip(), "api-runcomfy-key")
+
     def test_import_project_dotenv_falls_back_to_api_txt_for_missing_keys(self):
         helper_path = ROOT / "scripts" / "r2_env_helpers.ps1"
         with tempfile.TemporaryDirectory() as temp_dir:
