@@ -7,6 +7,7 @@
   "FASTER_WHISPER_DEVICE": "auto",
   "FASTER_WHISPER_COMPUTE_TYPE": "int8",
   "FASTER_WHISPER_BEAM_SIZE": "5",
+  "HF_HOME": ".\\.cache\\huggingface",
   "ASSET_S3_ENDPOINT": "https://4aa19d68af34d61d2fac61c5da4d2c45.r2.cloudflarestorage.com",
   "ASSET_S3_REGION": "auto",
   "ASSET_S3_BUCKET": "runcomfy",

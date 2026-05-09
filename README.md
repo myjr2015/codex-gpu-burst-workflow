@@ -162,6 +162,12 @@ pytest -q
 PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 读取顺序为：`config.json` -> `api.txt` -> `.env`。
 不要打印或提交 `api.txt`。
 
+Hugging Face / faster-whisper 模型缓存通过 `config.json` 里的 `HF_HOME` 固定到：
+
+```text
+.cache/huggingface
+```
+
 ## 收尾
 
 每次做完清理、重命名、跑通测试或规则修改后检查：

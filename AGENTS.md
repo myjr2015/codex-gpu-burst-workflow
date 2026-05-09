@@ -350,6 +350,7 @@ r2_secret_access_key
 - 不要提交 `api.txt`，它必须保持在 `.gitignore`。
 - 新增平台 key 时，写入 `api.txt`；不要再同步到 `.env`。
 - 新增非密钥配置时，写入根目录 `config.json`；不要再新增 `.env` 字段。
+- Hugging Face / faster-whisper 模型缓存默认通过 `config.json` 的 `HF_HOME` 固定到根目录 `.cache/huggingface`，不要再让它回落到 `C:\Users\myjr2\.cache\huggingface`。
 - PowerShell 入口通过 `scripts/r2_env_helpers.ps1` 自动做 fallback。
 - R2 相关入口会优先使用 `api.txt` 里的 `Cloudflare Account ID` 和 `Cloudflare_R2` 块，避免旧 `.env` 里的 R2 值阻塞发布或上传。
 - 早期 RunComfy / Node CLI 入口已移除；当前生产密钥 fallback 以 PowerShell helper 为准。

@@ -196,6 +196,14 @@ Local runtime config and credentials are split:
 2. root `api.txt` stores platform accounts, tokens, keys, and secrets
 3. `.env` is legacy fallback only
 
+Hugging Face / faster-whisper model cache is pinned by `HF_HOME` in root `config.json`:
+
+```text
+.\.cache\huggingface
+```
+
+Do not let this path fall back to `C:\Users\myjr2\.cache\huggingface` unless the user explicitly asks for global user-level caching.
+
 `api.txt` is local-only and must stay ignored by Git.
 Its format is exactly:
 
