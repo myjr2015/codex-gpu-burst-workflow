@@ -636,3 +636,82 @@ If you need the shortest path back to production:
 - keep R2 as staging + archive
 - use `1.0-cold` by default
 - use `1.1-machine-registry` only to prefer known successful machines and probe for real cache hits
+
+## HeyGem + IndexTTS2 Direct Parent Container Smoke
+
+2026-05-25 已跑通 `workflows/Heygem数字人+IndexTTS文字对口型.json` 的临时 Vast smoke。
+
+输入契约：
+- 本地素材目录：`素材资产/new/`
+- 输入视频：`视频.mp4`
+- 参考声音：`声音.MP3`
+- 文案：`文案.txt`
+- 运行工作流：`HeyGemRun + IndexTTS2Run + LoadVideo/GetVideoComponents/CreateVideo/SaveVideo`
+
+已验证可用路线：
+- 走 `onstart_heygem_direct_parent.sh` 的 HeyGem 父容器方案，不走嵌套 Docker。
+- 运行镜像使用 `guiji2025/heygem.ai:latest` 启动 HeyGem 服务。
+- ComfyUI 使用独立 Python 3.10 venv：`/workspace/comfy310-venv`。
+- ComfyUI 侧 torch 使用 `torch 2.6.0+cu124`，3090 上可正常启动并识别 CUDA。
+- HeyGem 节点临时目录必须对齐父容器路径：`Comfyui_HeyGem/heygem_node.py` 里 `TEMP_DIR='/code/data'`。
+- 原 workflow 的 `RH_HeyGemNode` 在当前节点包中不存在，运行 prompt 映射为 `HeyGemRun`。
+- `HeyGemRun` 接收的是 `IMAGE` 帧序列，不能直接吃新版 `VIDEO`，需要 `LoadVideo -> GetVideoComponents -> HeyGemRun -> CreateVideo -> SaveVideo`。
+- `IndexTTS2Run.deepspeed=true` 可触发节点内部 DeepSpeed 失败后回退标准推理；`deepspeed=false` 反而会在初始化时硬导入 `deepspeed` 并失败。
+
+本次成功实例：
+- Vast instance `37738989`
+- GPU `RTX 3090 24GB`
+- ComfyUI 端口：`8188 -> 25268`
+- HeyGem 端口：`8383 -> 25066`
+- prompt id：`4d88c1ec-ede0-4e0c-a751-5a4acefe7359`
+- ComfyUI history 状态：`execution_success`
+- 正式下载：`output/heygem_indextts_smoke/heygem-indextts-new-20260525-01/downloads/heygem-indextts-new-20260525-01_00001_.mp4`
+- 保底直接产物：`output/heygem_indextts_smoke/heygem-indextts-new-20260525-01/downloads/heygem-direct-ffb04721-9bb7-4a79-b536-1d0aabd3ecb0-r.mp4`
+
+输出规格：
+- 正式 ComfyUI 输出：`1088x1920`，`30fps`，约 `18.066984s`，H.264 + AAC，约 `7.75MB`。
+- HeyGem 直接输出：`1088x1920`，`30fps`，约 `18.160998s`，H.264 + AAC，约 `13.0MB`。
+
+模型清单：
+- `nvidia/bigvgan_v2_22khz_80band_256x`
+- `funasr/campplus`
+- `IndexTeam/IndexTTS-2`
+- `amphion/MaskGCT`
+- `facebook/w2v-bert-2.0`
+
+收尾规则：
+- 成功后先从 ComfyUI `/history/<prompt_id>` 读取真实输出名，再用 `/view` 下载。
+- 如果 HeyGem 已产出 `/code/data/temp/<taskcode>-r.mp4` 但 ComfyUI 二次封装还没结束，先下载该直接产物保底。
+- 任务完成后必须销毁实例；本次 `37738989` 已销毁，加载项目本地 Vast key 后 `vastai show instances --raw` 返回 `[]`。
+
+2026-05-26 继续用同一路线跑通移动视频素材：
+- 本地素材目录：`素材资产/new/`
+- 输入视频：`移动的视频.mp4`
+- 参考声音：`声音.MP3`
+- 文案：`文案.txt`
+- Vast instance `37763730`
+- host `385807`
+- machine `53409`
+- GPU `RTX 3090 24GB`
+- driver `535.309.01`
+- ComfyUI：`0.22.0`
+- PyTorch：`2.6.0+cu118`
+- prompt id：`21d20257-dfb5-4c4f-ad8a-3919c8afec6a`
+- ComfyUI history 状态：`execution_success`
+- 正式下载：`output/heygem_indextts_smoke/heygem-indextts-moving-20260525-01/downloads/heygem-indextts-moving-20260525-01_00001_.mp4`
+- 保底直接产物：`output/heygem_indextts_smoke/heygem-indextts-moving-20260525-01/downloads/heygem-temp-66feca90-r.mp4`
+
+移动视频输出规格：
+- 正式 ComfyUI 输出：`720x1280`，`30fps`，约 `17.866984s`，H.264 + AAC，约 `5.58MB`。
+- HeyGem 直接输出：`720x1280`，`30fps`，约 `17.927982s`，H.264 + AAC，约 `10.06MB`。
+
+移动视频耗时证据：
+- `IndexTTS2Run` 标准回退推理：`34.11s`，生成音频约 `17.93s`。
+- HeyGem 服务日志：`耗时:65.808s`。
+- ComfyUI 整体 prompt：`173.85s`。
+- 移动视频这次不是画面静止图，说明 `LoadVideo -> GetVideoComponents -> HeyGemRun -> CreateVideo -> SaveVideo` 对移动源视频也可跑通。
+
+兼容性补充：
+- `driver 535.309.01` 机器不要强行装 `cu124`；本次用 `torch 2.6.0+cu118` 跑通。
+- `DeepSpeed加载失败，回退到标准推理: No module named 'deepspeed'` 是本路线已接受的正常回退，不影响输出。
+- 如果本地 `vastai` CLI 在销毁/查询时卡住，可加载项目 `VAST_API_KEY` 后直接调用 Vast API `DELETE /api/v0/instances/<id>/`；本次销毁 `37763730` 返回 `success:true`，复查实例详情 `instances:null`、活动实例匹配数 `0`、SSH 连接拒绝。

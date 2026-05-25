@@ -573,3 +573,41 @@ Rule:
 - If the before/after sheet does not clearly remove text/bubbles while preserving face, hands, body, legs, and clothing, stop before `stage` / `inference`.
 - For 2.1/2.2 validation, run the segmented entry with `-ReferenceRiskPolicy FailOnHigh`; do not bypass a high-risk preflight report just because the previous B2 output passed once.
 - For this source, prefer a clean reference video, manual/professional cleanup, or stronger semantic/video object-removal tools tested on 1s windows first.
+
+## HeyGem + IndexTTS2 Smoke Traps
+
+- Symptom: RTX 5060 Ti 16GB 上 HeyGem 服务或 torch 推理报 `CUDA error: no kernel image is available for execution on the device`
+  - Root cause: `guiji2025/heygem.ai:latest` 内置 `torch 2.2.2+cu118` 不支持 RTX 50 系 compute capability `12.0`。
+  - Evidence from 2026-05-25 instance `37735878`：不是显存不足，而是 CUDA kernel 架构不兼容。
+  - Action: 这个镜像当前不要继续租 5060 Ti 跑完整 HeyGem；如果 Vast 没有已验证支持 RTX 50 系的新 HeyGem 镜像/torch 栈，回退 `RTX 3090 24GB`。
+
+- Symptom: `IndexTTS2Run` 使用 `deepspeed=false` 仍报 `No module named 'deepspeed'`
+  - Root cause: 当前 `ComfyUI_IndexTTS/indexttsnode.py` 在初始化 `IndexTTS2` 时硬编码调用 `post_init_gpt2_config(use_deepspeed=True, ...)`，`deepspeed=false` 反而走到未捕获导入错误。
+  - Action: 运行 prompt 里把 `IndexTTS2Run.deepspeed=true`，让节点进入已有 fallback：`DeepSpeed加载失败，回退到标准推理`。不要先花时间安装 deepspeed。
+
+- Symptom: 原 workflow 节点 `RH_HeyGemNode` 在远端 ComfyUI 不存在
+  - Root cause: 当前安装的 HeyGem custom node 暴露类名是 `HeyGemRun`。
+  - Action: 运行 prompt 里映射到 `HeyGemRun`，并确认输入类型。`HeyGemRun` 要吃 `IMAGE` 帧序列，不是新版 `VIDEO` 对象。
+
+- Symptom: HeyGem 父容器服务能访问，但 ComfyUI 节点提交后找不到输入文件或服务没有处理任务
+  - Root cause: 父容器方案里 HeyGem 服务读取 `/code/data/temp/...`，ComfyUI 节点默认临时目录可能不是这个路径。
+  - Action: 在远端 `Comfyui_HeyGem/heygem_node.py` 设置 `TEMP_DIR='/code/data'`，并确保音频和中间视频都写到 `/code/data/temp`。
+
+- Symptom: HeyGem 已生成 `/code/data/temp/<taskcode>-r.mp4`，但 ComfyUI `SaveVideo` 迟迟不落盘或先出现 48 字节占位 MP4
+  - Root cause: HeyGem 节点轮询和 ComfyUI 二次封装可能存在延迟；不能因为输出目录短暂出现小文件就判断成功或失败。
+  - Evidence from 2026-05-25：直接 HeyGem 产物 `ffb04721-9bb7-4a79-b536-1d0aabd3ecb0-r.mp4` 已生成后，ComfyUI 正式输出稍后才变为完整 `7.75MB` 文件并写入 history。
+  - Action: 先保底下载 `/code/data/temp/<taskcode>-r.mp4`；再等 `/history/<prompt_id>` 的 `execution_success` 和真实输出名，通过 `/view` 下载正式文件。不要猜文件名。
+
+- Symptom: `vastai show instances --raw` 返回 `403: This action requires login`
+  - Root cause: 当前 shell 没有加载项目 `api.txt` 里的 `VAST_API_KEY`。
+  - Action: 先执行 `. .\scripts\r2_env_helpers.ps1; Import-ProjectLocalConfig | Out-Null`，再跑 `vastai show instances --raw`。不要把 Vast key 打到命令行或聊天。
+
+- Symptom: 3090 机器 driver `535.*` 上 ComfyUI torch 改成 `cu124` 后无法稳定作为默认选择
+  - Root cause: `535.309.01` 驱动对当前 ComfyUI / PyTorch 组合更适合 `cu118` 路线；不要照搬另一台 3090 的 `cu124` 结论。
+  - Evidence from 2026-05-26 instance `37763730`：最终栈为 `torch 2.6.0+cu118`、`cuda 11.8`、CUDA 可用，并成功跑出移动视频。
+  - Action: HeyGem 父容器方案遇到 `driver 535.*` 时优先使用 `torch 2.6.0+cu118`；只有新驱动机器再考虑 `cu124`。
+
+- Symptom: `vastai destroy instance` 或 `vastai show instances --raw` 在本地长时间卡住，但远端 SSH/ComfyUI 仍在线
+  - Root cause: 本地 Vast CLI 调用可能卡在网络/API 等待，不代表实例已销毁。
+  - Evidence from 2026-05-26 instance `37763730`：`destroy_vast_instance.ps1` 超时后，SSH 仍返回 `alive`，ComfyUI `/system_stats` 仍是 `200`。
+  - Action: 不要假设销毁成功；先停止本轮超时残留的本地 `vastai` 进程，再加载 `VAST_API_KEY`，直接调用 Vast API `DELETE https://console.vast.ai/api/v0/instances/<id>/`。销毁后必须复查：实例详情为 `instances:null`，活动实例列表无匹配，SSH 拒绝连接或端口不可用。
