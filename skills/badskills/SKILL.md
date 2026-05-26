@@ -611,3 +611,18 @@ Rule:
   - Root cause: 本地 Vast CLI 调用可能卡在网络/API 等待，不代表实例已销毁。
   - Evidence from 2026-05-26 instance `37763730`：`destroy_vast_instance.ps1` 超时后，SSH 仍返回 `alive`，ComfyUI `/system_stats` 仍是 `200`。
   - Action: 不要假设销毁成功；先停止本轮超时残留的本地 `vastai` 进程，再加载 `VAST_API_KEY`，直接调用 Vast API `DELETE https://console.vast.ai/api/v0/instances/<id>/`。销毁后必须复查：实例详情为 `instances:null`，活动实例列表无匹配，SSH 拒绝连接或端口不可用。
+
+- Symptom: 74s 视频 / 143s TTS 音频用 ComfyUI `LoadVideo -> GetVideoComponents -> HeyGemRun` 跑 720p 时实例 OOM。
+  - Root cause: 这条 ComfyUI 路线会把长视频展开为 `IMAGE` tensor 序列；`720x1280`、`143s`、`30fps` 会吃掉大量内存，当前父容器 cgroup 内存上限约 `119GB`，会触发 `oom_kill`。
+  - Evidence from 2026-05-26 instance `37835034`：720p ComfyUI prompt `0d01c705-463d-4e33-97ba-f919a57924e7` 和 direct-audio prompt `93e0ffe6-11f1-4bb4-af4f-fa2d31981c85` 都失败；随后绕开 ComfyUI、直接调用 HeyGem 父服务 `/easy/submit` 成功生成 720p 和 1080p。
+  - Action: HeyGem 长视频不要走 ComfyUI 展帧节点。先用 `ffmpeg` 把视频补到音频时长，再提交文件级 `audio_url` + `video_url` 到父服务 `/easy/submit`。
+
+- Symptom: HeyGem 父服务长视频任务卡在约 `20%` 或日志出现 `libgomp: Thread creation failed`。
+  - Root cause: HeyGem 父服务和底层数值库默认线程过多，长视频并发阶段容易触发线程创建失败。
+  - Evidence from 2026-05-26 instance `37835034`：限制线程后重启 `/code/app_local.py`，同一实例完成 `143.336s` 的 720p 和 1080p。
+  - Action: 重启 HeyGem 父服务时固定限制线程：`OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 OMP_THREAD_LIMIT=1`。
+
+- Symptom: `scp` 下载 1080p HeyGem 输出长时间超时，本地只留下 `0` 字节文件。
+  - Root cause: Windows 本地 `scp` 默认 SFTP 通道可能卡住，不代表远端文件损坏。
+  - Evidence from 2026-05-26 `heygem74_1080p_file_20260526_01-r.mp4`：第一次 `scp` 超时后本地为 `0` 字节，远端文件完整约 `229MB`；清理远端 `sftp-server` 后用 `scp -O` legacy scp 模式成功下载。
+  - Action: 先用 `ls -lh` 确认远端文件大小；如本地是 0 字节占位，杀掉残留 `sftp-server`，改用 `scp -O` 重新下载。

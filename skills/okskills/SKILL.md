@@ -715,3 +715,43 @@ If you need the shortest path back to production:
 - `driver 535.309.01` 机器不要强行装 `cu124`；本次用 `torch 2.6.0+cu118` 跑通。
 - `DeepSpeed加载失败，回退到标准推理: No module named 'deepspeed'` 是本路线已接受的正常回退，不影响输出。
 - 如果本地 `vastai` CLI 在销毁/查询时卡住，可加载项目 `VAST_API_KEY` 后直接调用 Vast API `DELETE /api/v0/instances/<id>/`；本次销毁 `37763730` 返回 `success:true`，复查实例详情 `instances:null`、活动实例匹配数 `0`、SSH 连接拒绝。
+
+2026-05-26 跑通 HeyGem 74s 视频 + 673 中文文案的 720p / 1080p 对比：
+- 本地 job：`output/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01`
+- 输入视频：`素材资产/new/视频74s.mp4`
+- 文案：`673` 个中文字符
+- TTS 音频：约 `143.336s`
+- Vast instance `37835034`
+- host `203531`
+- machine `49903`
+- GPU `RTX 3090 24GB`
+- geolocation `Bulgaria, BG`
+- 运行路线：继续使用 `onstart_heygem_direct_parent.sh` 的 HeyGem 父容器方案，但长视频阶段绕开 ComfyUI `LoadVideo -> GetVideoComponents -> HeyGemRun`，改为直接调用 HeyGem 父服务 `/easy/submit`。
+- 直接提交契约：
+  - 先用 `ffmpeg` 把 74s 视频按 pingpong 方式补到 TTS 音频长度。
+  - 把补长后的视频放到 `/code/data/temp/<code>.mp4`。
+  - 把 TTS 音频放到 `/code/data/temp/tts_673chars_143s.wav`。
+  - 提交 payload：`audio_url`、`video_url`、`code`、`watermark_switch=0`、`digital_auth=0`、`chaofen=0`、`pn=0`。
+- HeyGem 父服务需要用线程限制启动，避免长视频阶段 `libgomp: Thread creation failed`：
+  - `OMP_NUM_THREADS=1`
+  - `OPENBLAS_NUM_THREADS=1`
+  - `MKL_NUM_THREADS=1`
+  - `NUMEXPR_NUM_THREADS=1`
+  - `OMP_THREAD_LIMIT=1`
+
+输出和耗时：
+- 720p 任务码：`heygem74_720p_file_20260526_03`
+- 720p 本地输出：`output/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/downloads/heygem74_720p_file_20260526_03-r.mp4`
+- 720p 规格：`720x1280`，`30fps`，`143.336009s`，H.264 + AAC，约 `125.49MB`
+- 720p HeyGem 服务耗时：`278.416s`
+- 720p R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/output/heygem74_720p_file_20260526_03-r.mp4`
+- 1080p 任务码：`heygem74_1080p_file_20260526_01`
+- 1080p 本地输出：`output/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/downloads/heygem74_1080p_file_20260526_01-r.mp4`
+- 1080p 规格：`1080x1920`，`30fps`，`143.336009s`，H.264 + AAC，约 `239.83MB`
+- 1080p 预处理耗时：`49.071s`
+- 1080p HeyGem 服务耗时：`356.793s`
+- 1080p R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/output/heygem74_1080p_file_20260526_01-r.mp4`
+- 耗时报告：`output/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/heygem-74s-720p-vs-1080p-timing-summary.json`
+- 耗时报告 R2：`https://pub-9bd0a6fd057f4ec9b2938513e07e229a.r2.dev/runcomfy-inputs/heygem_indextts_smoke/heygem-indextts-74s-compare-20260526-01/output/heygem-74s-720p-vs-1080p-timing-summary.json`
+- 对比结论：同一 3090、同一 `143.336s` 音频，1080p HeyGem 服务耗时比 720p 多 `78.377s`，约 `1.282x`；折算每生成 1 分钟，720p 约 `116.544s`，1080p 约 `149.352s`。
+- 本次实例已销毁：`vastai show instances --raw` 返回 `[]`，SSH 复查连接拒绝。
